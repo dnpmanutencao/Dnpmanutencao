@@ -3,7 +3,7 @@
 'use strict';
 
 var API_URL = 'https://script.google.com/macros/s/AKfycbwlOXiIzS4mSxtW_xriuBU3rhlDIqp4fPvYOD7_o82ctZgL4AIuUVuXfIokqmQ67DiJ/exec';
-var VERSAO = '1.5.0';
+var VERSAO = '1.5.1';
 var ESP_INICIO = '2026-11'; // espelho só pode ser consultado a partir deste mês
 var TIPOS_AJUSTE = ['Corrigir horário', 'Esqueci de bater o ponto', 'Falta justificada / atestado', 'Outro'];
 var TIPOS = { ENTRADA: 'Entrada', SAIDA_INTERVALO: 'Saída intervalo', VOLTA_INTERVALO: 'Volta intervalo', SAIDA: 'Saída' };
@@ -92,7 +92,7 @@ function sincronizar(manual) {
     var pend = S.fila.filter(function (i) { return !i.erro || manual; });
     // um por vez (fotos), na ordem em que foram criados
     return pend.reduce(function (p, item) {
-      return p.then(function () {
+      return p.then(function () { return prepararInspecao(item); }).then(function () {
         var envio = Object.assign({}, item); delete envio.erro; delete envio.criado; delete envio.resumo;
         return api('sincronizar', { itens: [envio] }).then(function (r) {
           var res = r.resultados[0];
@@ -124,6 +124,20 @@ function sincronizar(manual) {
     if (manual || enviados || erros) aviso(enviados + ' enviado(s)' + (erros ? ', ' + erros + ' com problema (veja em Envios)' : ''), erros ? 'err' : 'ok');
     render();
   });
+}
+
+// inspeção: manda as fotos uma a uma antes (envio grande demais travava). O progresso fica salvo na fila.
+function prepararInspecao(item) {
+  if (item.tipo !== 'inspecao' || !item.insp) return Promise.resolve();
+  var tarefas = [];
+  (item.insp.itens || []).forEach(function (it, ix) { (it.fotos || []).forEach(function (f, k) { if (typeof f === 'string' && f.indexOf('data:') === 0) tarefas.push([it, k, ix]); }); });
+  return tarefas.reduce(function (p, t, n) {
+    return p.then(function () {
+      aviso('Enviando fotos da inspeção ' + (n + 1) + '/' + tarefas.length + '...');
+      return api('inspFoto', { foto: t[0].fotos[t[1]], nome: 'inspecao_' + String(item.insp.titulo || '').slice(0, 30) + '_' + (t[2] + 1) + '_' + (t[1] + 1) + '.jpg' })
+        .then(function (id) { t[0].fotos[t[1]] = id; return DB.filaPut(item); });
+    });
+  }, Promise.resolve());
 }
 
 function enfileirar(item) {
