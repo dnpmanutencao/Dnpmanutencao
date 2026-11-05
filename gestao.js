@@ -10,7 +10,7 @@ function gPode(mod, acao) { var p = S.dados && S.dados.sistema && S.dados.sistem
 function gVinculado() { return !!(S.dados && S.dados.sistema && S.dados.sistema.vinculado); }
 function sys(fn, args) { return api('sistema', { fn: fn, args: args || [] }); }
 function brl(v) { return (Number(v) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
-function gIr(view) { G.view = view; S.tela = 'gestao'; render(); window.scrollTo(0, 0); }
+function gIr(view) { if (view === 'orcs') G._orcsOk = false; G.view = view; S.tela = 'gestao'; render(); window.scrollTo(0, 0); }
 function gVoltar(view) { return '<button class="btn sec" style="margin-bottom:10px" onclick="gIr(\'' + (view || 'menu') + '\')">← Voltar</button>'; }
 function gOnline(msg) { if (navigator.onLine) return true; aviso(msg || 'Isso precisa de internet.', 'err'); return false; }
 function gOpts(lista, sel, rot, vazio) { return (vazio ? '<option value="">' + vazio + '</option>' : '') + lista.map(function (x) { return '<option value="' + esc(x.id) + '"' + (String(x.id) === String(sel) ? ' selected' : '') + '>' + esc(rot(x)) + '</option>'; }).join(''); }
@@ -54,6 +54,8 @@ function telaGestao() {
   if (v === 'orc') return gTelaOrcamento();
   if (v === 'novoOrc') return gTelaNovoOrcamento();
   if (v === 'catalogo') return gTelaCatalogo();
+  if (v === 'comp') return gTelaComp();
+  if (v === 'bdi') return gTelaBdi();
   if (v === 'novoItem') return gTelaNovoItem();
   if (v === 'novaComp') return gTelaNovaComposicao();
   if (v === 'novoCliente') return gTelaNovoCliente();
@@ -66,6 +68,7 @@ function telaGestao() {
   if (gPode('orcamentos', 'ver')) html += b('orcs', '📄', 'Orçamentos', 'consultar, status, PDF');
   if (gPode('orcamentos', 'criar')) html += b('novoOrc', '➕', 'Novo orçamento', 'funciona sem internet');
   if (gPode('orcamentos', 'ver')) html += b('catalogo', '🧰', 'Itens e composições', 'catálogo de preços');
+  if (gPode('orcamentos', 'ver')) html += b('bdi', '％', 'BDI padrão', 'imposto, taxas, lucro');
   if (gPode('crm', 'criar')) html += b('novoCliente', '🏢', 'Novo cliente', 'com consulta de CNPJ');
   if (gPode('requisicoes', 'ver') || gPode('financeiro', 'ver')) html += b('reqs', '🛒', 'Requisições de compra', 'acompanhar / aprovar');
   if (gPode('requisicoes', 'criar')) html += b('novaReq', '➕', 'Nova requisição', 'funciona sem internet');
@@ -78,82 +81,225 @@ function telaGestao() {
 
 // ---------- orçamentos ----------
 function gTelaOrcamentos() {
-  var l = G.orcs, html = gVoltar() + '<div class="card"><h2>Orçamentos</h2><input id="g-busca" placeholder="Buscar por título ou cliente" value="' + esc(G.busca) + '">';
+  var l = G.orcs, html = gVoltar() + '<div class="card"><h2>Orçamentos</h2>' + (gPode('orcamentos', 'criar') ? '<button class="btn lar" onclick="G.novo=null;gIr(\'novoOrc\')">+ Novo orçamento</button><div style="height:8px"></div>' : '') +
+    '<input id="g-busca" placeholder="Buscar por título ou cliente" value="' + esc(G.busca) + '"><div class="row" style="margin-top:6px"><select id="g-fst"><option value="">Todos os status</option>' + STATUS_ORC.map(function (s) { return '<option' + (G.fst === s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></div>';
   if (!l) html += '<p class="muted">Carregando...</p>';
   else {
     var q = G.busca.toLowerCase();
-    html += '<ul class="lista">' + l.filter(function (o) { return !q || (o.titulo + ' ' + o.nomeCliente).toLowerCase().indexOf(q) >= 0; }).slice(0, 80).map(function (o) {
+    html += '<ul class="lista">' + l.filter(function (o) { return (!q || (o.titulo + ' ' + o.nomeCliente).toLowerCase().indexOf(q) >= 0) && (!G.fst || o.status === G.fst); }).slice(0, 80).map(function (o) {
       return '<li style="cursor:pointer" onclick="gAbrirOrc(\'' + o.id + '\')"><span><b>' + esc(o.titulo) + '</b><br><span class="muted">' + esc(o.nomeCliente) + (o.numeroProposta ? ' · nº ' + o.numeroProposta + '/' + o.anoProposta : '') + '</span></span><span style="text-align:right"><b>' + brl(o.vendaTotal) + '</b><br><span class="tag">' + esc(o.status) + '</span></span></li>';
     }).join('') + '</ul>';
   }
   $('tela').innerHTML = html + '</div>';
   $('g-busca').oninput = function () { G.busca = this.value; var pos = this.selectionStart; gTelaOrcamentos(); var b = $('g-busca'); b.focus(); b.setSelectionRange(pos, pos); };
-  if (!l) DB.get('g_orcs').then(function (c) { if (c) { G.orcs = c; gTelaOrcamentos(); } });
-  if (!G._orcsCarregando && navigator.onLine) {
+  $('g-fst').onchange = function () { G.fst = this.value; gTelaOrcamentos(); };
+  if (!l) DB.get('g_orcs').then(function (c) { if (c && !G.orcs) { G.orcs = c; if (G.view === 'orcs') gTelaOrcamentos(); } });
+  if (!G._orcsCarregando && navigator.onLine && !G._orcsOk) {
     G._orcsCarregando = true;
-    sys('listarOrcamentos').then(function (r) { G.orcs = r; DB.set('g_orcs', r); if (G.view === 'orcs') gTelaOrcamentos(); }).catch(function (e) { aviso(e.message, 'err'); }).then(function () { G._orcsCarregando = false; });
+    sys('listarOrcamentos').then(function (r) { G.orcs = r; G._orcsOk = true; DB.set('g_orcs', r); if (G.view === 'orcs') gTelaOrcamentos(); }).catch(function (e) { aviso(e.message, 'err'); }).then(function () { G._orcsCarregando = false; });
   }
 }
+function gRecarregarLista() { G._orcsOk = false; G.orcs = null; }
 function gAbrirOrc(id) {
   if (!gOnline('Abrir o orçamento precisa de internet.')) return;
-  G.orc = null; gIr('orc');
+  if (!G.orc || G.orc.id !== id) G.orc = null;
+  gIr('orc');
   sys('obterOrcamento', [id]).then(function (o) { G.orc = o; if (G.view === 'orc') render(); }).catch(function (e) { aviso(e.message, 'err'); gIr('orcs'); });
 }
+function gAcao(fn, args, msg, depois) { // chamada on-line com aviso e recarga do orçamento
+  if (!gOnline()) return Promise.resolve();
+  aviso('Salvando...');
+  return sys(fn, args).then(function (r) { if (msg) aviso(msg, 'ok'); gRecarregarLista(); if (depois) depois(r); else if (G.orc) gAbrirOrc(G.orc.id); return r; })
+    .catch(function (e) { aviso(e.message, 'err'); });
+}
+function gSec(id, titulo, corpo, aberta) {
+  var ab = G.secs[id] !== undefined ? G.secs[id] : !!aberta;
+  return '<div class="card"><h2 style="cursor:pointer;margin-bottom:' + (ab ? '10px' : '0') + '" onclick="G.secs[\'' + id + '\']=' + (!ab) + ';render()">' + (ab ? '▾ ' : '▸ ') + titulo + '</h2>' + (ab ? corpo : '') + '</div>';
+}
+G.secs = {};
 function gTelaOrcamento() {
   var o = G.orc;
   if (!o) { $('tela').innerHTML = gVoltar('orcs') + '<div class="card">Carregando orçamento...</div>'; return; }
-  var ed = gPode('orcamentos', 'editar'), cr = gPode('orcamentos', 'criar'), rasc = o.status === 'Rascunho';
+  var ed = gPode('orcamentos', 'editar'), cr = gPode('orcamentos', 'criar'), ex = gPode('orcamentos', 'excluir'), rasc = o.status === 'Rascunho', c = gCat();
+  var dis = ed ? '' : ' disabled';
   var html = gVoltar('orcs') + '<div class="card"><h2>' + esc(o.titulo) + '</h2><p class="muted">' + esc(o.nomeCliente) + (o.numeroProposta ? ' · Proposta nº ' + o.numeroProposta + '/' + o.anoProposta : '') + '</p>' +
-    '<div class="grade" style="font-size:14px"><div><span class="muted">Custo</span><br><b>' + brl(o.custoTotal) + '</b></div><div><span class="muted">Venda</span><br><b>' + brl(o.vendaTotal) + '</b></div></div>' +
+    '<div class="grade" style="font-size:14px"><div><span class="muted">Custo</span><br><b>' + brl(o.custoTotal) + '</b></div><div><span class="muted">Venda</span><br><b>' + brl(o.vendaTotal) + '</b></div>' +
+    '<div><span class="muted">Imposto</span><br>' + brl(o.valorImposto) + '</div><div><span class="muted">Taxa adm.</span><br>' + brl(o.valorTaxaAdm) + '</div>' +
+    '<div><span class="muted">Taxa eng.</span><br>' + brl(o.valorTaxaEng) + '</div><div><span class="muted">Lucro</span><br>' + brl(o.valorLucro) + '</div></div>' +
     (ed ? '<label>Status</label><select id="g-st">' + STATUS_ORC.map(function (s) { return '<option' + (s === o.status ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>' : '<p>Status: <span class="tag">' + esc(o.status) + '</span></p>') +
     (ed ? '<div style="height:10px"></div><button class="btn" id="g-pdf">📄 Gerar PDF da proposta</button>' : '') +
-    '<div style="height:8px"></div><button class="btn sec" id="g-props">📂 Propostas já geradas</button><div id="g-props-l"></div></div>';
+    '<div style="height:8px"></div><button class="btn sec" id="g-props">📂 Propostas já geradas</button><div id="g-props-l"></div>' +
+    '<div class="row" style="margin-top:8px">' + (cr ? '<button class="btn sec" id="g-dup">⧉ Duplicar</button>' : '') + (ex ? '<button class="btn sec" id="g-exc" style="color:#b91c1c">🗑 Excluir</button>' : '') + '</div>' +
+    (o.status === 'Aprovado' && gPode('projetos', 'criar') ? '<div style="height:8px"></div><button class="btn lar" id="g-conv">🏗 Converter em projeto</button><div id="g-conv-f"></div>' : '') + '</div>';
+
+  html += gSec('dados', 'Dados do orçamento', '<label>Cliente</label><select id="od-cli"' + dis + '>' + gOpts(c.clientes, o.clienteId, function (x) { return x.nomeEmpresa; }, '— escolha —') + '</select>' +
+    '<label>Título</label><input id="od-tit" value="' + esc(o.titulo) + '"' + dis + '>' + (ed ? '<div style="height:10px"></div><button class="btn sec" id="od-ok">Salvar dados</button>' : ''));
+
+  html += gSec('cond', 'Escopo e condições comerciais', '<label>Escopo</label><select id="oc-tipo"' + dis + '><option value="tabela"' + (o.escopoTipo !== 'manual' ? ' selected' : '') + '>Copiar tabela do orçamento (sem valores)</option><option value="manual"' + (o.escopoTipo === 'manual' ? ' selected' : '') + '>Escrever manualmente</option></select>' +
+    '<textarea id="oc-texto" rows="6" placeholder="' + (o.escopoTipo === 'manual' ? 'Descreva o escopo do fornecimento...' : 'Observações (opcional) — a tabela de itens sem valores entra automaticamente.') + '"' + dis + '>' + esc(o.escopoTexto) + '</textarea>' +
+    '<label>Forma de pagamento</label><input id="oc-pag" placeholder="Ex: 30 DDL ao final do aceite" value="' + esc(o.formaPagamento) + '"' + dis + '>' +
+    '<div class="row"><div><label>Prazo de execução</label><input id="oc-prazo" placeholder="Ex: 15 dias úteis" value="' + esc(o.prazoExecucao) + '"' + dis + '></div><div style="flex:0 0 110px"><label>Validade (dias)</label><input id="oc-val" type="number" min="1" value="' + esc(o.validadeProposta) + '"' + dis + '></div></div>' +
+    '<label>Exclusões</label><textarea id="oc-exc" rows="4" placeholder="Uma exclusão por linha"' + dis + '>' + esc(o.exclusoes) + '</textarea>' +
+    (ed ? '<div style="height:10px"></div><button class="btn lar" id="oc-ok">Salvar escopo e condições</button>' : ''), true);
+
+  var itensHtml = '';
   (o.etapas || []).forEach(function (e) {
-    html += '<div class="card"><h2>' + esc(e.numero + ' – ' + e.nome) + ' <span class="muted" style="font-weight:400">' + brl(e.subtotalVenda) + '</span></h2><ul class="lista">' + e.itens.map(function (it) {
-      return '<li><span>' + esc(it.descricao) + '<br><span class="muted">' + (TIPO_ITEM[it.tipoItem] || it.tipoItem) + ' · ' + brl(it.vendaUnitario) + '/' + esc(it.unidade || 'un') + '</span></span><span style="text-align:right;white-space:nowrap">' +
-        (cr && rasc ? '<input type="number" step="any" value="' + it.quantidade + '" style="width:80px;padding:6px" onchange="gQtd(\'' + it.id + '\', this.value)"> ' + esc(it.unidade || '') + '<br><button class="btn sec" style="padding:4px 8px;font-size:12px;width:auto" onclick="gRemoverItem(\'' + it.id + '\')">remover</button>' : it.quantidade + ' ' + esc(it.unidade || '')) +
-        '<br><b>' + brl(it.vendaTotal) + '</b></span></li>';
-    }).join('') + '</ul>' + (cr && rasc ? '<button class="btn sec" onclick="gAddItemForm(\'' + e.id + '\')">+ Item nesta etapa</button><div id="g-add-' + e.id + '"></div>' : '') + '</div>';
+    itensHtml += '<div class="mdo"><div class="row"><b style="flex:1">' + esc(e.numero + ' – ' + e.nome) + '</b><span class="muted" style="flex:0 0 auto">' + brl(e.subtotalVenda) + '</span></div>' +
+      (ed && rasc ? '<div class="row" style="margin-top:6px"><button class="btn sec" style="padding:4px 8px;font-size:12px" onclick="gEtapaRenomear(\'' + e.id + '\')">✏️ Renomear</button><button class="btn sec" style="padding:4px 8px;font-size:12px" onclick="gEtapaRemover(\'' + e.id + '\')">🗑 Remover etapa</button></div>' : '') +
+      '<ul class="lista">' + e.itens.map(function (it) {
+        var podeIt = cr && rasc;
+        return '<li style="flex-wrap:wrap"><span style="flex:1 1 100%">' + esc(it.descricao) + '<br><span class="muted">' + (TIPO_ITEM[it.tipoItem] || it.tipoItem) + ' · custo ' + brl(it.custoUnitario) + (it.custoPersonalizado ? ' (personalizado)' : '') + ' · BDI ' + (Number(it.bdi) * 100).toFixed(2).replace('.', ',') + '%' + (it.personalizado ? ' (personalizado)' : '') + ' · venda ' + brl(it.vendaUnitario) + '/' + esc(it.unidade || 'un') + '</span></span>' +
+          '<span style="flex:1 1 100%;display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px">' +
+          (podeIt ? 'Qtd <input type="number" step="any" value="' + it.quantidade + '" style="width:80px;padding:6px" onchange="gQtd(\'' + it.id + '\', this.value)"> ' + esc(it.unidade || '') : it.quantidade + ' ' + esc(it.unidade || '')) +
+          '<b style="margin-left:auto">' + brl(it.vendaTotal) + '</b></span>' +
+          (podeIt && ed ? '<span style="flex:1 1 100%;display:flex;gap:6px;margin-top:4px"><button class="btn sec" style="padding:4px 6px;font-size:12px" onclick="gCustoItem(\'' + it.id + '\',' + it.custoUnitario + ',' + !!it.custoPersonalizado + ')">Custo</button><button class="btn sec" style="padding:4px 6px;font-size:12px" onclick="gBdiItem(\'' + it.id + '\')">BDI</button><button class="btn sec" style="padding:4px 6px;font-size:12px" onclick="gRemoverItem(\'' + it.id + '\')">Remover</button></span>' : podeIt ? '<span style="flex:1 1 100%;margin-top:4px"><button class="btn sec" style="padding:4px 6px;font-size:12px;width:auto" onclick="gRemoverItem(\'' + it.id + '\')">Remover</button></span>' : '') + '</li>';
+      }).join('') + '</ul>' + (cr && rasc ? '<button class="btn sec" onclick="gAddItemForm(\'' + e.id + '\')">+ Item nesta etapa</button><div id="g-add-' + e.id + '"></div>' : '') + '</div>';
   });
-  if (cr && rasc) html += '<div class="card"><label>Nova etapa</label><div class="row"><input id="g-nova-et" placeholder="Nome da etapa"><button class="btn sec" style="flex:0 0 auto;width:auto" id="g-add-et">Adicionar</button></div></div>';
-  if (!rasc && cr) html += '<p class="muted">Itens só podem ser alterados com o orçamento em Rascunho.</p>';
+  if (cr && rasc) itensHtml += '<div class="mdo"><label>Nova etapa</label><div class="row"><input id="g-nova-et" placeholder="Nome da etapa"><button class="btn sec" style="flex:0 0 auto;width:auto" id="g-add-et">Adicionar</button></div></div>';
+  if (!rasc) itensHtml += '<p class="muted">Itens e etapas só podem ser alterados com o orçamento em Rascunho.</p>';
+  html += gSec('itens', 'Etapas e itens (' + (o.etapas || []).reduce(function (a, e) { return a + e.itens.length; }, 0) + ')', itensHtml, true);
+
+  html += gSec('hh', 'Tabela de HH (valor da hora por função)', '<div id="g-hh">' + (G.hh && G.hh.orcamentoId === o.id ? gHhHtml() : '<button class="btn sec" onclick="gHhCarregar()">Abrir tabela de HH</button>') + '</div>');
+  html += gSec('hhi', 'HH do orçamento (profissionais × horas)', '<div id="g-hhi">' + (G.hhi && G.hhi.orcamentoId === o.id ? gHhiHtml() : '<button class="btn sec" onclick="gHhiCarregar()">Abrir HH do orçamento</button>') + '</div>');
   $('tela').innerHTML = html;
-  if ($('g-st')) $('g-st').onchange = function () { var st = this.value; if (!gOnline()) return; sys('atualizarStatusOrcamento', [o.id, st]).then(function () { aviso('Status alterado para ' + st + '.', 'ok'); o.status = st; G.orcs = null; render(); }).catch(function (e) { aviso(e.message, 'err'); render(); }); };
+
+  if ($('g-st')) $('g-st').onchange = function () { var st = this.value; gAcao('atualizarStatusOrcamento', [o.id, st], 'Status alterado para ' + st + '.'); };
   if ($('g-pdf')) $('g-pdf').onclick = function () {
     if (!gOnline()) return; var b = this; b.disabled = true; b.textContent = 'Gerando PDF (pode levar 1 minuto)...';
     sys('gerarPropostas', [o.id]).then(function (r) { $('g-props-l').innerHTML = gLinksProposta(r); b.disabled = false; b.textContent = '📄 Gerar PDF da proposta'; aviso('Proposta Rev. ' + r.revisao + ' gerada.', 'ok'); })
       .catch(function (e) { aviso(e.message, 'err'); b.disabled = false; b.textContent = '📄 Gerar PDF da proposta'; });
   };
   $('g-props').onclick = function () { if (!gOnline()) return; $('g-props-l').innerHTML = '<p class="muted">Carregando...</p>'; sys('listarPropostasGeradas', [o.id]).then(function (l) { $('g-props-l').innerHTML = l.length ? l.map(gLinksProposta).join('') : '<p class="muted">Nenhuma proposta gerada ainda.</p>'; }).catch(function (e) { aviso(e.message, 'err'); }); };
-  if ($('g-add-et')) $('g-add-et').onclick = function () { var n = $('g-nova-et').value.trim(); if (!n || !gOnline()) return; sys('criarEtapa', [o.id, { nome: n }]).then(function () { gAbrirOrc(o.id); }).catch(function (e) { aviso(e.message, 'err'); }); };
+  if ($('g-dup')) $('g-dup').onclick = function () { if (!confirm('Duplicar este orçamento (cria uma cópia em Rascunho)?')) return; gAcao('duplicarOrcamento', [o.id], 'Orçamento duplicado.', function (r) { if (r && r.id) gAbrirOrc(r.id); else gIr('orcs'); }); };
+  if ($('g-exc')) $('g-exc').onclick = function () { if (!confirm('EXCLUIR o orçamento "' + o.titulo + '"? Não dá para desfazer.')) return; gAcao('excluirOrcamento', [o.id], 'Orçamento excluído.', function () { G.orc = null; gIr('orcs'); }); };
+  if ($('g-conv')) $('g-conv').onclick = function () {
+    $('g-conv-f').innerHTML = '<div class="mdo"><label>Responsável técnico</label><input id="cv-resp"><label>Data de início</label><input type="date" id="cv-ini" value="' + dataIso(Date.now()) + '"><div style="height:8px"></div><button class="btn" id="cv-ok">Criar projeto</button></div>';
+    $('cv-ok').onclick = function () { gAcao('converterOrcamentoEmProjeto', [o.id, { responsavelTecnico: $('cv-resp').value.trim(), dataInicio: $('cv-ini').value }], 'Projeto criado a partir do orçamento.', function () { gAbrirOrc(o.id); }); };
+  };
+  if ($('od-ok')) $('od-ok').onclick = function () { gAcao('editarDadosOrcamento', [o.id, { clienteId: $('od-cli').value, titulo: $('od-tit').value }], 'Dados salvos.'); };
+  if ($('oc-tipo')) $('oc-tipo').onchange = function () { $('oc-texto').placeholder = this.value === 'manual' ? 'Descreva o escopo do fornecimento...' : 'Observações (opcional) — a tabela de itens sem valores entra automaticamente.'; };
+  if ($('oc-ok')) $('oc-ok').onclick = function () {
+    gAcao('atualizarCondicoesOrcamento', [o.id, { escopoTipo: $('oc-tipo').value, escopoTexto: $('oc-texto').value, formaPagamento: $('oc-pag').value.trim(), prazoExecucao: $('oc-prazo').value.trim(), validadeProposta: $('oc-val').value, exclusoes: $('oc-exc').value }], 'Escopo e condições salvos.');
+  };
+  if ($('g-add-et')) $('g-add-et').onclick = function () { var n = $('g-nova-et').value.trim(); if (!n) return; gAcao('criarEtapa', [o.id, { nome: n }], 'Etapa criada.'); };
 }
 function gLinksProposta(r) {
   return '<div class="mdo"><b>Revisão ' + r.revisao + '</b>' + (r.criadoEm ? ' <span class="muted">' + esc(r.criadoEm) + '</span>' : '') +
     '<br><a href="' + esc(r.comercialUrl) + '" target="_blank">📄 Proposta comercial</a><br><a href="' + esc(r.tecnicaUrl) + '" target="_blank">📄 Proposta técnica</a></div>';
 }
-function gQtd(itemId, q) { if (!gOnline()) return; sys('editarQuantidadeItemOrcamento', [itemId, Number(q)]).then(function () { gAbrirOrc(G.orc.id); }).catch(function (e) { aviso(e.message, 'err'); }); }
-function gRemoverItem(itemId) { if (!confirm('Remover este item?') || !gOnline()) return; sys('removerItemOrcamento', [itemId]).then(function () { gAbrirOrc(G.orc.id); }).catch(function (e) { aviso(e.message, 'err'); }); }
+function gQtd(itemId, q) { gAcao('editarQuantidadeItemOrcamento', [itemId, Number(q)], 'Quantidade alterada.'); }
+function gRemoverItem(itemId) { if (!confirm('Remover este item?')) return; gAcao('removerItemOrcamento', [itemId], 'Item removido.'); }
+function gEtapaRenomear(id) { var e = G.orc.etapas.filter(function (x) { return x.id === id; })[0]; var n = prompt('Nome da etapa:', e.nome); if (!n || !n.trim()) return; gAcao('editarEtapa', [id, { nome: n.trim(), numero: e.numero }], 'Etapa renomeada.'); }
+function gEtapaRemover(id) { if (!confirm('Remover a etapa e todos os itens dela?')) return; gAcao('removerEtapa', [id], 'Etapa removida.'); }
+function gCustoItem(id, atual, pers) {
+  var v = prompt('Custo unitário deste item no orçamento (R$).\nDeixe em branco para voltar ao custo do cadastro.', pers ? String(atual).replace('.', ',') : '');
+  if (v === null) return;
+  v = v.trim() === '' ? null : Number(v.replace(/\./g, '').replace(',', '.'));
+  if (v !== null && !(v >= 0)) return aviso('Valor inválido.', 'err');
+  gAcao('definirCustoOverrideItemOrcamento', [id, v], v === null ? 'Custo voltou ao padrão.' : 'Custo personalizado salvo.');
+}
+function gBdiItem(id) {
+  var it = null; G.orc.etapas.forEach(function (e) { e.itens.forEach(function (x) { if (x.id === id) it = x; }); });
+  var box = document.querySelector('[onclick="gBdiItem(\'' + id + '\')"]').parentNode;
+  var f = function (k, r) { return '<div><label>' + r + ' %</label><input type="number" step="any" id="bd-' + k + '" value="' + (it[k] || 0) + '"></div>'; };
+  box.outerHTML = '<div class="mdo" style="flex:1 1 100%"><b>BDI deste item</b><div class="grade">' + f('imposto', 'Imposto') + f('taxaAdministrativa', 'Taxa adm.') + f('taxaEngenharia', 'Taxa eng.') + f('lucroEsperado', 'Lucro') + '</div><div class="row" style="margin-top:8px"><button class="btn" id="bd-ok">Salvar BDI</button>' + (it.personalizado ? '<button class="btn sec" id="bd-pad">Usar padrão</button>' : '') + '</div></div>';
+  $('bd-ok').onclick = function () { var d = {}; ['imposto', 'taxaAdministrativa', 'taxaEngenharia', 'lucroEsperado'].forEach(function (k) { d[k] = Number($('bd-' + k).value) || 0; }); gAcao('definirBDIItemOrcamento', [id, d], 'BDI do item salvo.'); };
+  if ($('bd-pad')) $('bd-pad').onclick = function () { gAcao('definirBDIItemOrcamento', [id, null], 'Item voltou ao BDI padrão.'); };
+}
 function gAddItemForm(etapaId) {
-  var box = $('g-add-' + etapaId);
-  box.innerHTML = '<div class="mdo"><select id="ga-tipo-' + etapaId + '">' + Object.keys(TIPO_ITEM).map(function (t) { return '<option value="' + t + '">' + TIPO_ITEM[t] + '</option>'; }).join('') + '</select>' +
-    '<input id="ga-busca-' + etapaId + '" placeholder="Buscar item" style="margin-top:6px"><select id="ga-item-' + etapaId + '" style="margin-top:6px"></select>' +
-    '<input id="ga-qtd-' + etapaId + '" type="number" step="any" placeholder="Quantidade" style="margin-top:6px"><div style="height:6px"></div><button class="btn" id="ga-ok-' + etapaId + '">Adicionar</button></div>';
+  var box = $('g-add-' + etapaId), k = etapaId;
+  box.innerHTML = '<div class="mdo"><select id="ga-tipo-' + k + '">' + Object.keys(TIPO_ITEM).map(function (t) { return '<option value="' + t + '">' + TIPO_ITEM[t] + '</option>'; }).join('') + '</select>' +
+    '<input id="ga-busca-' + k + '" placeholder="Buscar item" style="margin-top:6px"><select id="ga-item-' + k + '" style="margin-top:6px"></select>' +
+    '<div id="ga-novo-' + k + '"></div><input id="ga-qtd-' + k + '" type="number" step="any" placeholder="Quantidade" style="margin-top:6px"><div style="height:6px"></div><button class="btn" id="ga-ok-' + k + '">Adicionar</button></div>';
   var preencher = function () {
-    var q = $('ga-busca-' + etapaId).value.toLowerCase(), t = $('ga-tipo-' + etapaId).value;
-    $('ga-item-' + etapaId).innerHTML = gOpts(gItensPorTipo(t).filter(function (x) { return !q || (x.nome + ' ' + (x.codigo || '')).toLowerCase().indexOf(q) >= 0; }).slice(0, 100), '', function (x) { return x.nome + ' (' + (x.unidade || 'un') + ') ' + brl(x.custoUnitario); }, '— escolha —');
+    var q = $('ga-busca-' + k).value.toLowerCase(), t = $('ga-tipo-' + k).value;
+    $('ga-item-' + k).innerHTML = gOpts(gItensPorTipo(t).filter(function (x) { return x.id && (!q || (x.nome + ' ' + (x.codigo || '')).toLowerCase().indexOf(q) >= 0); }).slice(0, 100), '', function (x) { return x.nome + ' (' + (x.unidade || 'un') + ') ' + brl(x.custoUnitario); }, '— escolha —') +
+      (t !== 'composicao' && gPode('orcamentos', 'criar') ? '<option value="__novo">+ Cadastrar item novo</option>' : '');
+    $('ga-novo-' + k).innerHTML = '';
   };
-  $('ga-tipo-' + etapaId).onchange = preencher; $('ga-busca-' + etapaId).oninput = preencher; preencher();
-  $('ga-ok-' + etapaId).onclick = function () {
-    var ref = $('ga-item-' + etapaId).value, q = Number($('ga-qtd-' + etapaId).value);
+  $('ga-tipo-' + k).onchange = preencher; $('ga-busca-' + k).oninput = preencher; preencher();
+  $('ga-item-' + k).onchange = function () {
+    var t = $('ga-tipo-' + k).value;
+    $('ga-novo-' + k).innerHTML = this.value === '__novo' ? '<input id="ga-nn-' + k + '" placeholder="Nome do item novo" style="margin-top:6px"><div class="row" style="margin-top:6px"><input id="ga-nu-' + k + '" placeholder="Unid." value="' + (t === 'mao_de_obra' ? 'H' : 'un') + '"><input id="ga-nc-' + k + '" type="number" step="any" placeholder="Custo unit. R$"></div>' : '';
+  };
+  $('ga-ok-' + k).onclick = function () {
+    var ref = $('ga-item-' + k).value, q = Number($('ga-qtd-' + k).value), t = $('ga-tipo-' + k).value;
     if (!ref || !(q > 0)) return aviso('Escolha o item e a quantidade.', 'err');
     if (!gOnline()) return;
-    sys('adicionarItemOrcamento', [G.orc.id, { etapaId: etapaId, tipoItem: $('ga-tipo-' + etapaId).value, referenciaId: ref, quantidade: q }]).then(function () { gAbrirOrc(G.orc.id); }).catch(function (e) { aviso(e.message, 'err'); });
+    var p;
+    if (ref === '__novo') {
+      var d = { nome: $('ga-nn-' + k).value.trim(), unidade: $('ga-nu-' + k).value.trim() || 'un', custoUnitario: Number($('ga-nc-' + k).value) || 0 };
+      if (!d.nome) return aviso('Informe o nome do item novo.', 'err');
+      p = sys(t === 'material' ? 'criarItemMaterial' : 'criarItemMaoDeObra', [d]).then(function (r) { G.cat = null; DB.set('g_cat', null); return r.id; });
+    } else p = Promise.resolve(ref);
+    aviso('Salvando...');
+    p.then(function (id) { return sys('adicionarItemOrcamento', [G.orc.id, { etapaId: etapaId, tipoItem: t, referenciaId: id, quantidade: q }]); })
+      .then(function () { aviso('Item adicionado.', 'ok'); gRecarregarLista(); gAbrirOrc(G.orc.id); })
+      .catch(function (e) { aviso(e.message, 'err'); });
   };
+}
+
+// ---- tabela de HH (valor da hora por função) ----
+function gHhCarregar() { if (!gOnline()) return; $('g-hh').innerHTML = '<p class="muted">Carregando...</p>'; sys('obterTabelaHhOrcamento', [G.orc.id]).then(function (t) { G.hh = t; render(); }).catch(function (e) { aviso(e.message, 'err'); }); }
+function gHhHtml() {
+  var t = G.hh, ed = gPode('orcamentos', 'editar');
+  return '<p class="muted">BDI padrão ' + t.bdiPadrao + '% · HE ' + t.percentualExtra50 + '% / ' + t.percentualExtra100 + '% · noturno ' + t.percentualNoturno + '%</p><ul class="lista">' + t.linhas.map(function (l, i) {
+    return '<li style="flex-wrap:wrap"><span style="flex:1 1 100%">' + (ed ? '<input type="checkbox" style="width:auto" ' + (l.incluir ? 'checked' : '') + ' onchange="gHhSalvar(' + i + ',{incluir:this.checked})"> ' : '') + '<b>' + esc(l.nome) + '</b>' + (l.nomeOverride ? ' <span class="muted">(' + esc(l.nomePadrao) + ')</span>' : '') + '</span>' +
+      '<span class="muted" style="flex:1 1 100%">Custo ' + brl(l.custo) + (l.custoOverride !== null ? ' (pers.)' : '') + ' · BDI ' + l.bdi + '%' + (l.bdiOverride !== null ? ' (pers.)' : '') + '<br>Normal ' + brl(l.normal) + ' · HE50 ' + brl(l.extra50) + ' · HE100 ' + brl(l.extra100) + ' · Not. ' + brl(l.noturno) + '</span>' +
+      (ed ? '<span style="flex:1 1 100%;display:flex;gap:6px;margin-top:4px"><button class="btn sec" style="padding:4px 6px;font-size:12px" onclick="gHhCampo(' + i + ',\'nome\')">Nome</button><button class="btn sec" style="padding:4px 6px;font-size:12px" onclick="gHhCampo(' + i + ',\'custo\')">Custo</button><button class="btn sec" style="padding:4px 6px;font-size:12px" onclick="gHhCampo(' + i + ',\'bdi\')">BDI</button></span>' : '') + '</li>';
+  }).join('') + '</ul>' + (ed ? '<div style="height:8px"></div><button class="btn" id="hh-pdf" onclick="gHhPdf(this)">📄 Gerar PDF da tabela de HH</button><div id="hh-pdf-l"></div>' : '');
+}
+function gHhCampo(i, campo) {
+  var l = G.hh.linhas[i], atual = campo === 'nome' ? l.nomeOverride : campo === 'custo' ? l.custoOverride : l.bdiOverride;
+  var v = prompt((campo === 'nome' ? 'Nome na tabela' : campo === 'custo' ? 'Custo por hora (R$)' : 'BDI (%)') + ' — em branco volta ao padrão:', atual === null || atual === undefined ? '' : String(atual));
+  if (v === null) return;
+  var o = {}; o[campo] = v.trim() === '' ? null : (campo === 'nome' ? v.trim() : Number(v.replace(',', '.')));
+  gHhSalvar(i, o);
+}
+function gHhSalvar(i, campos) { if (!gOnline()) return; sys('salvarLinhaHhOrcamento', [G.orc.id, G.hh.linhas[i].itemId, campos]).then(function (t) { G.hh = t; aviso('Salvo.', 'ok'); render(); }).catch(function (e) { aviso(e.message, 'err'); }); }
+function gHhPdf(b) {
+  if (!gOnline()) return; b.disabled = true; b.textContent = 'Gerando...';
+  sys('gerarTabelaHhPdf', [G.orc.id]).then(function (r) { $('hh-pdf-l').innerHTML = '<a href="' + esc(r.url) + '" target="_blank">📄 ' + esc(r.nome) + '</a>'; b.disabled = false; b.textContent = '📄 Gerar PDF da tabela de HH'; })
+    .catch(function (e) { aviso(e.message, 'err'); b.disabled = false; b.textContent = '📄 Gerar PDF da tabela de HH'; });
+}
+// ---- HH do orçamento (profissionais × horas) ----
+function gHhiCarregar() { if (!gOnline()) return; $('g-hhi').innerHTML = '<p class="muted">Carregando...</p>'; sys('obterItensHhOrcamento', [G.orc.id]).then(function (t) { G.hhi = t; render(); }).catch(function (e) { aviso(e.message, 'err'); }); }
+function gHhiHtml() {
+  var t = G.hhi, ed = gPode('orcamentos', 'editar'), tt = t.totais;
+  return '<div class="grade" style="font-size:14px"><div><span class="muted">Total HH</span><br><b>' + tt.totalHH + '</b></div><div><span class="muted">Valor</span><br><b>' + brl(tt.valor) + '</b></div><div><span class="muted">Custo</span><br>' + brl(tt.custoTotal) + '</div><div><span class="muted">Margem</span><br>' + brl(tt.margemBruta) + ' (' + tt.margemPercentual + '%)</div></div>' +
+    '<ul class="lista">' + t.itens.map(function (it) {
+      return '<li><span><b>' + esc(it.funcao) + '</b><br><span class="muted">' + it.quantidade + ' prof. × ' + it.horas + ' h = ' + it.totalHH + ' HH · ' + brl(it.precoHora) + '/h' + (it.desatualizado ? ' ⚠️ preço desatualizado' : '') + (it.funcaoRemovida ? ' ⚠️ função removida' : '') + '</span></span><span style="text-align:right"><b>' + brl(it.precoTotal) + '</b>' +
+        (ed ? '<br><button class="btn sec" style="padding:4px 8px;font-size:12px;width:auto;margin-top:4px" onclick="gHhiEditar(\'' + it.id + '\')">Editar</button> <button class="btn sec" style="padding:4px 8px;font-size:12px;width:auto;margin-top:4px" onclick="gHhiRemover(\'' + it.id + '\')">✕</button>' : '') + '</span></li>';
+    }).join('') + '</ul>' +
+    (ed ? '<div class="mdo" id="hhi-form"><b id="hhi-tit">Adicionar função</b><select id="hhi-f">' + gOpts(t.funcoesDisponiveis, '', function (f) { return f.funcao + ' – ' + brl(f.precoHora) + '/h'; }, '— função —') + '</select><div class="row" style="margin-top:6px"><input id="hhi-q" type="number" step="any" placeholder="Profissionais"><input id="hhi-h" type="number" step="any" placeholder="Horas por prof."></div><div style="height:6px"></div><button class="btn" onclick="gHhiSalvar()">Salvar</button></div>' +
+      (t.itens.some(function (x) { return x.desatualizado; }) ? '<div style="height:8px"></div><button class="btn sec" onclick="gHhiAtualizar()">🔄 Atualizar preços pela tabela atual</button>' : '') : '');
+}
+function gHhiEditar(id) { var it = G.hhi.itens.filter(function (x) { return x.id === id; })[0]; G.hhiEd = id; $('hhi-tit').textContent = 'Editar ' + it.funcao; $('hhi-f').value = it.funcaoId; $('hhi-q').value = it.quantidade; $('hhi-h').value = it.horas; $('hhi-form').scrollIntoView({ behavior: 'smooth' }); }
+function gHhiSalvar() {
+  if (!gOnline()) return;
+  var d = { id: G.hhiEd || '', funcaoId: $('hhi-f').value, quantidade: Number($('hhi-q').value), horas: Number($('hhi-h').value) };
+  if (!d.funcaoId) return aviso('Escolha a função.', 'err');
+  sys('salvarItemHhOrcamento', [G.orc.id, d]).then(function (t) { G.hhi = t; G.hhiEd = null; aviso('Salvo.', 'ok'); render(); }).catch(function (e) { aviso(e.message, 'err'); });
+}
+function gHhiRemover(id) { if (!confirm('Remover esta função do HH?') || !gOnline()) return; sys('removerItemHhOrcamento', [G.orc.id, id]).then(function (t) { G.hhi = t; render(); }).catch(function (e) { aviso(e.message, 'err'); }); }
+function gHhiAtualizar() { if (!gOnline()) return; sys('atualizarItensHhOrcamento', [G.orc.id, '']).then(function (t) { G.hhi = t && t.itens ? t : G.hhi; if (!(t && t.itens)) gHhiCarregar(); else render(); aviso('Preços atualizados.', 'ok'); }).catch(function (e) { aviso(e.message, 'err'); }); }
+
+// ---- BDI padrão ----
+function gTelaBdi() {
+  var b = G.bdi;
+  $('tela').innerHTML = gVoltar() + '<div class="card"><h2>BDI padrão</h2>' + (!b ? '<p class="muted">Carregando...</p>' :
+    '<div class="grade">' + [['imposto', 'Imposto'], ['taxaAdministrativa', 'Taxa administrativa'], ['taxaEngenharia', 'Taxa de engenharia'], ['lucroEsperado', 'Lucro esperado']].map(function (x) { return '<div><label>' + x[1] + ' %</label><input type="number" step="any" id="bp-' + x[0] + '" value="' + b[x[0]] + '"' + (gPode('orcamentos', 'editar') ? '' : ' disabled') + '></div>'; }).join('') + '</div>' +
+    '<p class="muted" id="bp-res"></p>' + (gPode('orcamentos', 'editar') ? '<button class="btn lar" id="bp-ok">Salvar BDI padrão</button><p class="muted">Vale para os itens sem BDI personalizado dos orçamentos que ainda não foram enviados/aprovados.</p>' : '')) + '</div>';
+  if (!b) { if (gOnline()) sys('obterConfigBDI').then(function (r) { G.bdi = r; if (G.view === 'bdi') render(); }).catch(function (e) { aviso(e.message, 'err'); }); return; }
+  var calc = function () { var s = 0; ['imposto', 'taxaAdministrativa', 'taxaEngenharia', 'lucroEsperado'].forEach(function (k) { s += Number($('bp-' + k).value) || 0; }); $('bp-res').textContent = s >= 100 ? 'A soma não pode chegar a 100%.' : 'BDI resultante: ' + ((1 / (1 - s / 100) - 1) * 100).toFixed(2).replace('.', ',') + '%'; };
+  Array.prototype.forEach.call(document.querySelectorAll('[id^=bp-]'), function (i) { if (i.tagName === 'INPUT') i.oninput = calc; }); calc();
+  if ($('bp-ok')) $('bp-ok').onclick = function () { var d = {}; ['imposto', 'taxaAdministrativa', 'taxaEngenharia', 'lucroEsperado'].forEach(function (k) { d[k] = Number($('bp-' + k).value) || 0; }); gAcao('salvarConfigBDI', [d], 'BDI padrão salvo.', function () { G.bdi = d; render(); }); };
 }
 
 // ---------- novo orçamento (offline) ----------
 function gTelaNovoOrcamento() {
-  var n = G.novo || (G.novo = { clienteId: '', novoCliente: null, titulo: '', etapas: [{ nome: 'Mão de obra', itens: [] }] });
+  var n = G.novo || (G.novo = { clienteId: '', novoCliente: null, titulo: '', etapas: [{ nome: 'Mão de obra', itens: [] }], cond: { escopoTipo: 'tabela', escopoTexto: '', formaPagamento: '', prazoExecucao: '', validadeProposta: '', exclusoes: '' } });
+  n.cond = n.cond || { escopoTipo: 'tabela' };
   var c = gCat();
   var html = gVoltar() + '<div class="card"><h2>Novo orçamento</h2>' +
     '<label>Cliente</label><select id="no-cli">' + gOpts(c.clientes, n.clienteId, function (x) { return x.nomeEmpresa; }, '— escolha —') + '<option value="__novo"' + (n.novoCliente ? ' selected' : '') + '>+ Cliente novo</option></select>' +
@@ -171,6 +317,11 @@ function gTelaNovoOrcamento() {
     });
     html += '<div style="height:8px"></div><button class="btn sec" onclick="gNoAddItem(' + ie + ')">+ Item</button></div>';
   });
+  html += '<div class="card"><h2>Escopo e condições</h2><select id="no-ctipo"><option value="tabela"' + (n.cond.escopoTipo !== 'manual' ? ' selected' : '') + '>Escopo: copiar tabela do orçamento (sem valores)</option><option value="manual"' + (n.cond.escopoTipo === 'manual' ? ' selected' : '') + '>Escopo: escrever manualmente</option></select>' +
+    '<textarea id="no-ctexto" rows="4" placeholder="Escopo / observações" style="margin-top:6px">' + esc(n.cond.escopoTexto || '') + '</textarea>' +
+    '<label>Forma de pagamento</label><input id="no-cpag" placeholder="Ex: 30 DDL ao final do aceite" value="' + esc(n.cond.formaPagamento || '') + '">' +
+    '<div class="row"><div><label>Prazo de execução</label><input id="no-cprazo" placeholder="Ex: 15 dias úteis" value="' + esc(n.cond.prazoExecucao || '') + '"></div><div style="flex:0 0 110px"><label>Validade (dias)</label><input id="no-cval" type="number" min="1" value="' + esc(n.cond.validadeProposta || '') + '"></div></div>' +
+    '<label>Exclusões</label><textarea id="no-cexc" rows="3" placeholder="Uma por linha">' + esc(n.cond.exclusoes || '') + '</textarea></div>';
   html += '<button class="btn sec" id="no-add-et">+ Etapa</button><div style="height:10px"></div><button class="btn lar" id="no-salvar">Salvar orçamento</button>' +
     '<p class="muted">Sem internet o orçamento fica guardado e é criado no sistema quando o sinal voltar (os preços e o BDI são os do sistema).</p>';
   $('tela').innerHTML = html;
@@ -183,6 +334,7 @@ function gTelaNovoOrcamento() {
 function gNoLer() {
   var n = G.novo; if (!n || !$('no-tit')) return;
   n.titulo = $('no-tit').value;
+  if ($('no-ctipo')) n.cond = { escopoTipo: $('no-ctipo').value, escopoTexto: $('no-ctexto').value, formaPagamento: $('no-cpag').value.trim(), prazoExecucao: $('no-cprazo').value.trim(), validadeProposta: $('no-cval').value, exclusoes: $('no-cexc').value };
   if (n.novoCliente) n.novoCliente = { nomeEmpresa: $('no-nc-nome').value, cidade: $('no-nc-cid').value, estado: $('no-nc-uf').value.toUpperCase() };
   var q = function (cls, f) { Array.prototype.forEach.call(document.querySelectorAll('.' + cls), function (el) { f(el, n.etapas[el.dataset.ie], el.dataset.ii !== undefined ? n.etapas[el.dataset.ie].itens[el.dataset.ii] : null); }); };
   q('no-et', function (el, e) { e.nome = el.value; });
@@ -205,39 +357,76 @@ function gNoSalvar() {
   });
   var nItens = etapas.reduce(function (a, e) { return a + e.itens.length; }, 0);
   if (!confirm('Salvar o orçamento "' + n.titulo + '" com ' + etapas.length + ' etapa(s) e ' + nItens + ' item(ns)?')) return;
-  enfileirar({ tipo: 'orcamentoNovo', orc: { clienteId: n.clienteId, novoCliente: n.novoCliente, titulo: n.titulo.trim(), etapas: etapas }, resumo: 'Orçamento ' + n.titulo.trim() })
-    .then(function () { G.novo = null; G.orcs = null; gIr('menu'); aviso('Orçamento salvo' + (navigator.onLine ? ' e enviado.' : '. Será enviado quando tiver internet.'), 'ok'); });
+  enfileirar({ tipo: 'orcamentoNovo', orc: { clienteId: n.clienteId, novoCliente: n.novoCliente, titulo: n.titulo.trim(), etapas: etapas, condicoes: n.cond }, resumo: 'Orçamento ' + n.titulo.trim() })
+    .then(function () { G.novo = null; gRecarregarLista(); gIr('menu'); aviso('Orçamento salvo' + (navigator.onLine ? ' e enviado.' : '. Será enviado quando tiver internet.'), 'ok'); });
 }
 
 // ---------- catálogo ----------
 function gTelaCatalogo() {
-  var c = gCat(), q = G.busca.toLowerCase(), aba = G.catAba || 'mao_de_obra';
-  var lista = gItensPorTipo(aba).filter(function (x) { return !q || (x.nome + ' ' + (x.codigo || '')).toLowerCase().indexOf(q) >= 0; });
+  var q = G.busca.toLowerCase(), aba = G.catAba || 'mao_de_obra', c = gCat(), ed = gPode('orcamentos', 'editar');
+  var todos = (aba === 'material' ? c.materiais : aba === 'composicao' ? c.composicoes : c.maoDeObra) || [];
+  var lista = todos.filter(function (x) { return (G.catInat || x.ativo !== false && x.ativo !== 'FALSE') && (!q || (x.nome + ' ' + (x.codigo || '')).toLowerCase().indexOf(q) >= 0); });
   var html = gVoltar() + '<div class="card"><h2>Itens e composições</h2><div class="row">' + Object.keys(TIPO_ITEM).map(function (t) { return '<button class="btn ' + (t === aba ? '' : 'sec') + '" style="padding:8px 4px;font-size:13px" onclick="G.catAba=\'' + t + '\';render()">' + TIPO_ITEM[t] + '</button>'; }).join('') + '</div>' +
-    '<input id="g-busca" placeholder="Buscar" value="' + esc(G.busca) + '" style="margin-top:8px">' +
+    '<input id="g-busca" placeholder="Buscar" value="' + esc(G.busca) + '" style="margin-top:8px"><label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" style="width:auto" ' + (G.catInat ? 'checked' : '') + ' onchange="G.catInat=this.checked;render()"> mostrar inativos</label>' +
     (gPode('orcamentos', 'criar') ? '<div style="height:8px"></div><button class="btn lar" onclick="' + (aba === 'composicao' ? 'G.form=null;gIr(\'novaComp\')' : 'G.form={tipo:\'' + aba + '\'};gIr(\'novoItem\')') + '">+ ' + (aba === 'composicao' ? 'Nova composição' : 'Novo item') + '</button>' : '') +
-    '<ul class="lista">' + lista.slice(0, 150).map(function (x) { return '<li><span>' + esc(x.nome) + '<br><span class="muted">' + esc(x.codigo || '') + ' · ' + esc(x.unidade || 'un') + '</span></span><b>' + brl(x.custoUnitario) + '</b></li>'; }).join('') + '</ul>' +
-    (lista.length > 150 ? '<p class="muted">Mostrando 150 de ' + lista.length + '. Use a busca.</p>' : '') + '</div>';
+    '<ul class="lista">' + lista.slice(0, 150).map(function (x) {
+      var inat = x.ativo === false || x.ativo === 'FALSE';
+      return '<li style="cursor:' + (x.id ? 'pointer' : 'default') + (inat ? ';opacity:.55' : '') + '" onclick="' + (x.id ? (aba === 'composicao' ? 'gAbrirComp(\'' + x.id + '\')' : (ed ? 'gEditarItem(\'' + aba + '\',\'' + x.id + '\')' : '')) : '') + '"><span>' + esc(x.nome) + (inat ? ' <span class="tag">inativo</span>' : '') + '<br><span class="muted">' + esc(x.codigo || '') + ' · ' + esc(x.unidade || 'un') + '</span></span><b>' + brl(x.custoUnitario) + '</b></li>';
+    }).join('') + '</ul>' + (lista.length > 150 ? '<p class="muted">Mostrando 150 de ' + lista.length + '. Use a busca.</p>' : '') +
+    '<div style="height:8px"></div><button class="btn sec" onclick="if(gOnline()){aviso(\'Atualizando...\');gCarregarCatalogo(true).then(function(){aviso(\'Catálogo atualizado.\',\'ok\');render();})}">🔄 Atualizar catálogo</button></div>';
   $('tela').innerHTML = html;
   $('g-busca').oninput = function () { G.busca = this.value; var pos = this.selectionStart; render(); var b = $('g-busca'); b.focus(); b.setSelectionRange(pos, pos); };
 }
+function gEditarItem(tipo, id) {
+  var c = gCat(), it = ((tipo === 'material' ? c.materiais : c.maoDeObra) || []).filter(function (x) { return String(x.id) === String(id); })[0];
+  if (!it) return;
+  G.form = { tipo: tipo, id: id, nome: it.nome, unidade: it.unidade, custoUnitario: it.custoUnitario, ativo: !(it.ativo === false || it.ativo === 'FALSE') };
+  gIr('novoItem');
+}
 function gTelaNovoItem() {
-  var f = G.form || (G.form = { tipo: 'mao_de_obra' });
-  $('tela').innerHTML = gVoltar('catalogo') + '<div class="card"><h2>Novo item</h2><label>Tipo</label><select id="ni-tipo"><option value="mao_de_obra"' + (f.tipo === 'mao_de_obra' ? ' selected' : '') + '>Mão de obra</option><option value="material"' + (f.tipo === 'material' ? ' selected' : '') + '>Material</option></select>' +
-    '<label>Nome</label><input id="ni-nome"><div class="row"><div><label>Unidade</label><input id="ni-un" value="' + (f.tipo === 'mao_de_obra' ? 'H' : 'un') + '"></div><div><label>Custo unitário (R$)</label><input id="ni-custo" type="number" step="any"></div></div>' +
-    '<div style="height:12px"></div><button class="btn lar" id="ni-ok">Salvar item</button></div>';
+  var f = G.form || (G.form = { tipo: 'mao_de_obra' }), edit = !!f.id;
+  $('tela').innerHTML = gVoltar('catalogo') + '<div class="card"><h2>' + (edit ? 'Editar item' : 'Novo item') + '</h2><label>Tipo</label><select id="ni-tipo"' + (edit ? ' disabled' : '') + '><option value="mao_de_obra"' + (f.tipo === 'mao_de_obra' ? ' selected' : '') + '>Mão de obra</option><option value="material"' + (f.tipo === 'material' ? ' selected' : '') + '>Material</option></select>' +
+    '<label>Nome</label><input id="ni-nome" value="' + esc(f.nome || '') + '"><div class="row"><div><label>Unidade</label><input id="ni-un" value="' + esc(f.unidade || (f.tipo === 'mao_de_obra' ? 'H' : 'un')) + '"></div><div><label>Custo unitário (R$)</label><input id="ni-custo" type="number" step="any" value="' + (f.custoUnitario !== undefined ? f.custoUnitario : '') + '"></div></div>' +
+    '<div style="height:12px"></div><button class="btn lar" id="ni-ok">' + (edit ? 'Salvar alterações' : 'Salvar item') + '</button>' +
+    (edit ? '<div style="height:8px"></div><button class="btn sec" id="ni-at">' + (f.ativo ? 'Desativar item' : 'Ativar item') + '</button>' : '') + '</div>';
   $('ni-ok').onclick = function () {
     var tipo = $('ni-tipo').value, d = { nome: $('ni-nome').value.trim(), unidade: $('ni-un').value.trim() || 'un', custoUnitario: Number($('ni-custo').value) || 0 };
     if (!d.nome) return aviso('Informe o nome.', 'err');
-    var fn = tipo === 'material' ? 'criarItemMaterial' : 'criarItemMaoDeObra';
+    if (edit) return gAcao(tipo === 'material' ? 'editarItemMaterial' : 'editarItemMaoDeObra', [f.id, d], 'Item alterado.', function () { gCarregarCatalogo(true).then(function () { G.form = null; G.catAba = tipo; gIr('catalogo'); }); });
     gLocalAddItem(tipo, d);
-    enfileirar({ tipo: 'sistema', fn: fn, args: [d], resumo: TIPO_ITEM[tipo] + ': ' + d.nome }).then(function () { G.catAba = tipo; gIr('catalogo'); aviso('Item salvo.', 'ok'); });
+    enfileirar({ tipo: 'sistema', fn: tipo === 'material' ? 'criarItemMaterial' : 'criarItemMaoDeObra', args: [d], resumo: TIPO_ITEM[tipo] + ': ' + d.nome }).then(function () { G.form = null; G.catAba = tipo; gIr('catalogo'); aviso('Item salvo.', 'ok'); setTimeout(function () { if (navigator.onLine) gCarregarCatalogo(true); }, 8000); });
+  };
+  if ($('ni-at')) $('ni-at').onclick = function () {
+    gAcao(f.tipo === 'material' ? 'alternarStatusItemMaterial' : 'alternarStatusItemMaoDeObra', [f.id, !f.ativo], f.ativo ? 'Item desativado.' : 'Item ativado.', function () { gCarregarCatalogo(true).then(function () { G.form = null; gIr('catalogo'); }); });
   };
 }
 function gLocalAddItem(tipo, d) { // aparece na lista já (sem id até sincronizar)
   var c = gCat(), k = tipo === 'material' ? 'materiais' : tipo === 'composicao' ? 'composicoes' : 'maoDeObra';
-  (c[k] = c[k] || []).push({ id: '', codigo: 'novo', nome: d.nome + ' (aguardando envio)', unidade: d.unidade, custoUnitario: d.custoUnitario || 0, ativo: false });
+  (c[k] = c[k] || []).push({ id: '', codigo: 'novo', nome: d.nome + ' (aguardando envio)', unidade: d.unidade, custoUnitario: d.custoUnitario || 0, ativo: true });
 }
+function gAbrirComp(id) {
+  if (!gOnline('Abrir a composição precisa de internet.')) return;
+  G.comp = null; gIr('comp');
+  sys('obterComposicao', [id]).then(function (c) { G.comp = c; if (G.view === 'comp') render(); }).catch(function (e) { aviso(e.message, 'err'); gIr('catalogo'); });
+}
+function gTelaComp() {
+  var c = G.comp, ed = gPode('orcamentos', 'editar'), cr = gPode('orcamentos', 'criar');
+  if (!c) { $('tela').innerHTML = gVoltar('catalogo') + '<div class="card">Carregando...</div>'; return; }
+  var html = gVoltar('catalogo') + '<div class="card"><h2>' + esc(c.codigo) + ' – ' + esc(c.nome) + '</h2><p>Custo unitário: <b>' + brl(c.custoUnitario) + '</b> / ' + esc(c.unidade) + '</p>' +
+    (ed ? '<label>Nome</label><input id="cp-nome" value="' + esc(c.nome) + '"><div class="row"><div><label>Unidade</label><input id="cp-un" value="' + esc(c.unidade) + '"></div></div><label>Descrição</label><textarea id="cp-desc">' + esc(c.descricao || '') + '</textarea><div style="height:8px"></div><button class="btn sec" id="cp-ok">Salvar dados</button>' : '<p class="muted">' + esc(c.descricao || '') + '</p>') + '</div>' +
+    '<div class="card"><h2>Itens da composição</h2><ul class="lista">' + (c.subitens || []).map(function (s) {
+      return '<li><span>' + esc(s.nomeItem) + '<br><span class="muted">' + (TIPO_ITEM[s.tipoItem] || s.tipoItem) + ' · ' + s.quantidade + ' ' + esc(s.unidade) + ' × ' + brl(s.custoUnitario) + '</span></span><span style="text-align:right"><b>' + brl(s.custoTotal) + '</b>' + (ed ? '<br><button class="btn sec" style="padding:4px 8px;font-size:12px;width:auto;margin-top:4px" onclick="gCompRemSub(\'' + s.id + '\')">remover</button>' : '') + '</span></li>';
+    }).join('') + '</ul>' +
+    (cr ? '<div class="mdo"><b>Adicionar item</b><select id="cs-tp"><option value="mao_de_obra">Mão de obra</option><option value="material">Material</option></select><input id="cs-busca" placeholder="Buscar" style="margin-top:6px"><select id="cs-it" style="margin-top:6px"></select><input id="cs-q" type="number" step="any" placeholder="Quantidade" style="margin-top:6px"><div style="height:6px"></div><button class="btn" id="cs-ok">Adicionar</button></div>' : '') + '</div>';
+  $('tela').innerHTML = html;
+  if ($('cp-ok')) $('cp-ok').onclick = function () { gAcao('editarComposicao', [c.id, { nome: $('cp-nome').value.trim(), unidade: $('cp-un').value.trim() || 'un', descricao: $('cp-desc').value }], 'Composição salva.', function () { gAbrirComp(c.id); gCarregarCatalogo(true); }); };
+  if ($('cs-ok')) {
+    var fill = function () { var q = $('cs-busca').value.toLowerCase(); $('cs-it').innerHTML = gOpts(gItensPorTipo($('cs-tp').value).filter(function (x) { return x.id && (!q || x.nome.toLowerCase().indexOf(q) >= 0); }).slice(0, 100), '', function (x) { return x.nome + ' (' + (x.unidade || 'un') + ') ' + brl(x.custoUnitario); }, '— escolha —'); };
+    $('cs-tp').onchange = fill; $('cs-busca').oninput = fill; fill();
+    $('cs-ok').onclick = function () { var d = { tipoItem: $('cs-tp').value, itemId: $('cs-it').value, quantidade: Number($('cs-q').value) }; if (!d.itemId || !(d.quantidade > 0)) return aviso('Escolha o item e a quantidade.', 'err'); gAcao('adicionarSubitemComposicao', [c.id, d], 'Item adicionado.', function () { gAbrirComp(c.id); }); };
+  }
+}
+function gCompRemSub(id) { if (!confirm('Remover este item da composição?')) return; gAcao('removerSubitemComposicao', [id], 'Item removido.', function () { gAbrirComp(G.comp.id); }); }
 function gTelaNovaComposicao() {
   var f = G.form || (G.form = { nome: '', unidade: 'un', descricao: '', itens: [] });
   var html = gVoltar('catalogo') + '<div class="card"><h2>Nova composição</h2><label>Nome</label><input id="nc-nome" value="' + esc(f.nome) + '">' +
