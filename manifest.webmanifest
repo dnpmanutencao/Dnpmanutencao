@@ -1,0 +1,16 @@
+{
+  "name": "DNP Campo",
+  "short_name": "DNP Campo",
+  "description": "Ponto pelo celular e diário de obra (RDO) da DNP, funciona sem internet.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B1A2E",
+  "theme_color": "#0B1A2E",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
