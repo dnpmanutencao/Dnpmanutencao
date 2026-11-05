@@ -3,7 +3,8 @@
 'use strict';
 
 var API_URL = 'https://script.google.com/macros/s/AKfycbwlOXiIzS4mSxtW_xriuBU3rhlDIqp4fPvYOD7_o82ctZgL4AIuUVuXfIokqmQ67DiJ/exec';
-var VERSAO = '1.0.0';
+var VERSAO = '1.2.0';
+var TIPOS_AJUSTE = ['Corrigir horário', 'Esqueci de bater o ponto', 'Falta justificada / atestado', 'Outro'];
 var TIPOS = { ENTRADA: 'Entrada', SAIDA_INTERVALO: 'Saída intervalo', VOLTA_INTERVALO: 'Volta intervalo', SAIDA: 'Saída' };
 var ORDEM = ['ENTRADA', 'SAIDA_INTERVALO', 'VOLTA_INTERVALO', 'SAIDA'];
 
@@ -107,7 +108,8 @@ function sincronizar(manual) {
       });
     }, Promise.resolve());
   }).then(function () {
-    return api('baixar').then(function (d) { S.dados = d; return DB.set('dados', d); }).catch(function () {});
+    return api('baixar').then(function (d) { S.dados = d; return DB.set('dados', d); }).catch(function () {})
+      .then(function () { if (enviados || S.tela === 'espelho') return baixarEspelho(S.espMes || mesAtual()).catch(function () {}); });
   }).catch(function (e) {
     if (String(e.message).indexOf('SESSAO') === 0) { aviso('Sua sessão expirou. Entre de novo (nada foi perdido).', 'err'); return sair(true); }
     if (manual) aviso('Não consegui enviar agora: ' + e.message, 'err');
@@ -174,10 +176,12 @@ function render() {
   $('nav').classList.remove('hidden');
   $('quem').textContent = S.sessao.funcionario.nome;
   $('nav-rdo').classList.toggle('hidden', !(S.dados && S.dados.podeRdo));
-  Array.prototype.forEach.call(document.querySelectorAll('nav button'), function (b) { b.classList.toggle('ativo', b.dataset.t === S.tela); });
+  Array.prototype.forEach.call(document.querySelectorAll('nav button'), function (b) { b.classList.toggle('ativo', b.dataset.t === (S.tela === 'ajuste' ? 'espelho' : S.tela)); });
   if (S.tela === 'rdo') return telaRdo();
   if (S.tela === 'envios') return telaEnvios();
   if (S.tela === 'conta') return telaConta();
+  if (S.tela === 'espelho') return telaEspelho();
+  if (S.tela === 'ajuste') return telaAjuste();
   return telaPonto();
 }
 
@@ -293,6 +297,100 @@ function definirLocalObra() {
     DB.set('dados', S.dados);
     return enfileirar({ tipo: 'localObra', projetoId: obra.id, lat: g.lat, lng: g.lng, raio: obra.raio, resumo: 'Local da obra ' + obra.titulo });
   });
+}
+
+// ---------------- ESPELHO DE PONTO ----------------
+function mesAtual() { return dataIso(Date.now()).slice(0, 7); }
+function hm(h) { h = Number(h) || 0; if (!h) return '—'; var m = Math.round(h * 60); return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); }
+function baixarEspelho(mes) {
+  return api('espelho', { mes: mes }).then(function (e) { return DB.set('esp_' + mes, e).then(function () { if (S.tela === 'espelho' && (S.espMes || mesAtual()) === mes) { S.esp = e; render(); } }); });
+}
+function telaEspelho() {
+  var mes = S.espMes || mesAtual();
+  var e = S.esp && S.esp.mes === mes ? S.esp : null;
+  var html = '<button class="btn lar" id="es-aj" style="margin-bottom:12px">✏️ Solicitar ajuste de ponto</button>' + htmlMeusAjustes() + '<div class="card"><h2>Meu espelho de ponto</h2><div class="row"><input type="month" id="es-mes" value="' + mes + '"><button class="btn sec" id="es-at" style="flex:0 0 auto;width:auto">🔄</button></div>' +
+    '<p class="muted" id="es-info">' + (e ? 'Atualizado em ' + new Date(e.geradoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + (navigator.onLine ? '' : ' (sem internet: mostrando o último salvo)') : 'Carregando...') + '</p></div>';
+  if (e) {
+    var t = e.totais || {};
+    html += '<div class="card"><div class="grade" style="font-size:14px">' +
+      '<div><b>' + (t.diasTrabalhados || 0) + '</b><br><span class="muted">dias trabalhados</span></div>' +
+      '<div><b>' + hm(t.horasTrabalhadas) + '</b><br><span class="muted">horas no mês</span></div>' +
+      '<div><b>' + hm(t.horasNormais) + '</b><br><span class="muted">normais</span></div>' +
+      '<div><b>' + hm((t.horasExtra50 || 0) + (t.horasExtra100 || 0)) + '</b><br><span class="muted">extras (50% ' + hm(t.horasExtra50) + ' · 100% ' + hm(t.horasExtra100) + ')</span></div>' +
+      '<div><b>' + hm(t.horasNoturnas) + '</b><br><span class="muted">noturnas</span></div>' +
+      '<div><b>' + ((t.faltas || 0) + (t.faltasJustificadas || 0)) + '</b><br><span class="muted">faltas/ausências</span></div></div></div>';
+    html += '<div class="card"><ul class="lista">' + e.dias.filter(function (d) { return d.situacao || d.ht; }).map(function (d) {
+      var per = [];
+      for (var k = 0; k < 6; k += 2) if (d.p[k]) per.push(d.p[k] + '–' + d.p[k + 1]);
+      var trab = d.situacao === 'Trabalhado' || d.ht;
+      return '<li data-dia="' + d.data + '" style="cursor:pointer"><span><b>' + d.data.slice(8, 10) + '/' + d.data.slice(5, 7) + ' ' + d.dia + '</b><br><span class="muted">' + (trab ? per.join(' · ') : esc(d.situacao)) + (d.obras ? '<br>' + esc(d.obras) : '') + '</span></span>' +
+        '<span style="text-align:right">' + (trab ? '<b>' + hm(d.ht) + '</b>' + (d.h50 || d.h100 ? '<br><span class="muted">HE ' + hm(d.h50 + d.h100) + '</span>' : '') : '<span class="tag">' + esc(d.situacao) + '</span>') +
+        (d.origem ? '<br><span class="tag ' + (d.origem === 'App' ? 'ok' : '') + '">' + (d.origem === 'App' ? 'ponto' : d.origem) + '</span>' : '') + '</span></li>';
+    }).join('') + '</ul>' + (e.dias.some(function (d) { return d.situacao || d.ht; }) ? '' : '<p class="muted">Nenhum dia registrado neste mês.</p>') +
+      '<p class="muted">O espelho é atualizado sozinho a cada ponto ou RDO enviado. Dúvidas ou correções: fale com o escritório.</p></div>';
+  }
+  $('tela').innerHTML = html;
+  $('es-aj').onclick = function () { abrirAjuste(dataIso(Date.now())); };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-dia]'), function (li) { li.onclick = function () { abrirAjuste(li.dataset.dia); }; });
+  $('es-mes').onchange = function () { S.espMes = this.value || mesAtual(); S.esp = null; render(); };
+  $('es-at').onclick = function () { if (!navigator.onLine) return aviso('Sem internet agora.', 'err'); $('es-info').textContent = 'Atualizando...'; baixarEspelho(mes).catch(function (er) { aviso(er.message, 'err'); render(); }); };
+  if (!e) {
+    DB.get('esp_' + mes).then(function (c) {
+      if (c) { S.esp = c; render(); }
+      if (navigator.onLine) baixarEspelho(mes).catch(function (er) { if (!c) $('es-info').textContent = 'Não consegui carregar: ' + er.message; });
+      else if (!c) $('es-info').textContent = 'Sem internet e sem espelho salvo deste mês.';
+    });
+  }
+}
+
+// ---------------- SOLICITAÇÃO DE AJUSTE ----------------
+function htmlMeusAjustes() {
+  var lista = ((S.dados && S.dados.ajustes) || []).slice(0, 8);
+  S.fila.forEach(function (i) { if (i.tipo === 'ajuste') lista.unshift({ data: i.ajuste.data, tipo: i.ajuste.tipo, status: i.erro ? 'Erro no envio' : 'Aguardando envio', resposta: i.erro || '' }); });
+  if (!lista.length) return '';
+  return '<div class="card"><h2>Minhas solicitações</h2><ul class="lista">' + lista.map(function (a) {
+    var cls = a.status === 'Aprovado' ? 'ok' : (a.status === 'Recusado' || a.status === 'Erro no envio') ? 'err' : 'pend';
+    return '<li><span><b>' + dataBr(a.data) + '</b> ' + esc(a.tipo) + (a.resposta ? '<br><span class="muted">' + esc(a.resposta) + '</span>' : '') + '</span><span class="tag ' + cls + '">' + esc(a.status) + '</span></li>';
+  }).join('') + '</ul></div>';
+}
+function abrirAjuste(data) {
+  var dia = S.esp && S.esp.dias ? S.esp.dias.filter(function (d) { return d.data === data; })[0] : null;
+  S.aj = { data: data, tipo: dia && (dia.situacao || dia.ht) ? TIPOS_AJUSTE[0] : TIPOS_AJUSTE[1], situacao: 'Trabalhado', p: dia ? dia.p.slice() : ['', '', '', '', '', ''], motivo: '', foto: '' };
+  S.tela = 'ajuste'; render(); window.scrollTo(0, 0);
+}
+function telaAjuste() {
+  var a = S.aj || (S.aj = { data: dataIso(Date.now()), tipo: TIPOS_AJUSTE[0], situacao: 'Trabalhado', p: ['', '', '', '', '', ''], motivo: '', foto: '' });
+  var falta = a.tipo === TIPOS_AJUSTE[2];
+  var html = '<div class="card"><h2>Solicitar ajuste de ponto</h2>' +
+    '<label>Dia</label><input type="date" id="aj-data" value="' + a.data + '">' +
+    '<label>O que aconteceu?</label><select id="aj-tipo">' + TIPOS_AJUSTE.map(function (t) { return '<option' + (t === a.tipo ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select>' +
+    (falta ? '<label>Situação</label><select id="aj-sit">' + ['Falta justificada', 'Atestado', 'Folga', 'Férias', 'Afastado'].map(function (t) { return '<option' + (t === a.situacao ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select>'
+      : '<label>Horários corretos do dia</label><div class="mdo"><div class="horas">' +
+        [['Entrada', 0], ['Saída', 1], ['Volta', 2], ['Saída', 3]].map(function (c) { return '<div><label>' + c[0] + '</label><input type="time" class="aj-h" data-k="' + c[1] + '" value="' + (a.p[c[1]] || '') + '"></div>'; }).join('') + '</div></div>') +
+    '<label>Motivo (obrigatório)</label><textarea id="aj-mot" placeholder="Ex.: esqueci de bater a saída, saí às 17:00">' + esc(a.motivo) + '</textarea>' +
+    '<label>Anexo (atestado, comprovante) — opcional</label><button class="btn sec" id="aj-foto">' + (a.foto ? '✅ Anexo adicionado (trocar)' : '📎 Adicionar foto') + '</button>' +
+    '<div style="height:14px"></div><button class="btn lar" id="aj-env">Enviar solicitação</button><div style="height:8px"></div><button class="btn sec" id="aj-cancel">Cancelar</button>' +
+    '<p class="muted">O escritório vai analisar. Você acompanha a resposta aqui na aba Espelho.</p></div>';
+  $('tela').innerHTML = html;
+  var ler = function () {
+    a.data = $('aj-data').value; a.tipo = $('aj-tipo').value; a.motivo = $('aj-mot').value;
+    if ($('aj-sit')) a.situacao = $('aj-sit').value; else a.situacao = 'Trabalhado';
+    Array.prototype.forEach.call(document.querySelectorAll('.aj-h'), function (i) { a.p[Number(i.dataset.k)] = i.value; });
+  };
+  $('aj-tipo').onchange = function () { ler(); if (a.tipo === TIPOS_AJUSTE[2]) a.situacao = 'Falta justificada'; render(); };
+  $('aj-foto').onclick = function () { ler(); tirarFoto('galeria').then(function (f) { return f.length ? lerFoto(f[0], 1280, 0.6) : ''; }).then(function (x) { if (x) a.foto = x; render(); }); };
+  $('aj-cancel').onclick = function () { S.aj = null; S.tela = 'espelho'; render(); };
+  $('aj-env').onclick = function () {
+    ler();
+    if (!a.data) return aviso('Informe o dia.', 'err');
+    if (a.motivo.trim().length < 5) return aviso('Explique o motivo.', 'err');
+    var p = a.tipo === TIPOS_AJUSTE[2] ? ['', '', '', '', '', ''] : a.p;
+    if (a.tipo !== TIPOS_AJUSTE[2] && (!p[0] || !p[1])) return aviso('Informe ao menos a entrada e a saída.', 'err');
+    if ((p[2] && !p[3]) || (!p[2] && p[3])) return aviso('Preencha a volta e a saída do 2º período.', 'err');
+    enfileirar({ tipo: 'ajuste', ajuste: { data: a.data, tipo: a.tipo, situacao: a.tipo === TIPOS_AJUSTE[2] ? a.situacao : 'Trabalhado', p: p, motivo: a.motivo.trim(), foto: a.foto || '' },
+      resumo: 'Ajuste de ponto ' + dataBr(a.data) })
+      .then(function () { S.aj = null; S.tela = 'espelho'; render(); aviso('Solicitação ' + (navigator.onLine ? 'enviada.' : 'salva. Será enviada quando tiver internet.'), 'ok'); });
+  };
 }
 
 // ---------------- RDO ----------------

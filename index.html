@@ -47,6 +47,7 @@
   .mdo { border:1px solid var(--borda); border-radius:10px; padding:10px; margin-top:10px; }
   .mdo .horas { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; } .mdo .horas input { padding:8px 4px; font-size:14px; text-align:center; }
   .mdo .horas label { margin:6px 0 2px; font-size:11px; }
+  @media (max-width:420px) { .mdo .horas { grid-template-columns:1fr 1fr; } }
   .fotos { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; } .fotos img { width:64px; height:64px; object-fit:cover; border-radius:8px; }
   .aviso { position:fixed; left:16px; right:16px; bottom:84px; background:var(--azul); color:#fff; padding:12px 14px; border-radius:12px; z-index:9; box-shadow:0 4px 14px #0004; display:none; pointer-events:none; }
   .aviso.err { background:var(--erro); } .aviso.ok { background:var(--ok); }
@@ -66,6 +67,7 @@
 <nav id="nav" class="hidden">
   <button data-t="ponto" class="ativo"><span>⏱️</span>Ponto</button>
   <button data-t="rdo" id="nav-rdo"><span>📋</span>RDO</button>
+  <button data-t="espelho"><span>📅</span>Espelho</button>
   <button data-t="envios"><span>🔄</span>Envios <b id="nav-pend"></b></button>
   <button data-t="conta"><span>👤</span>Conta</button>
 </nav>
