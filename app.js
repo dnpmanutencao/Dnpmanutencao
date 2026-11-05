@@ -3,7 +3,8 @@
 'use strict';
 
 var API_URL = 'https://script.google.com/macros/s/AKfycbwlOXiIzS4mSxtW_xriuBU3rhlDIqp4fPvYOD7_o82ctZgL4AIuUVuXfIokqmQ67DiJ/exec';
-var VERSAO = '1.3.0';
+var VERSAO = '1.3.1';
+var ESP_INICIO = '2026-11'; // espelho só pode ser consultado a partir deste mês
 var TIPOS_AJUSTE = ['Corrigir horário', 'Esqueci de bater o ponto', 'Falta justificada / atestado', 'Outro'];
 var TIPOS = { ENTRADA: 'Entrada', SAIDA_INTERVALO: 'Saída intervalo', VOLTA_INTERVALO: 'Volta intervalo', SAIDA: 'Saída' };
 var ORDEM = ['ENTRADA', 'SAIDA_INTERVALO', 'VOLTA_INTERVALO', 'SAIDA'];
@@ -310,7 +311,7 @@ function baixarEspelho(mes) {
 function telaEspelho() {
   var mes = S.espMes || mesAtual();
   var e = S.esp && S.esp.mes === mes ? S.esp : null;
-  var html = '<button class="btn lar" id="es-aj" style="margin-bottom:12px">✏️ Solicitar ajuste de ponto</button>' + htmlMeusAjustes() + '<div class="card"><h2>Meu espelho de ponto</h2><div class="row"><input type="month" id="es-mes" value="' + mes + '"><button class="btn sec" id="es-at" style="flex:0 0 auto;width:auto">🔄</button></div>' +
+  var html = '<button class="btn lar" id="es-aj" style="margin-bottom:12px">✏️ Solicitar ajuste de ponto</button>' + htmlMeusAjustes() + '<div class="card"><h2>Meu espelho de ponto</h2><div class="row"><input type="month" id="es-mes" min="' + ESP_INICIO + '" value="' + mes + '"><button class="btn sec" id="es-at" style="flex:0 0 auto;width:auto">🔄</button></div>' +
     '<p class="muted" id="es-info">' + (e ? 'Atualizado em ' + new Date(e.geradoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + (navigator.onLine ? '' : ' (sem internet: mostrando o último salvo)') : 'Carregando...') + '</p></div>';
   if (e) {
     var t = e.totais || {};
@@ -334,7 +335,7 @@ function telaEspelho() {
   $('tela').innerHTML = html;
   $('es-aj').onclick = function () { abrirAjuste(dataIso(Date.now())); };
   Array.prototype.forEach.call(document.querySelectorAll('[data-dia]'), function (li) { li.onclick = function () { abrirAjuste(li.dataset.dia); }; });
-  $('es-mes').onchange = function () { S.espMes = this.value || mesAtual(); S.esp = null; render(); };
+  $('es-mes').onchange = function () { var v = this.value || mesAtual(); if (v < ESP_INICIO) { aviso('O espelho só pode ser consultado a partir de 11/2026.', 'err'); v = ESP_INICIO; } S.espMes = v; S.esp = null; render(); };
   $('es-at').onclick = function () { if (!navigator.onLine) return aviso('Sem internet agora.', 'err'); $('es-info').textContent = 'Atualizando...'; baixarEspelho(mes).catch(function (er) { aviso(er.message, 'err'); render(); }); };
   if (!e) {
     DB.get('esp_' + mes).then(function (c) {
@@ -364,7 +365,7 @@ function telaAjuste() {
   var a = S.aj || (S.aj = { data: dataIso(Date.now()), tipo: TIPOS_AJUSTE[0], situacao: 'Trabalhado', p: ['', '', '', '', '', ''], motivo: '', foto: '' });
   var falta = a.tipo === TIPOS_AJUSTE[2];
   var html = '<div class="card"><h2>Solicitar ajuste de ponto</h2>' +
-    '<label>Dia</label><input type="date" id="aj-data" value="' + a.data + '">' +
+    '<label>Dia</label><input type="date" id="aj-data" min="' + ESP_INICIO + '-01" value="' + a.data + '">' +
     '<label>O que aconteceu?</label><select id="aj-tipo">' + TIPOS_AJUSTE.map(function (t) { return '<option' + (t === a.tipo ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select>' +
     (falta ? '<label>Situação</label><select id="aj-sit">' + ['Falta justificada', 'Atestado', 'Folga', 'Férias', 'Afastado'].map(function (t) { return '<option' + (t === a.situacao ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select>'
       : '<label>Horários corretos do dia</label><div class="mdo"><div class="horas">' +
@@ -385,6 +386,7 @@ function telaAjuste() {
   $('aj-env').onclick = function () {
     ler();
     if (!a.data) return aviso('Informe o dia.', 'err');
+    if (a.data < ESP_INICIO + '-01') return aviso('Ajustes só a partir de 01/11/2026.', 'err');
     if (a.motivo.trim().length < 5) return aviso('Explique o motivo.', 'err');
     var p = a.tipo === TIPOS_AJUSTE[2] ? ['', '', '', '', '', ''] : a.p;
     if (a.tipo !== TIPOS_AJUSTE[2] && (!p[0] || !p[1])) return aviso('Informe ao menos a entrada e a saída.', 'err');
