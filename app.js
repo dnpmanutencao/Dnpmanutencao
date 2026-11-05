@@ -3,7 +3,7 @@
 'use strict';
 
 var API_URL = 'https://script.google.com/macros/s/AKfycbwlOXiIzS4mSxtW_xriuBU3rhlDIqp4fPvYOD7_o82ctZgL4AIuUVuXfIokqmQ67DiJ/exec';
-var VERSAO = '1.3.1';
+var VERSAO = '1.3.2';
 var ESP_INICIO = '2026-11'; // espelho só pode ser consultado a partir deste mês
 var TIPOS_AJUSTE = ['Corrigir horário', 'Esqueci de bater o ponto', 'Falta justificada / atestado', 'Outro'];
 var TIPOS = { ENTRADA: 'Entrada', SAIDA_INTERVALO: 'Saída intervalo', VOLTA_INTERVALO: 'Volta intervalo', SAIDA: 'Saída' };
@@ -62,8 +62,10 @@ function obraPorId(id) { return ((S.dados && S.dados.obras) || []).filter(functi
 function api(acao, corpo) {
   corpo = corpo || {}; corpo.acao = acao;
   if (S.sessao) corpo.token = S.sessao.token;
-  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(corpo), redirect: 'follow' })
-    .then(function (r) { return r.json(); })
+  var ctl = window.AbortController ? new AbortController() : null, tempo = ctl ? setTimeout(function () { ctl.abort(); }, acao === 'sistema' ? 120000 : 60000) : 0;
+  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(corpo), redirect: 'follow', signal: ctl ? ctl.signal : undefined })
+    .catch(function (e) { throw new Error(e && e.name === 'AbortError' ? 'O servidor demorou para responder. Tente de novo em alguns minutos.' : 'Sem conexão com o servidor. Tente de novo.'); })
+    .then(function (r) { clearTimeout(tempo); return r.json(); })
     .then(function (r) {
       if (!r.ok) { var e = new Error(r.erro || 'Erro no servidor'); e.servidor = true; throw e; }
       return r.dados;

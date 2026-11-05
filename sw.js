@@ -1,5 +1,5 @@
 /* DNP Campo — guarda o app no celular para abrir sem internet. */
-var CACHE = 'dnp-campo-v5';
+var CACHE = 'dnp-campo-v6';
 var ARQUIVOS = ['./', 'index.html', 'app.js', 'gestao.js', 'manifest.webmanifest', 'icon.svg'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ARQUIVOS); }).then(function () { return self.skipWaiting(); }));
