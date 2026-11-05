@@ -55,6 +55,9 @@ function telaGestao() {
   if (v === 'novoOrc') return gTelaNovoOrcamento();
   if (v === 'catalogo') return gTelaCatalogo();
   if (v === 'comp') return gTelaComp();
+  if (v === 'insps') return gTelaInsps();
+  if (v === 'insp') return gTelaInsp();
+  if (v === 'inspItem') return gTelaInspItem();
   if (v === 'bdi') return gTelaBdi();
   if (v === 'novoItem') return gTelaNovoItem();
   if (v === 'novaComp') return gTelaNovaComposicao();
@@ -65,6 +68,7 @@ function telaGestao() {
   if (v === 'novoReemb') return gTelaNovoReembolso();
   var b = function (view, ic, txt, sub) { return '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'' + view + '\')">' + ic + ' ' + txt + '<small>' + sub + '</small></button>'; };
   var html = '<div class="card"><h2>Gestão</h2><p class="muted">Usuário do sistema: <b>' + esc(S.dados.sistema.usuario) + '</b>' + (G.cat && G.cat.em ? ' · dados de ' + new Date(G.cat.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '') + '</p><div class="grade">';
+  html += b('insps', '🔎', 'Inspeções', 'relatório com fotos, sem internet');
   if (gPode('orcamentos', 'ver')) html += b('orcs', '📄', 'Orçamentos', 'consultar, status, PDF');
   if (gPode('orcamentos', 'criar')) html += b('novoOrc', '➕', 'Novo orçamento', 'funciona sem internet');
   if (gPode('orcamentos', 'ver')) html += b('catalogo', '🧰', 'Itens e composições', 'catálogo de preços');
