@@ -15,6 +15,15 @@ function inspTotais(d) {
   });
   return t;
 }
+// assinatura do conteúdo: só pede novo envio se algo mudou de verdade depois do último envio
+function inspSig(d) {
+  inspTotais(d);
+  return JSON.stringify([d.titulo, d.cliente, d.local, d.data, d.valorHora, d.objetivo, d.consideracoes, (d.itens || []).map(function (x) {
+    return [x.equipamento, x.tag, x.situacao, x.recomendacao, x.prioridade, x.prazo, x.horas, x.pessoas, x.outros, JSON.stringify(x.materiais || []),
+      (x.fotos || []).map(function (f) { return typeof f === 'string' ? f.length + ':' + f.slice(-30) : f.id; })];
+  })]);
+}
+function inspEnviada(d) { return d.enviadoSig ? inspSig(d) === d.enviadoSig : d.status === 'enviada'; }
 function inspCarregar() { return DB.get('insp_lista').then(function (l) { I.lista = l || []; return I.lista; }); }
 function inspSalvarLocal() { if (I.atual) { I.atual.atualizado = Date.now(); var ix = I.lista.findIndex(function (x) { return x.id === I.atual.id; }); if (ix < 0) I.lista.unshift(I.atual); else I.lista[ix] = I.atual; } return DB.set('insp_lista', I.lista); }
 function inspCam() { // câmera traseira
@@ -36,7 +45,7 @@ function gTelaInsps() {
   html += I.lista.length ? '<ul class="lista">' + I.lista.map(function (d) {
     var t = inspTotais(d);
     return '<li style="cursor:pointer" onclick="inspAbrir(\'' + d.id + '\')"><span><b>' + esc(d.titulo || '(sem título)') + '</b><br><span class="muted">' + esc(d.cliente || '') + ' · ' + (d.data ? dataBr(d.data) : '') + ' · ' + (d.itens || []).length + ' itens</span></span>' +
-      '<span style="text-align:right"><b>' + brl(t.geral) + '</b><br><span class="tag ' + (d.status === 'enviada' ? 'ok' : 'pend') + '">' + (d.status === 'enviada' ? 'enviada' : 'rascunho') + '</span></span></li>';
+      '<span style="text-align:right"><b>' + brl(t.geral) + '</b><br><span class="tag ' + (inspEnviada(d) ? 'ok' : 'pend') + '">' + (inspEnviada(d) ? 'enviada' : 'rascunho') + '</span></span></li>';
   }).join('') + '</ul>' : '<p class="muted">Nenhuma inspeção no celular.</p>';
   html += '</div><div class="card"><h2>No sistema</h2><div id="in-serv">' + (navigator.onLine ? 'Carregando...' : '<p class="muted">Sem internet.</p>') + '</div></div>';
   $('tela').innerHTML = html;
@@ -85,7 +94,7 @@ function gTelaInsp() {
     '<label>Considerações finais</label><textarea id="in-cons" rows="3">' + esc(d.consideracoes) + '</textarea></div>';
   html += '<div class="card"><button class="btn lar" id="in-env">📤 Enviar para o sistema</button><div style="height:8px"></div><button class="btn" id="in-pdf">📄 Gerar relatório PDF</button><div id="in-pdf-l"></div>' +
     '<div style="height:8px"></div><button class="btn sec" id="in-del" style="color:#b91c1c">🗑 Apagar do celular</button>' +
-    '<p class="muted">' + (d.status === 'enviada' ? 'Já enviada. Se alterar, envie de novo antes de gerar o PDF.' : 'Rascunho salvo no celular.') + '</p></div>';
+    '<p class="muted">' + (inspEnviada(d) ? 'Já enviada. Se alterar, envie de novo antes de gerar o PDF.' : 'Rascunho salvo no celular.') + '</p></div>';
   $('tela').innerHTML = html;
   var ler = function () { d.titulo = $('in-tit').value; d.cliente = $('in-cli').value; d.local = $('in-loc').value; d.data = $('in-data').value; d.valorHora = $('in-vh').value; d.objetivo = $('in-obj').value; d.consideracoes = $('in-cons').value; };
   ['in-tit', 'in-cli', 'in-loc', 'in-data', 'in-vh', 'in-obj', 'in-cons'].forEach(function (k) { $(k).onchange = function () { ler(); d.status = 'rascunho'; inspSalvarLocal(); }; });
@@ -93,14 +102,14 @@ function gTelaInsp() {
   $('in-env').onclick = function () {
     ler(); if (!d.titulo.trim()) return aviso('Informe o título.', 'err'); if (!d.itens.length) return aviso('Adicione pelo menos um item.', 'err');
     var copia = JSON.parse(JSON.stringify(d)); copia.itens.forEach(function (it) { it.fotos = it.fotos.map(function (f) { return typeof f === 'string' ? f : f.id; }); });
-    d.status = 'enviada';
+    d.status = 'enviada'; d.enviadoSig = inspSig(d);
     inspSalvarLocal().then(function () { return enfileirar({ tipo: 'inspecao', insp: copia, resumo: 'Inspeção ' + d.titulo }); })
       .then(function () { aviso(navigator.onLine ? 'Enviando... acompanhe em Envios.' : 'Salva. Será enviada quando tiver internet.', 'ok'); });
   };
   $('in-pdf').onclick = function () {
     if (!gOnline('Gerar o PDF precisa de internet.')) return;
     if ((S.fila || []).some(function (x) { return x.tipo === 'inspecao' && x.insp && x.insp.id === d.id; })) return aviso('Aguarde o envio terminar (aba Envios).', 'err');
-    if (d.status !== 'enviada') return aviso('Envie a inspeção primeiro.', 'err');
+    if (!inspEnviada(d) && !confirm('Esta inspeção tem alterações que ainda não foram enviadas.\n\nOK = gerar o PDF com a versão que já está no sistema\nCancelar = voltar e tocar em "Enviar para o sistema"')) return;
     var b = this; b.disabled = true; b.textContent = 'Gerando PDF (até 1 minuto)...';
     api('inspecao', { op: 'pdf', id: d.id }).then(function (r) {
       d.pdfUrl = r.url; inspSalvarLocal();
@@ -145,7 +154,6 @@ function gTelaInspItem() {
     Array.prototype.forEach.call(document.querySelectorAll('.it-mq'), function (e) { it.materiais[e.dataset.i].qtd = e.value; });
     Array.prototype.forEach.call(document.querySelectorAll('.it-mu'), function (e) { it.materiais[e.dataset.i].un = e.value; });
     Array.prototype.forEach.call(document.querySelectorAll('.it-mv'), function (e) { it.materiais[e.dataset.i].valor = e.value; });
-    d.status = 'rascunho';
   };
   I.lerItem = ler;
   var salvar = function (rerender) { ler(); inspTotais(d);

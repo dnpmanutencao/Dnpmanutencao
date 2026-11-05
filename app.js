@@ -3,7 +3,7 @@
 'use strict';
 
 var API_URL = 'https://script.google.com/macros/s/AKfycbwlOXiIzS4mSxtW_xriuBU3rhlDIqp4fPvYOD7_o82ctZgL4AIuUVuXfIokqmQ67DiJ/exec';
-var VERSAO = '1.5.1';
+var VERSAO = '1.5.2';
 var ESP_INICIO = '2026-11'; // espelho só pode ser consultado a partir deste mês
 var TIPOS_AJUSTE = ['Corrigir horário', 'Esqueci de bater o ponto', 'Falta justificada / atestado', 'Outro'];
 var TIPOS = { ENTRADA: 'Entrada', SAIDA_INTERVALO: 'Saída intervalo', VOLTA_INTERVALO: 'Volta intervalo', SAIDA: 'Saída' };
@@ -62,7 +62,7 @@ function obraPorId(id) { return ((S.dados && S.dados.obras) || []).filter(functi
 function api(acao, corpo) {
   corpo = corpo || {}; corpo.acao = acao;
   if (S.sessao) corpo.token = S.sessao.token;
-  var ctl = window.AbortController ? new AbortController() : null, tempo = ctl ? setTimeout(function () { ctl.abort(); }, acao === 'sistema' ? 120000 : 60000) : 0;
+  var ctl = window.AbortController ? new AbortController() : null, tempo = ctl ? setTimeout(function () { ctl.abort(); }, (acao === 'sistema' || acao === 'inspecao') ? 120000 : 60000) : 0;
   return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(corpo), redirect: 'follow', signal: ctl ? ctl.signal : undefined })
     .catch(function (e) { throw new Error(e && e.name === 'AbortError' ? 'O servidor demorou para responder. Tente de novo em alguns minutos.' : 'Sem conexão com o servidor. Tente de novo.'); })
     .then(function (r) { clearTimeout(tempo); return r.json(); })
@@ -131,13 +131,20 @@ function prepararInspecao(item) {
   if (item.tipo !== 'inspecao' || !item.insp) return Promise.resolve();
   var tarefas = [];
   (item.insp.itens || []).forEach(function (it, ix) { (it.fotos || []).forEach(function (f, k) { if (typeof f === 'string' && f.indexOf('data:') === 0) tarefas.push([it, k, ix]); }); });
-  return tarefas.reduce(function (p, t, n) {
-    return p.then(function () {
-      aviso('Enviando fotos da inspeção ' + (n + 1) + '/' + tarefas.length + '...');
-      return api('inspFoto', { foto: t[0].fotos[t[1]], nome: 'inspecao_' + String(item.insp.titulo || '').slice(0, 30) + '_' + (t[2] + 1) + '_' + (t[1] + 1) + '.jpg' })
-        .then(function (id) { t[0].fotos[t[1]] = id; return DB.filaPut(item); });
-    });
-  }, Promise.resolve());
+  if (!tarefas.length) return Promise.resolve();
+  var chave = function (f) { return f.length + ':' + f.slice(-60); }; // foto já enviada antes não sobe de novo
+  return DB.get('inspFotoIds').then(function (mapa) {
+    mapa = mapa || {};
+    return tarefas.reduce(function (p, t, n) {
+      return p.then(function () {
+        var f = t[0].fotos[t[1]], k = chave(f);
+        if (mapa[k]) { t[0].fotos[t[1]] = mapa[k]; return DB.filaPut(item); }
+        aviso('Enviando fotos da inspeção ' + (n + 1) + '/' + tarefas.length + '...');
+        return api('inspFoto', { foto: f, nome: 'inspecao_' + String(item.insp.titulo || '').slice(0, 30) + '_' + (t[2] + 1) + '_' + (t[1] + 1) + '.jpg' })
+          .then(function (id) { t[0].fotos[t[1]] = id; mapa[k] = id; return DB.set('inspFotoIds', mapa).then(function () { return DB.filaPut(item); }); });
+      });
+    }, Promise.resolve());
+  });
 }
 
 function enfileirar(item) {
