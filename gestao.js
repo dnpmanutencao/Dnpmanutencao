@@ -10,7 +10,7 @@ function gPode(mod, acao) { var p = S.dados && S.dados.sistema && S.dados.sistem
 function gVinculado() { return !!(S.dados && S.dados.sistema && S.dados.sistema.vinculado); }
 function sys(fn, args) { return api('sistema', { fn: fn, args: args || [] }); }
 function brl(v) { return (Number(v) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
-function gIr(view) { if (view === 'orcs') G._orcsOk = false; G.view = view; S.tela = 'gestao'; render(); window.scrollTo(0, 0); }
+function gIr(view) { if (view === 'orcs') G._orcsOk = false; if (view === 'projs') G.projs = null; G.view = view; S.tela = 'gestao'; render(); window.scrollTo(0, 0); }
 function gVoltar(view) { return '<button class="btn sec" style="margin-bottom:10px" onclick="gIr(\'' + (view || 'menu') + '\')">← Voltar</button>'; }
 function gOnline(msg) { if (navigator.onLine) return true; aviso(msg || 'Isso precisa de internet.', 'err'); return false; }
 function gOpts(lista, sel, rot, vazio) { return (vazio ? '<option value="">' + vazio + '</option>' : '') + lista.map(function (x) { return '<option value="' + esc(x.id) + '"' + (String(x.id) === String(sel) ? ' selected' : '') + '>' + esc(rot(x)) + '</option>'; }).join(''); }
@@ -65,6 +65,7 @@ function telaGestao() {
   if (v === 'reqs') return gTelaRequisicoes();
   if (v === 'novaReq') return gTelaNovaRequisicao();
   if (v === 'reembs') return gTelaReembolsos();
+  if (v === 'projs') return gTelaProjetos();
   if (v === 'novoReemb') return gTelaNovoReembolso();
   var b = function (view, ic, txt, sub) { return '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'' + view + '\')">' + ic + ' ' + txt + '<small>' + sub + '</small></button>'; };
   var html = '<div class="card"><h2>Gestão</h2><p class="muted">Usuário do sistema: <b>' + esc(S.dados.sistema.usuario) + '</b>' + (G.cat && G.cat.em ? ' · dados de ' + new Date(G.cat.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '') + '</p><div class="grade">';
@@ -74,6 +75,7 @@ function telaGestao() {
   if (gPode('orcamentos', 'ver')) html += b('catalogo', '🧰', 'Itens e composições', 'catálogo de preços');
   if (gPode('orcamentos', 'ver')) html += b('bdi', '％', 'BDI padrão', 'imposto, taxas, lucro');
   if (gPode('crm', 'criar')) html += b('novoCliente', '🏢', 'Novo cliente', 'com consulta de CNPJ');
+  if (gPode('projetos', 'ver')) html += b('projs', '🏗️', 'Obras / projetos', 'status: colocar em execução');
   if (gPode('requisicoes', 'ver') || gPode('financeiro', 'ver')) html += b('reqs', '🛒', 'Requisições de compra', 'acompanhar / aprovar');
   if (gPode('requisicoes', 'criar')) html += b('novaReq', '➕', 'Nova requisição', 'funciona sem internet');
   if (gPode('requisicoes', 'ver') || gPode('financeiro', 'ver')) html += b('reembs', '🧾', 'Reembolsos', 'acompanhar / pagar');
@@ -565,4 +567,38 @@ function gTelaNovoReembolso() {
     if (!d.foto && !confirm('Enviar sem foto do comprovante?')) return;
     enfileirar({ tipo: 'sistema', fn: 'criarReembolso', args: [d], resumo: 'Reembolso ' + brl(d.valor) }).then(function () { G.form = null; G.reembs = null; gIr('reembs'); aviso('Reembolso ' + (navigator.onLine ? 'enviado.' : 'salvo. Será enviado quando tiver internet.'), 'ok'); });
   };
+}
+
+// ---------- Obras / projetos: status (em execução, pausado, concluído...) ----------
+var PJ_STATUS = ['Planejamento', 'Em Andamento', 'Pausado', 'Concluído', 'Faturado', 'Cancelado'];
+var PJ_ROTULO = { 'Planejamento': 'Aprovado', 'Em Andamento': 'Em Execução' };
+function pjRot(st) { return PJ_ROTULO[st] || st; }
+function gTelaProjetos() {
+  var l = G.projs, pode = gPode('projetos', 'editar');
+  var html = gVoltar() + '<div class="card"><h2>🏗️ Obras / projetos</h2><p class="muted">Para bater ponto e lançar RDO a obra precisa estar em <b>Aprovado</b>, <b>Em Execução</b> ou <b>Pausado</b>.' + (pode ? ' Troque o status no seletor.' : '') + '</p>';
+  if (!l) html += '<p class="muted">Carregando...</p>';
+  else if (!l.length) html += '<p class="muted">Nenhum projeto ainda. Converta um orçamento aprovado em projeto.</p>';
+  else html += '<ul class="lista">' + l.map(function (p) {
+    return '<li style="flex-wrap:wrap;gap:6px"><span style="flex:1;min-width:58%"><b>' + esc(p.titulo) + '</b><br><span class="muted">' + esc(p.nomeCliente) + (p.dataInicio ? ' · início ' + esc(p.dataInicio) : '') + ' · ' + Math.round(Number(p.percentualConcluido) || 0) + '% concluído</span></span>' +
+      (pode ? '<select data-pj="' + esc(p.id) + '" style="width:auto;max-width:42%">' + PJ_STATUS.map(function (st) { return '<option value="' + st + '"' + (st === p.status ? ' selected' : '') + '>' + pjRot(st) + '</option>'; }).join('') + '</select>'
+        : '<span class="tag">' + esc(pjRot(p.status)) + '</span>') + '</li>';
+  }).join('') + '</ul>';
+  $('tela').innerHTML = html + '</div>';
+  Array.prototype.forEach.call(document.querySelectorAll('[data-pj]'), function (sel) {
+    sel.onchange = function () {
+      var st = sel.value, p = (G.projs || []).filter(function (x) { return String(x.id) === sel.dataset.pj; })[0];
+      if (!confirm('Mudar "' + (p ? p.titulo : '') + '" para ' + pjRot(st) + '?')) { gTelaProjetos(); return; }
+      if (!gOnline()) { gTelaProjetos(); return; }
+      aviso('Salvando...');
+      sys('atualizarStatusProjeto', [sel.dataset.pj, st]).then(function () {
+        if (p) p.status = st;
+        aviso('Status alterado para ' + pjRot(st) + '.', 'ok');
+        return api('baixar').then(function (d) { S.dados = d; return DB.set('dados', d); }).catch(function () {}); // a obra aparece no Ponto e no RDO
+      }).catch(function (e) { aviso(e.message, 'err'); }).then(function () { if (G.view === 'projs') gTelaProjetos(); });
+    };
+  });
+  if (!l && !G._pjCarregando && navigator.onLine) {
+    G._pjCarregando = true;
+    sys('listarProjetos').then(function (r) { G.projs = r || []; if (G.view === 'projs') gTelaProjetos(); }).catch(function (e) { aviso(e.message, 'err'); }).then(function () { G._pjCarregando = false; });
+  }
 }
