@@ -50,6 +50,7 @@ function telaGestao() {
   if (!gVinculado()) { $('tela').innerHTML = '<div class="card"><h2>Gestão</h2><p class="muted">Seu acesso ainda não está vinculado a um usuário do sistema. Peça ao escritório (Frequência → App de Campo).</p></div>'; return; }
   if (!G.cat && !G._catCarregando) { G._catCarregando = true; gCarregarCatalogo(false).then(function () { G._catCarregando = false; if (!G.cat) G.cat = gCat(); render(); }).catch(function (e) { G._catCarregando = false; G.cat = G.cat || gCat(); aviso(e.message, 'err'); }); }
   var v = G.view;
+  if (typeof gRotaExtra === 'function' && gRotaExtra(v)) return;
   if (v === 'orcs') return gTelaOrcamentos();
   if (v === 'orc') return gTelaOrcamento();
   if (v === 'novoOrc') return gTelaNovoOrcamento();
@@ -69,7 +70,7 @@ function telaGestao() {
   if (v === 'novoReemb') return gTelaNovoReembolso();
   var b = function (view, ic, txt, sub) { return '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'' + view + '\')">' + ic + ' ' + txt + '<small>' + sub + '</small></button>'; };
   var html = '<div class="card"><h2>Gestão</h2><p class="muted">Usuário do sistema: <b>' + esc(S.dados.sistema.usuario) + '</b>' + (G.cat && G.cat.em ? ' · dados de ' + new Date(G.cat.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '') + '</p><div class="grade">';
-  var socio = !!S.dados.sistema.socio;
+  var socio = !!S.dados.sistema.socio && typeof APP_GESTAO === 'undefined';
   // o que só o app faz bem no campo (sem internet, com câmera)
   var campo = [['insps', '🔎', 'Inspeções', 'relatório com fotos, sem internet', true]];
   if (gPode('orcamentos', 'criar')) campo.push(['novoOrc', '➕', 'Novo orçamento', 'funciona sem internet']);
@@ -93,6 +94,7 @@ function telaGestao() {
       (G.maisMenu ? '<div class="grade" style="margin-top:10px">' + bs(resto) + '</div>' : '') + '<div style="height:10px"></div>';
   } else {
     html += bs(campo.slice(0, 1)) + bs(resto.slice(0, 1)) + bs(campo.slice(1, 2)) + bs(resto.slice(1)) + bs(campo.slice(2));
+    if (typeof gMenuExtra === 'function') html += gMenuExtra();
     html += '</div><div style="height:10px"></div>';
   }
   html += '<button class="btn sec" id="g-atual">⬇️ Atualizar dados (clientes, itens, obras)</button></div>';
@@ -619,12 +621,21 @@ function gTelaProjetos() {
   }
 }
 
-// ---------- sistema completo (só sócios): abre o sistema web já logado ----------
+// ---------- sistema completo (só sócios): abre o sistema web já logado, dentro do app ----------
+// (dentro do app evita o erro "Não foi possível abrir o arquivo" do Google quando o celular tem mais de uma conta)
 function gSistemaCompleto() {
   if (!gOnline('Abrir o sistema completo precisa de internet.')) return;
-  var w = null; try { w = window.open('', '_blank'); } catch (e) {}
   aviso('Abrindo o sistema...');
   api('sistemaLink').then(function (r) {
-    if (w && !w.closed) w.location.href = r.url; else location.href = r.url;
-  }).catch(function (e) { try { if (w) w.close(); } catch (x) {} aviso(e.message, 'err'); });
+    var velho = $('sis-full'); if (velho) velho.remove();
+    var d = document.createElement('div'); d.id = 'sis-full';
+    d.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:#0E1A2E;display:flex;flex-direction:column';
+    d.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;color:#fff;font-weight:600">' +
+      '<button id="sis-fechar" class="btn sec" style="width:auto;padding:6px 14px">✕ Fechar</button><span>🖥️ Sistema completo</span></div>' +
+      '<iframe src="' + esc(r.url) + '" style="flex:1;width:100%;border:0;background:#fff"></iframe>';
+    document.body.appendChild(d);
+    var fechar = function () { var x = $('sis-full'); if (x) x.remove(); window.removeEventListener('popstate', fechar); };
+    try { history.pushState({ sis: 1 }, ''); window.addEventListener('popstate', fechar); } catch (e) {} // botão voltar do celular fecha o sistema
+    $('sis-fechar').onclick = function () { if (history.state && history.state.sis) history.back(); else fechar(); };
+  }).catch(function (e) { aviso(e.message, 'err'); });
 }

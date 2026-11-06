@@ -3,7 +3,7 @@
 'use strict';
 
 var API_URL = 'https://script.google.com/macros/s/AKfycbwlOXiIzS4mSxtW_xriuBU3rhlDIqp4fPvYOD7_o82ctZgL4AIuUVuXfIokqmQ67DiJ/exec';
-var VERSAO = '1.5.6';
+var VERSAO = '1.6.0';
 var ESP_INICIO = '2026-11'; // espelho só pode ser consultado a partir deste mês
 var TIPOS_AJUSTE = ['Corrigir horário', 'Esqueci de bater o ponto', 'Falta justificada / atestado', 'Outro'];
 var TIPOS = { ENTRADA: 'Entrada', SAIDA_INTERVALO: 'Saída intervalo', VOLTA_INTERVALO: 'Volta intervalo', SAIDA: 'Saída' };
@@ -213,7 +213,8 @@ function render() {
   $('nav').classList.remove('hidden');
   $('quem').textContent = S.sessao.funcionario.nome;
   $('nav-rdo').classList.toggle('hidden', !(S.dados && S.dados.podeRdo));
-  $('nav-gestao').classList.toggle('hidden', !gVinculado());
+  $('nav-gestao').classList.add('hidden'); // gestão agora fica no app DNP Gestão
+  if (S.tela === 'gestao') S.tela = 'ponto';
   Array.prototype.forEach.call(document.querySelectorAll('nav button'), function (b) { b.classList.toggle('ativo', b.dataset.t === (S.tela === 'ajuste' ? 'espelho' : S.tela)); });
   if (S.tela === 'rdo') return telaRdo();
   if (S.tela === 'gestao') return telaGestao();
@@ -533,6 +534,7 @@ function telaConta() {
   $('tela').innerHTML = '<div class="card"><h2>' + esc(S.sessao.funcionario.nome) + '</h2>' +
     '<p class="muted">Permissões: ponto' + (S.dados && S.dados.podeRdo ? ', RDO' : '') + (S.dados && S.dados.gestor ? ', gestor' : '') + '</p>' +
     '<p class="muted">Pendentes no celular: ' + S.fila.length + '</p>' +
+    (S.dados && S.dados.sistema && S.dados.sistema.vinculado ? '<a class="btn lar" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px" href="./gestao/">💼 Abrir o app DNP Gestão</a>' : '') +
     '<button class="btn sec" id="c-atual">⬇️ Atualizar obras e dados</button><div style="height:10px"></div>' +
     '<button class="btn sec" id="c-sair">Sair desta conta</button>' +
     '<p class="muted" style="margin-top:14px">DNP Campo v' + VERSAO + '</p></div>';

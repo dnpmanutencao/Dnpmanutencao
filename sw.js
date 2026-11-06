@@ -1,12 +1,12 @@
 /* DNP Campo — guarda o app no celular para abrir sem internet. */
-var CACHE = 'dnp-campo-v14';
+var CACHE = 'dnp-campo-v15';
 var ARQUIVOS = ['./', 'index.html', 'app.js', 'gestao.js', 'inspecao.js', 'manifest.webmanifest', 'icon.svg'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ARQUIVOS); }).then(function () { return self.skipWaiting(); }));
 });
 self.addEventListener('activate', function (e) {
   e.waitUntil(caches.keys().then(function (ks) {
-    return Promise.all(ks.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
+    return Promise.all(ks.filter(function (k) { return k.indexOf('dnp-campo') === 0 && k !== CACHE; }).map(function (k) { return caches.delete(k); }));
   }).then(function () { return self.clients.claim(); }));
 });
 self.addEventListener('fetch', function (e) {
