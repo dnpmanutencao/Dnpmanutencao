@@ -4,7 +4,7 @@
 var APP_GESTAO = true;
 
 var API_URL = 'https://script.google.com/macros/s/AKfycbwlOXiIzS4mSxtW_xriuBU3rhlDIqp4fPvYOD7_o82ctZgL4AIuUVuXfIokqmQ67DiJ/exec';
-var VERSAO = '1.1.0';
+var VERSAO = '1.2.0';
 var ESP_INICIO = '2026-11'; // espelho só pode ser consultado a partir deste mês
 var TIPOS_AJUSTE = ['Corrigir horário', 'Esqueci de bater o ponto', 'Falta justificada / atestado', 'Outro'];
 var TIPOS = { ENTRADA: 'Entrada', SAIDA_INTERVALO: 'Saída intervalo', VOLTA_INTERVALO: 'Volta intervalo', SAIDA: 'Saída' };
@@ -44,7 +44,7 @@ var DB = {
 };
 
 // ---------------- estado ----------------
-var S = { sessao: null, dados: null, fila: [], tela: 'sistema', obraId: null, gps: null, sincronizando: false, rdoFotos: [], historico: [] };
+var S = { sessao: null, dados: null, fila: [], tela: 'gestao', obraId: null, gps: null, sincronizando: false, rdoFotos: [], historico: [] };
 
 function $(id) { return document.getElementById(id); }
 function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -236,7 +236,7 @@ function render() {
   if (!S.sessao) { if ($('sis')) $('sis').style.display = 'none'; return telaLogin(); }
   $('nav').classList.remove('hidden');
   $('quem').textContent = S.sessao.funcionario.nome;
-  var ativo = S.tela === 'gestao' ? 'insps' : S.tela;
+  var ativo = S.tela === 'gestao' ? (/^insp/.test(G.view || '') ? 'insps' : 'auto') : S.tela;
   Array.prototype.forEach.call(document.querySelectorAll('nav button'), function (b) { b.classList.toggle('ativo', b.dataset.t === ativo); });
   sisMostrar(S.tela === 'sistema');
   if (S.tela === 'sistema') { $('tela').innerHTML = ''; return; }
@@ -261,7 +261,7 @@ function telaLogin() {
       S.sessao = { token: r.token, funcionario: { id: '', nome: r.usuario.nome }, email: r.usuario.email };
       return DB.set('sessao', S.sessao);
     }).then(function () { return baixarDados(); }).then(function () {
-      S.tela = 'sistema'; render(); aviso('Bem-vindo, ' + S.sessao.funcionario.nome.split(' ')[0] + '!', 'ok');
+      S.tela = 'gestao'; G.view = 'auto'; render(); aviso('Bem-vindo, ' + S.sessao.funcionario.nome.split(' ')[0] + '!', 'ok');
     }).catch(function (e) { aviso(e.message, 'err'); b.disabled = false; b.textContent = 'Entrar'; });
   };
   $('l-ok').onclick = entrar;
@@ -308,7 +308,7 @@ function telaEnvios() {
 function sair(soLocal) {
   var p = (!soLocal && navigator.onLine && S.sessao) ? sys('logout').catch(function () {}) : Promise.resolve();
   SIS.carregado = false; var f = $('sis-if'); if (f) { f.src = 'about:blank'; f.style.display = 'none'; }
-  return p.then(function () { S.sessao = null; S.dados = null; S.tela = 'sistema'; return Promise.all([DB.del('sessao'), DB.del('dados')]); }).then(render);
+  return p.then(function () { S.sessao = null; S.dados = null; S.tela = 'gestao'; G.view = 'auto'; return Promise.all([DB.del('sessao'), DB.del('dados')]); }).then(render);
 }
 
 // ---------------- início ----------------
@@ -316,7 +316,7 @@ Array.prototype.forEach.call(document.querySelectorAll('nav button'), function (
   b.onclick = function () {
     var t = b.dataset.t;
     if (t === 'envios' || t === 'conta' || t === 'sistema') { S.tela = t; render(); }
-    else gIr('insps');
+    else gIr(t);
     window.scrollTo(0, 0);
   };
 });
