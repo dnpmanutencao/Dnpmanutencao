@@ -18,10 +18,12 @@ function inspTotais(d) {
 // assinatura do conteúdo: só pede novo envio se algo mudou de verdade depois do último envio
 function inspSig(d) {
   inspTotais(d);
-  return JSON.stringify([d.titulo, d.cliente, d.local, d.data, d.valorHora, d.objetivo, d.consideracoes, (d.itens || []).map(function (x) {
+  var a = [d.titulo, d.cliente, d.local, d.data, d.valorHora, d.objetivo, d.consideracoes, (d.itens || []).map(function (x) {
     return [x.equipamento, x.tag, x.situacao, x.recomendacao, x.prioridade, x.prazo, x.horas, x.pessoas, x.outros, JSON.stringify(x.materiais || []),
       (x.fotos || []).map(function (f) { return typeof f === 'string' ? f.length + ':' + f.slice(-30) : f.id; })];
-  })]);
+  })];
+  if (d.cargo || d.registro || (d.responsavel && d.responsavel !== S.sessao.funcionario.nome)) a.push([d.responsavel, d.cargo, d.registro]);
+  return JSON.stringify(a);
 }
 function inspEnviada(d) { return d.enviadoSig ? inspSig(d) === d.enviadoSig : d.status === 'enviada'; }
 function inspCarregar() { return DB.get('insp_lista').then(function (l) { I.lista = l || []; return I.lista; }); }
@@ -79,6 +81,8 @@ function gTelaInsp() {
     '<label>Título</label><input id="in-tit" value="' + esc(d.titulo) + '" placeholder="Ex.: Inspeção da planta de britagem">' +
     '<label>Cliente</label><input id="in-cli" list="in-clis" value="' + esc(d.cliente) + '"><datalist id="in-clis">' + cli + '</datalist>' +
     '<label>Local / unidade</label><input id="in-loc" value="' + esc(d.local) + '">' +
+    '<label>Responsável pela inspeção</label><input id="in-resp" value="' + esc(d.responsavel || S.sessao.funcionario.nome) + '">' +
+    '<div class="row"><div><label>Cargo / função</label><input id="in-cargo" value="' + esc(d.cargo || '') + '" placeholder="Ex.: Eng. eletricista"></div><div><label>Registro (CREA/CFT)</label><input id="in-reg" value="' + esc(d.registro || '') + '" placeholder="opcional"></div></div>' +
     '<div class="row"><div><label>Data</label><input id="in-data" type="date" value="' + esc(d.data) + '"></div><div><label>Valor hora (R$)</label><input id="in-vh" type="number" step="any" value="' + esc(d.valorHora) + '" placeholder="mão de obra"></div></div>' +
     '<label>Objetivo (opcional)</label><textarea id="in-obj" rows="2">' + esc(d.objetivo) + '</textarea></div>';
   html += '<div class="card"><h2>Itens inspecionados (' + d.itens.length + ')</h2><ul class="lista">' + d.itens.map(function (it, k) {
@@ -96,8 +100,8 @@ function gTelaInsp() {
     '<div style="height:8px"></div><button class="btn sec" id="in-del" style="color:#b91c1c">🗑 Apagar do celular</button>' +
     '<p class="muted">' + (inspEnviada(d) ? 'Já enviada. Se alterar, envie de novo antes de gerar o PDF.' : 'Rascunho salvo no celular.') + '</p></div>';
   $('tela').innerHTML = html;
-  var ler = function () { d.titulo = $('in-tit').value; d.cliente = $('in-cli').value; d.local = $('in-loc').value; d.data = $('in-data').value; d.valorHora = $('in-vh').value; d.objetivo = $('in-obj').value; d.consideracoes = $('in-cons').value; };
-  ['in-tit', 'in-cli', 'in-loc', 'in-data', 'in-vh', 'in-obj', 'in-cons'].forEach(function (k) { $(k).onchange = function () { ler(); d.status = 'rascunho'; inspSalvarLocal(); }; });
+  var ler = function () { d.titulo = $('in-tit').value; d.cliente = $('in-cli').value; d.local = $('in-loc').value; d.data = $('in-data').value; d.valorHora = $('in-vh').value; d.objetivo = $('in-obj').value; d.consideracoes = $('in-cons').value; d.responsavel = $('in-resp').value.trim() || S.sessao.funcionario.nome; d.cargo = $('in-cargo').value.trim(); d.registro = $('in-reg').value.trim(); };
+  ['in-tit', 'in-cli', 'in-loc', 'in-resp', 'in-cargo', 'in-reg', 'in-data', 'in-vh', 'in-obj', 'in-cons'].forEach(function (k) { $(k).onchange = function () { ler(); d.status = 'rascunho'; inspSalvarLocal(); }; });
   $('in-add').onclick = function () { ler(); d.itens.push({ id: uid(), equipamento: '', tag: '', fotos: [], situacao: '', recomendacao: '', prioridade: 'Média', prazo: INSP_PRIO['Média'], horas: '', pessoas: 1, materiais: [], outros: '' }); d.status = 'rascunho'; inspSalvarLocal().then(function () { inspItem(d.itens.length - 1); }); };
   $('in-env').onclick = function () {
     ler(); if (!d.titulo.trim()) return aviso('Informe o título.', 'err'); if (!d.itens.length) return aviso('Adicione pelo menos um item.', 'err');
