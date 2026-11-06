@@ -69,19 +69,35 @@ function telaGestao() {
   if (v === 'novoReemb') return gTelaNovoReembolso();
   var b = function (view, ic, txt, sub) { return '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'' + view + '\')">' + ic + ' ' + txt + '<small>' + sub + '</small></button>'; };
   var html = '<div class="card"><h2>Gestão</h2><p class="muted">Usuário do sistema: <b>' + esc(S.dados.sistema.usuario) + '</b>' + (G.cat && G.cat.em ? ' · dados de ' + new Date(G.cat.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '') + '</p><div class="grade">';
-  html += b('insps', '🔎', 'Inspeções', 'relatório com fotos, sem internet');
-  if (gPode('orcamentos', 'ver')) html += b('orcs', '📄', 'Orçamentos', 'consultar, status, PDF');
-  if (gPode('orcamentos', 'criar')) html += b('novoOrc', '➕', 'Novo orçamento', 'funciona sem internet');
-  if (gPode('orcamentos', 'ver')) html += b('catalogo', '🧰', 'Itens e composições', 'catálogo de preços');
-  if (gPode('orcamentos', 'ver')) html += b('bdi', '％', 'BDI padrão', 'imposto, taxas, lucro');
-  if (gPode('crm', 'criar')) html += b('novoCliente', '🏢', 'Novo cliente', 'com consulta de CNPJ');
-  if (gPode('projetos', 'ver')) html += b('projs', '🏗️', 'Obras / projetos', 'status: colocar em execução');
-  if (gPode('requisicoes', 'ver') || gPode('financeiro', 'ver')) html += b('reqs', '🛒', 'Requisições de compra', 'acompanhar / aprovar');
-  if (gPode('requisicoes', 'criar')) html += b('novaReq', '➕', 'Nova requisição', 'funciona sem internet');
-  if (gPode('requisicoes', 'ver') || gPode('financeiro', 'ver')) html += b('reembs', '🧾', 'Reembolsos', 'acompanhar / pagar');
-  if (gPode('requisicoes', 'criar')) html += b('novoReemb', '➕', 'Novo reembolso', 'com foto do recibo');
-  html += '</div><div style="height:10px"></div><button class="btn sec" id="g-atual">⬇️ Atualizar dados (clientes, itens, obras)</button></div>';
+  var socio = !!S.dados.sistema.socio;
+  // o que só o app faz bem no campo (sem internet, com câmera)
+  var campo = [['insps', '🔎', 'Inspeções', 'relatório com fotos, sem internet', true]];
+  if (gPode('orcamentos', 'criar')) campo.push(['novoOrc', '➕', 'Novo orçamento', 'funciona sem internet']);
+  if (gPode('requisicoes', 'criar')) campo.push(['novaReq', '🛒', 'Nova requisição', 'funciona sem internet']);
+  if (gPode('requisicoes', 'criar')) campo.push(['novoReemb', '🧾', 'Novo reembolso', 'com foto do recibo']);
+  // consultas e cadastros (no sistema completo os sócios já têm tudo isso)
+  var resto = [];
+  if (gPode('orcamentos', 'ver')) resto.push(['orcs', '📄', 'Orçamentos', 'consultar, status, PDF']);
+  if (gPode('projetos', 'ver')) resto.push(['projs', '🏗️', 'Obras / projetos', 'status: colocar em execução']);
+  if (gPode('requisicoes', 'ver') || gPode('financeiro', 'ver')) resto.push(['reqs', '📋', 'Requisições de compra', 'acompanhar / aprovar']);
+  if (gPode('requisicoes', 'ver') || gPode('financeiro', 'ver')) resto.push(['reembs', '💵', 'Reembolsos', 'acompanhar / pagar']);
+  if (gPode('orcamentos', 'ver')) resto.push(['catalogo', '🧰', 'Itens e composições', 'catálogo de preços']);
+  if (gPode('orcamentos', 'ver')) resto.push(['bdi', '％', 'BDI padrão', 'imposto, taxas, lucro']);
+  if (gPode('crm', 'criar')) resto.push(['novoCliente', '🏢', 'Novo cliente', 'com consulta de CNPJ']);
+  var bs = function (l) { return l.map(function (x) { return b(x[0], x[1], x[2], x[3]); }).join(''); };
+  if (socio) {
+    html = '<div class="card"><h2>Gestão</h2><button class="btn lar" style="padding:18px;font-size:18px" onclick="gSistemaCompleto()">🖥️ Abrir sistema completo</button>' +
+      '<p class="muted" style="margin:8px 0 0">Todas as funções do sistema, já logado como <b>' + esc(S.dados.sistema.usuario) + '</b>.</p></div>' +
+      '<div class="card"><h2>No campo</h2><div class="grade">' + bs(campo) + '</div></div>' +
+      '<div class="card"><button class="btn sec" id="g-mais">' + (G.maisMenu ? '▲ Menos opções' : '▼ Mais opções do app') + '</button>' +
+      (G.maisMenu ? '<div class="grade" style="margin-top:10px">' + bs(resto) + '</div>' : '') + '<div style="height:10px"></div>';
+  } else {
+    html += bs(campo.slice(0, 1)) + bs(resto.slice(0, 1)) + bs(campo.slice(1, 2)) + bs(resto.slice(1)) + bs(campo.slice(2));
+    html += '</div><div style="height:10px"></div>';
+  }
+  html += '<button class="btn sec" id="g-atual">⬇️ Atualizar dados (clientes, itens, obras)</button></div>';
   $('tela').innerHTML = html;
+  if ($('g-mais')) $('g-mais').onclick = function () { G.maisMenu = !G.maisMenu; render(); };
   $('g-atual').onclick = function () { if (!gOnline()) return; aviso('Atualizando...'); gCarregarCatalogo(true).then(function () { aviso('Dados atualizados.', 'ok'); render(); }).catch(function (e) { aviso(e.message, 'err'); }); };
 }
 
@@ -601,4 +617,14 @@ function gTelaProjetos() {
     G._pjCarregando = true;
     sys('listarProjetos').then(function (r) { G.projs = r || []; if (G.view === 'projs') gTelaProjetos(); }).catch(function (e) { aviso(e.message, 'err'); }).then(function () { G._pjCarregando = false; });
   }
+}
+
+// ---------- sistema completo (só sócios): abre o sistema web já logado ----------
+function gSistemaCompleto() {
+  if (!gOnline('Abrir o sistema completo precisa de internet.')) return;
+  var w = null; try { w = window.open('', '_blank'); } catch (e) {}
+  aviso('Abrindo o sistema...');
+  api('sistemaLink').then(function (r) {
+    if (w && !w.closed) w.location.href = r.url; else location.href = r.url;
+  }).catch(function (e) { try { if (w) w.close(); } catch (x) {} aviso(e.message, 'err'); });
 }
