@@ -3,7 +3,7 @@
 'use strict';
 
 var API_URL = 'https://script.google.com/macros/s/AKfycbwlOXiIzS4mSxtW_xriuBU3rhlDIqp4fPvYOD7_o82ctZgL4AIuUVuXfIokqmQ67DiJ/exec';
-var VERSAO = '1.5.3';
+var VERSAO = '1.5.4';
 var ESP_INICIO = '2026-11'; // espelho só pode ser consultado a partir deste mês
 var TIPOS_AJUSTE = ['Corrigir horário', 'Esqueci de bater o ponto', 'Falta justificada / atestado', 'Outro'];
 var TIPOS = { ENTRADA: 'Entrada', SAIDA_INTERVALO: 'Saída intervalo', VOLTA_INTERVALO: 'Volta intervalo', SAIDA: 'Saída' };
@@ -99,6 +99,9 @@ function sincronizar(manual) {
           if (r.agora) DB.set('relogio', r.agora - Date.now());
           if (res.ok) {
             enviados++; S.historico.unshift({ ms: Date.now(), txt: res.msg || item.resumo, ok: true });
+            if ((item.tipo === 'orcamentoNovo' || item.tipo === 'composicaoNova') && typeof G !== 'undefined') { // a lista de orçamentos passa a mostrar o novo
+              G._orcsOk = false; G._recarregarOrcs = true;
+            }
             if (item.tipo === 'batida' && S.dados) { // mantém a batida visível mesmo se a atualização falhar
               (S.dados.batidas = S.dados.batidas || []).push({ uid: item.uid, projetoId: item.projetoId, tipo: item.tipoBatida, ms: item.ms });
               (S.dados.batidasEquipe = S.dados.batidasEquipe || []).push({ funcionarioId: S.sessao.funcionario.id, projetoId: item.projetoId, tipo: item.tipoBatida, ms: item.ms });
@@ -122,8 +125,18 @@ function sincronizar(manual) {
     return carregarFila();
   }).then(function () {
     if (manual || enviados || erros) aviso(enviados + ' enviado(s)' + (erros ? ', ' + erros + ' com problema (veja em Envios)' : ''), erros ? 'err' : 'ok');
-    render();
+    if (typeof G !== 'undefined' && G._recarregarOrcs) { G._recarregarOrcs = false; if (S.tela === 'gestao' && G.view === 'orcs' && typeof gTelaOrcamentos === 'function') { gTelaOrcamentos(); return; } }
+    if (manual) render(); else renderFundo();
   });
+}
+
+// atualização automática (a cada 2 min, ao voltar para o app, ao voltar a internet):
+// nunca redesenha uma tela de formulário, para não apagar o que a pessoa está digitando
+function renderFundo() {
+  var el = document.activeElement, tela = $('tela');
+  var digitando = el && tela && tela.contains(el) && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
+  if (digitando || ['rdo', 'ajuste', 'gestao'].indexOf(S.tela) >= 0) { contarPendentes(); return; }
+  render();
 }
 
 // inspeção: manda as fotos uma a uma antes (envio grande demais travava). O progresso fica salvo na fila.
