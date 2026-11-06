@@ -48,6 +48,7 @@ function aTelaHome() {
     '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'orcs\')">📄 Orçamentos<small>lista, status, PDF</small></button>' +
     '<button class="bat" style="text-align:left;padding:14px" onclick="G.novo=null;gIr(\'novoOrc\')">➕ Novo orçamento<small>funciona sem internet</small></button>' +
     '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'projs\')">🏗️ Obras<small>colocar em execução</small></button>' +
+    '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'medEscolher\')">📏 Medições<small>medir obra, PDF, faturar</small></button>' +
     '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'novaReq\')">🛒 Nova requisição<small>sem internet</small></button>' +
     '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'novoReemb\')">🧾 Novo reembolso<small>foto do recibo</small></button>' +
     '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'insps\')">🔎 Inspeções<small>relatório com fotos</small></button>' +
@@ -73,6 +74,7 @@ function aTelaMod() {
 }
 function aFn(n) { return (A.meta || []).filter(function (f) { return f.n === n; })[0]; }
 function aAbrirFn(n, item) {
+  if (n === 'listarMedicoes' && typeof mdAbrirProjeto === 'function') { if (item && item.id) return mdAbrirProjeto(item.id, mTitulo(item)); return gIr('medEscolher'); }
   var f = aFn(n); if (!f) return;
   A.fn = f; A.item = item || null;
   var precisa = f.p.some(function (p, i) { return !(item && i === 0 && aParamItem(p)); });
@@ -267,6 +269,7 @@ function aTelaItem(semVoltar) {
     var so = {}; resto.forEach(function (k) { so[k] = it[k]; });
     if (resto.length) html += '<details class="card"><summary style="font-weight:700;cursor:pointer">Mais informações</summary>' + mObj(so) + '</details>';
   } else html += mObj(it);
+  if (/^Projeto/.test(aSingular(A.resFn || '')) && it.id && typeof mdAbrirProjeto === 'function') html += '<button class="btn lar" style="margin-bottom:12px" onclick="mdAbrirProjeto(A.item.id, mTitulo(A.item))">📏 Medições desta obra</button>';
   html += aAcoesHtml(ed);
   if (semVoltar) $('tela').insertAdjacentHTML('beforeend', html); else $('tela').innerHTML = html;
   aCarregarSelects();
