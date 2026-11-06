@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B1A2E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>DNP Gestão</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+  :root { --azul:#0B1A2E; --laranja:#F07C00; --fundo:#F2F4F7; --card:#fff; --texto:#1b2430; --sub:#5f6b7a; --ok:#1e8e3e; --erro:#c62828; --borda:#dde2e8; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; background:var(--fundo); color:var(--texto); font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  header { position:sticky; top:0; z-index:5; background:var(--azul); color:#fff; padding:calc(10px + env(safe-area-inset-top)) 16px 10px; display:flex; align-items:center; gap:10px; }
+  header .logo { font-weight:800; letter-spacing:.5px; } header .logo b { color:var(--laranja); }
+  header .quem { flex:1; font-size:13px; opacity:.85; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rede { font-size:12px; padding:3px 8px; border-radius:20px; background:#ffffff22; white-space:nowrap; }
+  .rede.off { background:var(--erro); }
+  main { padding:12px 16px 96px; max-width:640px; margin:0 auto; }
+  .card { background:var(--card); border-radius:14px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px #0001; }
+  h2 { font-size:17px; margin:0 0 10px; }
+  label { display:block; font-size:13px; color:var(--sub); margin:10px 0 4px; }
+  input, select, textarea { width:100%; font:inherit; padding:11px 12px; border:1px solid var(--borda); border-radius:10px; background:#fff; color:var(--texto); }
+  textarea { min-height:80px; resize:vertical; }
+  button { font:inherit; border:0; border-radius:12px; padding:13px 14px; cursor:pointer; }
+  .btn { width:100%; background:var(--azul); color:#fff; font-weight:700; }
+  .btn.lar { background:var(--laranja); }
+  .btn.sec { background:#e7ebf0; color:var(--texto); font-weight:600; }
+  .btn:disabled { opacity:.5; }
+  .grade { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .bat { background:#e7ebf0; color:var(--texto); font-weight:700; padding:16px 8px; border:2px solid transparent; }
+  .bat.sug { background:var(--laranja); color:#fff; }
+  .bat small { display:block; font-weight:400; font-size:12px; opacity:.85; }
+  .gps { font-size:14px; padding:10px 12px; border-radius:10px; background:#eef2f6; margin-top:10px; }
+  .gps.ok { background:#e6f4ea; color:var(--ok); } .gps.fora { background:#fdecea; color:var(--erro); }
+  .lista { list-style:none; margin:0; padding:0; } .lista li { padding:9px 0; border-bottom:1px solid var(--borda); font-size:14px; display:flex; justify-content:space-between; gap:8px; }
+  .lista li:last-child { border:0; }
+  .tag { font-size:12px; padding:2px 8px; border-radius:20px; background:#e7ebf0; white-space:nowrap; }
+  .tag.pend { background:#fff3e0; color:#b45309; } .tag.ok { background:#e6f4ea; color:var(--ok); } .tag.err { background:#fdecea; color:var(--erro); }
+  nav { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--borda); display:flex; padding-bottom:env(safe-area-inset-bottom); z-index:5; }
+  nav button { flex:1; background:none; border-radius:0; padding:10px 4px 12px; font-size:12px; color:var(--sub); }
+  nav button.ativo { color:var(--laranja); font-weight:700; }
+  nav button span { display:block; font-size:20px; }
+  .mdo { border:1px solid var(--borda); border-radius:10px; padding:10px; margin-top:10px; }
+  .mdo .horas { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; } .mdo .horas input { padding:8px 4px; font-size:14px; text-align:center; }
+  .mdo .horas label { margin:6px 0 2px; font-size:11px; }
+  @media (max-width:420px) { .mdo .horas { grid-template-columns:1fr 1fr; } }
+  .fotos { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; } .fotos img { width:64px; height:64px; object-fit:cover; border-radius:8px; }
+  .aviso { position:fixed; left:16px; right:16px; bottom:84px; background:var(--azul); color:#fff; padding:12px 14px; border-radius:12px; z-index:9; box-shadow:0 4px 14px #0004; display:none; pointer-events:none; }
+  .aviso.err { background:var(--erro); } .aviso.ok { background:var(--ok); }
+  .muted { color:var(--sub); font-size:13px; }
+  .hoje { font-size:28px; font-weight:800; text-align:center; } .hoje small { display:block; font-size:13px; font-weight:400; color:var(--sub); }
+  .hidden { display:none !important; }
+  .row { display:flex; gap:8px; align-items:center; } .row > * { flex:1; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">DNP <b>Gestão</b></div>
+  <div class="quem" id="quem"></div>
+  <div class="rede" id="rede">online</div>
+</header>
+<main id="tela"></main>
+<nav id="nav" class="hidden">
+  <button data-t="inicio" class="ativo"><span>🏠</span>Início</button>
+  <button data-t="orcs"><span>📄</span>Orçamentos</button>
+  <button data-t="projs"><span>🏗️</span>Obras</button>
+  <button data-t="insps"><span>🔎</span>Inspeções</button>
+  <button data-t="envios"><span>🔄</span>Envios <b id="nav-pend"></b></button>
+  <button data-t="conta"><span>👤</span>Conta</button>
+</nav>
+<div class="aviso" id="aviso"></div>
+<input type="file" id="cam" accept="image/*" capture="user" class="hidden">
+<input type="file" id="galeria" accept="image/*" multiple class="hidden">
+<script src="gapp.js"></script>
+<script src="../gestao.js"></script>
+<script src="../inspecao.js"></script>
+<script src="modulos.js"></script>
+</body>
+</html>
