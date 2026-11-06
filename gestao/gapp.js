@@ -4,7 +4,7 @@
 var APP_GESTAO = true;
 
 var API_URL = 'https://script.google.com/macros/s/AKfycbwlOXiIzS4mSxtW_xriuBU3rhlDIqp4fPvYOD7_o82ctZgL4AIuUVuXfIokqmQ67DiJ/exec';
-var VERSAO = '1.0.0';
+var VERSAO = '1.1.0';
 var ESP_INICIO = '2026-11'; // espelho só pode ser consultado a partir deste mês
 var TIPOS_AJUSTE = ['Corrigir horário', 'Esqueci de bater o ponto', 'Falta justificada / atestado', 'Outro'];
 var TIPOS = { ENTRADA: 'Entrada', SAIDA_INTERVALO: 'Saída intervalo', VOLTA_INTERVALO: 'Volta intervalo', SAIDA: 'Saída' };
@@ -44,7 +44,7 @@ var DB = {
 };
 
 // ---------------- estado ----------------
-var S = { sessao: null, dados: null, fila: [], tela: 'gestao', obraId: null, gps: null, sincronizando: false, rdoFotos: [], historico: [] };
+var S = { sessao: null, dados: null, fila: [], tela: 'sistema', obraId: null, gps: null, sincronizando: false, rdoFotos: [], historico: [] };
 
 function $(id) { return document.getElementById(id); }
 function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -208,13 +208,38 @@ function tirarFoto(campoId, multiplas) {
   });
 }
 
+// ---------------- sistema completo (tela principal do app) ----------------
+var SIS = { carregado: false, pedindo: false };
+function sisMostrar(ver) {
+  var d = $('sis');
+  if (!d) {
+    d = document.createElement('div'); d.id = 'sis';
+    d.style.cssText = 'position:fixed;left:0;right:0;z-index:4;background:#0E1A2E;display:none';
+    d.innerHTML = '<div id="sis-msg" style="color:#fff;padding:20px;text-align:center">Abrindo o sistema...</div><iframe id="sis-if" style="width:100%;height:100%;border:0;background:#fff;display:none"></iframe>';
+    document.body.appendChild(d);
+  }
+  var h = document.querySelector('header'), n = $('nav');
+  d.style.top = (h ? h.offsetHeight : 0) + 'px'; d.style.bottom = (n ? n.offsetHeight : 0) + 'px';
+  d.style.display = ver ? 'block' : 'none';
+  if (!ver || SIS.carregado || SIS.pedindo || !S.sessao) return;
+  if (!navigator.onLine) { $('sis-msg').textContent = 'Sem internet. Use Inspeções (funciona sem sinal) e volte aqui quando tiver conexão.'; return; }
+  SIS.pedindo = true; $('sis-msg').textContent = 'Abrindo o sistema...';
+  api('sistemaLink').then(function (r) {
+    var f = $('sis-if'); f.src = r.url; f.style.display = 'block'; $('sis-msg').style.display = 'none'; SIS.carregado = true;
+  }).catch(function (e) { $('sis-msg').textContent = 'Não consegui abrir o sistema: ' + e.message; if (String(e.message).indexOf('SESSAO') === 0) sair(true); })
+    .then(function () { SIS.pedindo = false; });
+}
+window.addEventListener('resize', function () { if (S.tela === 'sistema') sisMostrar(true); });
+
 // ---------------- telas ----------------
 function render() {
-  if (!S.sessao) return telaLogin();
+  if (!S.sessao) { if ($('sis')) $('sis').style.display = 'none'; return telaLogin(); }
   $('nav').classList.remove('hidden');
   $('quem').textContent = S.sessao.funcionario.nome;
-  var ativo = S.tela === 'gestao' ? ({ menu: 'inicio', orcs: 'orcs', orc: 'orcs', novoOrc: 'orcs', projs: 'projs', insps: 'insps', insp: 'insps', inspItem: 'insps' }[G.view] || 'inicio') : S.tela;
+  var ativo = S.tela === 'gestao' ? 'insps' : S.tela;
   Array.prototype.forEach.call(document.querySelectorAll('nav button'), function (b) { b.classList.toggle('ativo', b.dataset.t === ativo); });
+  sisMostrar(S.tela === 'sistema');
+  if (S.tela === 'sistema') { $('tela').innerHTML = ''; return; }
   if (S.tela === 'envios') return telaEnvios();
   if (S.tela === 'conta') return telaConta();
   S.tela = 'gestao';
@@ -236,7 +261,7 @@ function telaLogin() {
       S.sessao = { token: r.token, funcionario: { id: '', nome: r.usuario.nome }, email: r.usuario.email };
       return DB.set('sessao', S.sessao);
     }).then(function () { return baixarDados(); }).then(function () {
-      S.tela = 'gestao'; G.view = 'menu'; render(); aviso('Bem-vindo, ' + S.sessao.funcionario.nome.split(' ')[0] + '!', 'ok');
+      S.tela = 'sistema'; render(); aviso('Bem-vindo, ' + S.sessao.funcionario.nome.split(' ')[0] + '!', 'ok');
     }).catch(function (e) { aviso(e.message, 'err'); b.disabled = false; b.textContent = 'Entrar'; });
   };
   $('l-ok').onclick = entrar;
@@ -282,15 +307,16 @@ function telaEnvios() {
 
 function sair(soLocal) {
   var p = (!soLocal && navigator.onLine && S.sessao) ? sys('logout').catch(function () {}) : Promise.resolve();
-  return p.then(function () { S.sessao = null; S.dados = null; return Promise.all([DB.del('sessao'), DB.del('dados')]); }).then(render);
+  SIS.carregado = false; var f = $('sis-if'); if (f) { f.src = 'about:blank'; f.style.display = 'none'; }
+  return p.then(function () { S.sessao = null; S.dados = null; S.tela = 'sistema'; return Promise.all([DB.del('sessao'), DB.del('dados')]); }).then(render);
 }
 
 // ---------------- início ----------------
 Array.prototype.forEach.call(document.querySelectorAll('nav button'), function (b) {
   b.onclick = function () {
     var t = b.dataset.t;
-    if (t === 'envios' || t === 'conta') { S.tela = t; render(); }
-    else gIr({ inicio: 'menu', orcs: 'orcs', projs: 'projs', insps: 'insps' }[t] || 'menu');
+    if (t === 'envios' || t === 'conta' || t === 'sistema') { S.tela = t; render(); }
+    else gIr('insps');
     window.scrollTo(0, 0);
   };
 });

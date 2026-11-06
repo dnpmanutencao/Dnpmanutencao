@@ -12,7 +12,8 @@ var MODS = [
 ];
 var M = { mod: null, fonte: 0, dados: {}, busca: '', item: null, mes: dataIso(Date.now()).slice(0, 7) };
 
-function gMenuExtra() {
+function gMenuExtra() { return ''; }
+function gMenuExtraAntigo() {
   var h = MODS.filter(function (m) { return gPode(m.p, 'ver'); }).map(function (m) {
     return '<button class="bat" style="text-align:left;padding:14px" onclick="mAbrir(\'' + m.k + '\')">' + m.ic + ' ' + m.t + '<small>consultar</small></button>';
   }).join('');
@@ -83,3 +84,6 @@ function mTelaItem() {
   if (!M.item) return gIr('mod');
   $('tela').innerHTML = gVoltar('mod') + '<div class="card"><h2>' + esc(mTitulo(M.item)) + '</h2></div>' + mObj(M.item) + '<button class="btn sec" onclick="gSistemaCompleto()">🖥️ Editar no sistema completo</button>';
 }
+
+// no app DNP Gestão o sistema completo é a tela principal (aba Sistema)
+gSistemaCompleto = function () { S.tela = 'sistema'; render(); };
