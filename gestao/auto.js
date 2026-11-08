@@ -46,7 +46,7 @@ function aSingular(fn) { // listarLancamentos -> Lancamento ; listarFuncoes -> F
 function aTelaHome() {
   var at = [['orcamentos', "gIr('orcs')", '📄 Orçamentos', 'lista, status, PDF'], ['orcamentos', "G.novo=null;gIr('novoOrc')", '➕ Novo orçamento', 'funciona sem internet'],
     ['projetos', "gIr('tObras')", '🏗️ Obras', 'cronograma, diários, status'], ['projetos', "gIr('medEscolher')", '📏 Medições', 'medir obra, PDF, faturar'],
-    ['financeiro', "gIr('tFin')", '💰 Financeiro', 'resumo, lançamentos'], ['crm', "gIr('tFunil')", '🎯 Funil de vendas', 'oportunidades, atividades'],
+    ['financeiro', "gIr('tFluxo')", '💰 Fluxo de caixa', 'calendário, saldo, pendências'], ['crm', "gIr('tFunil')", '🎯 Funil de vendas', 'oportunidades, atividades'],
     ['frequencia', "gIr('tFreq')", '📅 Frequência', 'espelho de ponto'], ['rh', "gIr('tFolha')", '💵 Folha', 'cálculo, avulsos, lançar'],
     ['epi', "gIr('tEpi')", '🦺 EPI', 'entregas, ficha, OS'], ['epi', "gIr('tTurmas')", '🎓 Treinamentos', 'turmas, presença'],
     ['requisicoes', "gIr('novaReq')", '🛒 Nova requisição', 'sem internet'], ['requisicoes', "gIr('novoReemb')", '🧾 Novo reembolso', 'foto do recibo'],
