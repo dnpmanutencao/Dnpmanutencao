@@ -17,7 +17,7 @@ var A_MODS = [
   ['out', 'Outros', '⚙️', null, /./]
 ];
 var A_VERBO = /^(listar|obter|criar|editar|atualizar|excluir|remover|alternar|registrar|gerar|aprovar|reprovar|marcar|salvar|adicionar|duplicar|converter|enviar|cancelar|definir|calcular|lancar|pagar|confirmar|darBaixa|reabrir|mover|vincular|desvincular|importar|baixar|resetar|redefinir|folha)/;
-var A_ESCONDER = /^(logout|validarSessao|login)$|ParaSelecao$/;
+var A_ESCONDER = /^(logout|validarSessao|login|inicializarSistema|formatarCnpjExibicao|inspecionarTemplateProposta|adicionarCodigoServicoTemplate|gerarOrdensServicoModelosEpi|verificarProjetoDoOrcamento|obterFormularioMedicao|obterFormularioEdicaoMedicao)$|^corrigirFormato|Template$|ParaSelecao$/;
 
 function aNome(fn) { // "darBaixaLancamento" -> "Dar baixa lancamento"
   return fn.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().replace(/^./, function (c) { return c.toUpperCase(); })
@@ -44,15 +44,16 @@ function aSingular(fn) { // listarLancamentos -> Lancamento ; listarFuncoes -> F
 
 // ---------- telas ----------
 function aTelaHome() {
-  var html = '<div class="card"><h2>Gestão DNP</h2><p class="muted">Todas as funções do sistema, por área.</p><div class="grade">' +
-    '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'orcs\')">📄 Orçamentos<small>lista, status, PDF</small></button>' +
-    '<button class="bat" style="text-align:left;padding:14px" onclick="G.novo=null;gIr(\'novoOrc\')">➕ Novo orçamento<small>funciona sem internet</small></button>' +
-    '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'projs\')">🏗️ Obras<small>colocar em execução</small></button>' +
-    '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'medEscolher\')">📏 Medições<small>medir obra, PDF, faturar</small></button>' +
-    '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'novaReq\')">🛒 Nova requisição<small>sem internet</small></button>' +
-    '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'novoReemb\')">🧾 Novo reembolso<small>foto do recibo</small></button>' +
-    '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'insps\')">🔎 Inspeções<small>relatório com fotos</small></button>' +
-    '<button class="bat" style="text-align:left;padding:14px" onclick="S.tela=\'sistema\';render()">🖥️ Sistema web<small>tela do computador</small></button></div></div>';
+  var at = [['orcamentos', "gIr('orcs')", '📄 Orçamentos', 'lista, status, PDF'], ['orcamentos', "G.novo=null;gIr('novoOrc')", '➕ Novo orçamento', 'funciona sem internet'],
+    ['projetos', "gIr('tObras')", '🏗️ Obras', 'cronograma, diários, status'], ['projetos', "gIr('medEscolher')", '📏 Medições', 'medir obra, PDF, faturar'],
+    ['financeiro', "gIr('tFin')", '💰 Financeiro', 'resumo, lançamentos'], ['crm', "gIr('tFunil')", '🎯 Funil de vendas', 'oportunidades, atividades'],
+    ['frequencia', "gIr('tFreq')", '📅 Frequência', 'espelho de ponto'], ['rh', "gIr('tFolha')", '💵 Folha', 'cálculo, avulsos, lançar'],
+    ['epi', "gIr('tEpi')", '🦺 EPI', 'entregas, ficha, OS'], ['epi', "gIr('tTurmas')", '🎓 Treinamentos', 'turmas, presença'],
+    ['requisicoes', "gIr('novaReq')", '🛒 Nova requisição', 'sem internet'], ['requisicoes', "gIr('novoReemb')", '🧾 Novo reembolso', 'foto do recibo'],
+    [null, "gIr('insps')", '🔎 Inspeções', 'relatório com fotos'], [null, "S.tela='sistema';render()", '🖥️ Sistema web', 'tela do computador']];
+  var html = '<div class="card"><h2>Gestão DNP</h2><div class="grade">' + at.filter(function (x) { return !x[0] || gPode(x[0], 'ver'); }).map(function (x) {
+    return '<button class="bat" style="text-align:left;padding:14px" onclick="' + x[1] + '">' + x[2] + '<small>' + x[3] + '</small></button>';
+  }).join('') + '</div></div>';
   if (!A.meta) {
     $('tela').innerHTML = html + '<div class="card muted">Carregando as áreas do sistema...</div>';
     aMeta().then(function () { if (G.view === 'auto') aTelaHome(); }).catch(function (e) { aviso(e.message, 'err'); });
@@ -157,6 +158,7 @@ function aExecutar(doForm) {
     if (leitura) { if (A.resFn !== f.n) { A.filtros = {}; A.busca = ''; A.ordem = ''; A.de = A.ate = ''; } A.res = r; A.resFn = f.n; $('aviso').style.display = 'none'; gIr('autoRes'); return; }
     aviso((r && (r.mensagem || r.msg)) || 'Feito.', 'ok');
     A.cache = {};
+    if (typeof T_ATALHO !== 'undefined' && T_ATALHO[A.resFn]) { tLimpa(); return gIr(T_ATALHO[A.resFn]); }
     if (A.resFn && aFn(A.resFn)) { var lf = aFn(A.resFn); A.fn = lf; A.item = null; if (!lf.p.length) return aExecutar(false); }
     gIr('autoMod');
   }).catch(function (e) { aviso(e.message, 'err'); });
@@ -269,7 +271,9 @@ function aTelaItem(semVoltar) {
     var so = {}; resto.forEach(function (k) { so[k] = it[k]; });
     if (resto.length) html += '<details class="card"><summary style="font-weight:700;cursor:pointer">Mais informações</summary>' + mObj(so) + '</details>';
   } else html += mObj(it);
-  if (/^Projeto/.test(aSingular(A.resFn || '')) && it.id && typeof mdAbrirProjeto === 'function') html += '<button class="btn lar" style="margin-bottom:12px" onclick="mdAbrirProjeto(A.item.id, mTitulo(A.item))">📏 Medições desta obra</button>';
+  var sg = aSingular(A.resFn || '');
+  if (/^Projeto/.test(sg) && it.id && G.view !== 'tObra') html += '<button class="btn lar" style="margin-bottom:12px" onclick="T.proj={id:A.item.id,nome:mTitulo(A.item)};gIr(\'tObra\')">🏗️ Abrir obra: medições, cronograma, diários</button>';
+  if (/^Funcionario/.test(sg) && it.id) html += '<div class="grade" style="margin-bottom:12px"><button class="bat" style="padding:12px" onclick="T.func={id:A.item.id,nome:mTitulo(A.item)};gIr(\'tFuncDocs\')">📎 Documentos e adiantamentos</button><button class="bat" style="padding:12px" onclick="T.func={id:A.item.id,nome:mTitulo(A.item)};delete T.d.epi_ent;gIr(\'tEpiFunc\')">🦺 EPI do funcionário</button></div>';
   html += aAcoesHtml(ed);
   if (semVoltar) $('tela').insertAdjacentHTML('beforeend', html); else $('tela').innerHTML = html;
   aCarregarSelects();
