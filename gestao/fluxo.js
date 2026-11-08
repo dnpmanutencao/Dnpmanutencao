@@ -14,17 +14,27 @@ function fFiltra(l) { return (!F.obra || String(l.projetoId) === F.obra) && (!F.
 
 function fCarregar(forcar) {
   if (F.carregando) return;
-  if (!F.lanc) DB.get('g_fluxo').then(function (c) { if (c && !F.lanc) { F.lanc = c.lanc; F.saldo = c.saldo; if (G.view === 'tFluxo') fTela(); } });
+  if (!F.lanc) DB.get('g_fluxo').then(function (c) { if (c && !F.lanc) { F.todos = c.lanc; F.saldo = c.saldo; F.lanc = fAplicar(F.todos); if (G.view === 'tFluxo') fTela(); } });
   if (!navigator.onLine) return;
   F.carregando = true;
   Promise.all([sys('listarLancamentos', [{}]), sys('obterSaldoCaixa', [])]).then(function (r) {
-    F.lanc = r[0] || []; F.saldo = r[1] || {}; DB.set('g_fluxo', { lanc: F.lanc, saldo: F.saldo });
+    F.todos = r[0] || []; F.saldo = r[1] || {}; F.lanc = fAplicar(F.todos); DB.set('g_fluxo', { lanc: F.todos, saldo: F.saldo });
   }).catch(function (e) { aviso(e.message, 'err'); }).then(function () { F.carregando = false; if (G.view === 'tFluxo') fTela(); });
 }
 
 // ---------- cálculo do saldo dia a dia ----------
+// modo manual: só lançamentos feitos a partir da data de início; automáticos (folha, medição, custos fixos) só quando liberados
+function fAplicar(l) {
+  var s = F.saldo || {}, ini = s.inicio || '';
+  return (l || []).filter(function (x) {
+    if (ini && String(x.dataLancamento || '') < ini) return false;
+    if (ini && !s.auto && x.origemTipo && x.origemTipo !== 'Manual') return false;
+    return true;
+  });
+}
 function fCalc() {
-  var hoje = fHoje(), base = F.saldo && F.saldo.definido ? { v: +F.saldo.valor || 0, d: F.saldo.data } : { v: 0, d: hoje };
+  var hoje = fHoje(), s = F.saldo || {}, ini = s.inicio || '';
+  var base = s.definido && (!ini || s.data >= fAdd(ini, -1)) ? { v: +s.valor || 0, d: s.data } : { v: 0, d: ini ? fAdd(ini, -1) : hoje };
   var real = {}, pend = {}, venc = { n: 0, v: 0, ent: 0, sai: 0 };
   F.lanc.forEach(function (l) {
     var s = fEnt(l) ? +l.valorTotal : -l.valorTotal;
@@ -72,7 +82,8 @@ function fCards(c) {
     card('Previsto fim de ' + F_NOMES_MES[+F.mes.slice(5, 7) - 1].toLowerCase(), fBrl(sf), sf < 0 ? '#c62828' : '#1565c0') +
     card('A receber no mês', fBrl(rec), '#1b7f3b') + card('A pagar no mês', fBrl(pag), '#c62828') +
     (c.venc.n ? card('⚠️ Vencidos sem baixa', c.venc.n + ' · ' + fBrl(c.venc.v), '#c77700', 'toque para resolver', "F.aba='pend';fTela()") : '') + '</div>' +
-    (F.saldo && F.saldo.definido ? '' : '<div class="card" style="border:2px solid var(--laranja)"><b>Informe o saldo do banco</b><p class="muted" style="margin:4px 0">Com o saldo de hoje o calendário mostra quanto vai ter em caixa em cada dia.</p><button class="btn lar" onclick="fSaldoForm()">Informar saldo</button></div>');
+    (F.saldo && F.saldo.inicio ? '<div class="card" style="background:#fff8e1;padding:10px 12px;font-size:13px">🧾 <b>Modo manual</b>: começou do zero em ' + fDia(F.saldo.inicio) + '/' + F.saldo.inicio.slice(0, 4) + ' · ' + (F.saldo.auto ? 'lançamentos automáticos incluídos' : 'lançamentos automáticos (folha, medições, custos fixos) desligados') + ' · ' + (F.todos ? (F.todos.length - F.lanc.length) + ' antigos ocultos' : '') + ' <a href="#" onclick="fSaldoForm();return false">alterar</a></div>' : '') +
+    (F.saldo && (F.saldo.definido || F.saldo.inicio) ? '' : '<div class="card" style="border:2px solid var(--laranja)"><b>Informe o saldo do banco</b><p class="muted" style="margin:4px 0">Com o saldo de hoje o calendário mostra quanto vai ter em caixa em cada dia.</p><button class="btn lar" onclick="fSaldoForm()">Informar saldo</button></div>');
 }
 function fFiltrosHtml() {
   var obras = {}, cats = {}; F.lanc.forEach(function (l) { if (l.projetoId) obras[l.projetoId] = l.nomeProjeto || l.projetoId; if (l.categoria) cats[l.categoria] = 1; });
@@ -219,7 +230,19 @@ function fSaldoForm() {
   $('tela').innerHTML = '<div class="card"><h2>💰 Saldo do banco</h2><p class="muted">Some o saldo de todas as contas e do caixa (dinheiro) e informe o total de um dia. Daí para frente o app calcula sozinho com as baixas e os lançamentos.</p>' +
     '<label>Saldo total (R$)</label><input type="number" step="any" inputmode="decimal" id="fs-v" value="' + (s.definido ? s.valor : '') + '" style="font-size:22px">' +
     '<label>No fim do dia</label><input type="date" id="fs-d" value="' + (s.data || fHoje()) + '">' + (s.informadoPor ? '<p class="muted" style="font-size:12px">Último informado por ' + esc(s.informadoPor) + '</p>' : '') +
-    '<div style="height:10px"></div><button class="btn lar" onclick="fSaldoSalvar()">Salvar saldo</button><button class="btn sec" style="margin-top:8px" onclick="fTela()">Cancelar</button></div>';
+    '<div style="height:10px"></div><button class="btn lar" onclick="fSaldoSalvar()">Salvar saldo</button></div>' +
+    '<div class="card"><h2>🧾 Começar do zero</h2><p class="muted">Use para lançar tudo à mão primeiro. Os lançamentos antigos continuam guardados, só não entram no fluxo. Dá para desligar quando quiser e tudo volta a aparecer.</p>' +
+    '<label style="display:flex;gap:8px;align-items:center;color:var(--texto)"><input type="checkbox" id="fc-z" style="width:auto"' + (s.inicio ? ' checked' : '') + '> Começar o fluxo zerado a partir de</label><input type="date" id="fc-d" value="' + (s.inicio || fHoje()) + '">' +
+    '<label style="display:flex;gap:8px;align-items:center;color:var(--texto);margin-top:12px"><input type="checkbox" id="fc-a" style="width:auto"' + (s.auto ? ' checked' : '') + '> Incluir lançamentos automáticos (folha, medições, custos fixos, requisições)</label>' +
+    '<p class="muted" style="font-size:12px">Deixe desmarcado enquanto faz a atualização manual. Marque quando quiser que o sistema alimente o fluxo sozinho.</p>' +
+    '<button class="btn lar" onclick="fConfigSalvar()">Salvar modo de início</button><button class="btn sec" style="margin-top:8px" onclick="fTela()">Voltar ao calendário</button></div>';
+}
+function fConfigSalvar() {
+  var z = $('fc-z').checked, d = $('fc-d').value, a = $('fc-a').checked;
+  if (z && !d) return aviso('Informe a data de início.', 'err');
+  if (z && !confirm('Começar o fluxo zerado em ' + d.split('-').reverse().join('/') + '?\nOs lançamentos anteriores ficam guardados, só não aparecem.')) return;
+  if (!gOnline()) return; aviso('Salvando...');
+  sys('salvarConfigFluxo', [z ? d : '', a]).then(function () { aviso(z ? 'Fluxo começando do zero.' : 'Todos os lançamentos voltaram ao fluxo.', 'ok'); F.lanc = null; fCarregar(true); fTela(); }).catch(function (e) { aviso(e.message, 'err'); });
 }
 function fSaldoSalvar() {
   var v = $('fs-v').value, d = $('fs-d').value; if (v === '' || !d) return aviso('Informe valor e data.', 'err');
