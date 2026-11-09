@@ -3,7 +3,7 @@
 'use strict';
 
 var API_URL = 'https://script.google.com/macros/s/AKfycbwlOXiIzS4mSxtW_xriuBU3rhlDIqp4fPvYOD7_o82ctZgL4AIuUVuXfIokqmQ67DiJ/exec';
-var VERSAO = '1.6.0';
+var VERSAO = '1.7.0';
 var ESP_INICIO = '2026-11'; // espelho só pode ser consultado a partir deste mês
 var TIPOS_AJUSTE = ['Corrigir horário', 'Esqueci de bater o ponto', 'Falta justificada / atestado', 'Outro'];
 var TIPOS = { ENTRADA: 'Entrada', SAIDA_INTERVALO: 'Saída intervalo', VOLTA_INTERVALO: 'Volta intervalo', SAIDA: 'Saída' };
@@ -451,18 +451,51 @@ function horariosPeloPonto(funcionarioId, projetoId, iso) {
   return { entrada1: h[0], saida1: h[1] || '', entrada2: h[2] || '', saida2: '' };
 }
 
+function telaRdoLista() {
+  var l = S.rdoLista, html = '<div class="card"><h2>Editar RDO já enviado</h2><button class="btn sec" id="rl-volta">← Voltar para novo RDO</button><div style="height:10px"></div>';
+  if (!l) html += '<p class="muted">' + (S.rdoListaErro ? esc(S.rdoListaErro) : 'Carregando RDOs dos últimos 30 dias...') + '</p>';
+  else if (!l.length) html += '<p class="muted">Nenhum RDO nos últimos 30 dias.</p>';
+  else html += '<ul class="lista">' + l.map(function (x, i) {
+    var o = obraPorId(x.projetoId);
+    return '<li data-ed="' + i + '" style="cursor:pointer"><span><b>RDO nº ' + esc(String(x.numero || '')) + ' – ' + dataBr(x.data) + '</b><br><span class="muted">' + esc(o ? obraNome(o) : (x.obra || '')) + ' · ' + x.maoDeObra.length + ' func. · ' + x.fotos + ' foto(s)</span></span>' +
+      '<span>' + (x.medido ? '<span class="tag err">medido</span>' : '<span class="tag pend">editar ✏️</span>') + '</span></li>';
+  }).join('') + '</ul>';
+  $('tela').innerHTML = html + '</div>';
+  $('rl-volta').onclick = function () { S.rdoModo = ''; render(); };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-ed]'), function (li) {
+    li.onclick = function () {
+      var x = l[Number(li.dataset.ed)];
+      if (x.medido) return aviso('Este RDO já entrou em medição e não pode ser alterado. Fale com o escritório.', 'err');
+      S.rdo = { editId: x.id, numero: x.numero, fotosExist: x.fotos, projetoId: x.projetoId, data: x.data, clima: x.clima || 'Bom', ehFeriado: !!x.ehFeriado,
+        atividades: x.atividades || '', ocorrencias: String(x.ocorrencias || '').replace(/\n?\[editado no app[^\]]*\]/g, ''),
+        equipe: x.maoDeObra.map(function (m) { return Object.assign({}, m); }) };
+      S.rdoFotos = []; S.rdoModo = ''; render();
+    };
+  });
+}
+
+function abrirRdoLista() {
+  if (!navigator.onLine) return aviso('Para editar um RDO já enviado é preciso estar com internet.', 'err');
+  S.rdoModo = 'lista'; S.rdoLista = null; S.rdoListaErro = ''; render();
+  api('rdoMeus').then(function (l) { S.rdoLista = l || []; }).catch(function (e) { S.rdoListaErro = e.message; }).then(function () { if (S.tela === 'rdo') render(); });
+}
+
 function telaRdo() {
+  if (S.rdoModo === 'lista') return telaRdoLista();
   var obras = (S.dados && S.dados.obras) || [], funcs = (S.dados && S.dados.funcionarios) || [], r = S.rdo;
   if (!r) r = S.rdo = { projetoId: S.obraId || (obras[0] && obras[0].id), data: dataIso(Date.now()), clima: 'Bom', ehFeriado: false, atividades: '', ocorrencias: '', equipe: [] };
   var opF = function (sel) { return '<option value="">— funcionário —</option>' + funcs.map(function (f) { return '<option value="' + f.id + '"' + (f.id === sel ? ' selected' : '') + '>' + esc(f.nome) + '</option>'; }).join(''); };
-  var html = '<div class="card"><h2>Novo RDO / Diário de obra</h2>' +
-    '<label>Obra</label><select id="r-obra">' + obras.map(function (o) { return '<option value="' + o.id + '"' + (o.id === r.projetoId ? ' selected' : '') + '>' + esc(obraNome(o)) + '</option>'; }).join('') + '</select>' +
-    '<div class="row"><div><label>Data</label><input type="date" id="r-data" value="' + r.data + '"></div><div><label>Clima</label><select id="r-clima">' +
+  var ed = !!r.editId;
+  var html = (ed ? '' : '<button class="btn sec" id="r-editar" style="margin-bottom:12px">📋 Editar RDO já enviado</button>') +
+    '<div class="card"><h2>' + (ed ? '✏️ Editando RDO nº ' + esc(String(r.numero || '')) : 'Novo RDO / Diário de obra') + '</h2>' +
+    (ed ? '<button class="btn sec" id="r-cancel">✕ Cancelar edição</button><p class="muted">Obra e data não mudam. ' + (r.fotosExist || 0) + ' foto(s) já enviada(s) ficam; as que adicionar aqui entram junto.</p>' : '') +
+    '<label>Obra</label><select id="r-obra"' + (ed ? ' disabled' : '') + '>' + obras.map(function (o) { return '<option value="' + o.id + '"' + (o.id === r.projetoId ? ' selected' : '') + '>' + esc(obraNome(o)) + '</option>'; }).join('') + '</select>' +
+    '<div class="row"><div><label>Data</label><input type="date" id="r-data" value="' + r.data + '"' + (ed ? ' disabled' : '') + '></div><div><label>Clima</label><select id="r-clima">' +
     ((S.dados && S.dados.climas) || ['Bom']).map(function (c) { return '<option' + (c === r.clima ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select></div></div>' +
     '<label style="display:flex;gap:8px;align-items:center;color:var(--texto)"><input type="checkbox" id="r-fer" style="width:auto"' + (r.ehFeriado ? ' checked' : '') + '> É feriado (hora extra 100%)</label>' +
     '<label>Atividades do dia</label><textarea id="r-ativ" placeholder="O que foi feito hoje">' + esc(r.atividades) + '</textarea>' +
     '<label>Ocorrências</label><textarea id="r-ocor" placeholder="Paradas, problemas, observações">' + esc(r.ocorrencias) + '</textarea>' +
-    '<label>Fotos (' + S.rdoFotos.length + ')</label><button class="btn sec" id="r-foto">📷 Adicionar fotos</button><div class="fotos">' +
+    '<label>Fotos ' + (ed ? 'novas ' : '') + '(' + S.rdoFotos.length + ')</label><button class="btn sec" id="r-foto">📷 Adicionar fotos</button><div class="fotos">' +
     S.rdoFotos.map(function (f, i) { return '<img src="' + f + '" data-i="' + i + '" title="tocar para remover">'; }).join('') + '</div></div>' +
     '<div class="card"><h2>Equipe e horários</h2><button class="btn sec" id="r-ponto">⏱️ Preencher pelo ponto batido</button>' +
     '<div id="r-equipe">' + r.equipe.map(function (m, i) {
@@ -471,8 +504,10 @@ function telaRdo() {
           return '<div><label>' + c[1] + '</label><input type="time" data-i="' + i + '" data-c="' + c[0] + '" value="' + (m[c[0]] || '') + '"></div>';
         }).join('') + '</div></div>';
     }).join('') + '</div><div style="height:10px"></div><button class="btn sec" id="r-add">+ Adicionar funcionário</button></div>' +
-    '<button class="btn lar" id="r-salvar">Salvar RDO</button><p class="muted">Sem internet o RDO fica guardado e é enviado depois. O número do RDO é dado pelo sistema no envio.</p>';
+    '<button class="btn lar" id="r-salvar">' + (ed ? 'Salvar alterações do RDO' : 'Salvar RDO') + '</button><p class="muted">Sem internet o RDO fica guardado e é enviado depois. O número do RDO é dado pelo sistema no envio.</p>';
   $('tela').innerHTML = html;
+  if ($('r-editar')) $('r-editar').onclick = abrirRdoLista;
+  if ($('r-cancel')) $('r-cancel').onclick = function () { if (confirm('Cancelar a edição? O que mudou será perdido.')) { S.rdo = null; S.rdoFotos = []; render(); } };
   var ler = function () {
     r.projetoId = $('r-obra').value; r.data = $('r-data').value; r.clima = $('r-clima').value; r.ehFeriado = $('r-fer').checked;
     r.atividades = $('r-ativ').value; r.ocorrencias = $('r-ocor').value;
@@ -506,7 +541,13 @@ function telaRdo() {
     var equipe = r.equipe.filter(function (m) { return m.funcionarioId && m.entrada1 && m.saida1; });
     if (!r.data) return aviso('Informe a data.', 'err');
     if (!equipe.length && !r.atividades.trim()) return aviso('Informe as atividades ou a equipe com horários.', 'err');
-    var obra = obraPorId(r.projetoId);
+    var obra = obraPorId(r.projetoId) || { titulo: '' };
+    if (ed) {
+      if (!confirm('Salvar as alterações do RDO nº ' + r.numero + ' de ' + dataBr(r.data) + '?\n' + equipe.length + ' funcionário(s)' + (S.rdoFotos.length ? ', ' + S.rdoFotos.length + ' foto(s) nova(s)' : ''))) return;
+      return enfileirar({ tipo: 'rdoEditar', rdo: { diarioId: r.editId, numero: r.numero, projetoId: r.projetoId, data: r.data, clima: r.clima, ehFeriado: r.ehFeriado, efetivo: equipe.length + ' funcionário(s)',
+        atividades: r.atividades.trim(), ocorrencias: r.ocorrencias.trim(), fotos: S.rdoFotos.slice(), maoDeObra: equipe }, resumo: 'Edição RDO nº ' + r.numero + ' ' + dataBr(r.data) + ' – ' + obra.titulo })
+        .then(function () { S.rdo = null; S.rdoFotos = []; S.tela = 'envios'; render(); aviso('Alteração salva' + (navigator.onLine ? '.' : ' no celular. Será enviada quando tiver internet.'), 'ok'); });
+    }
     if (!confirm('Salvar o RDO de ' + dataBr(r.data) + '\n' + obraNome(obra) + '\n' + equipe.length + ' funcionário(s), ' + S.rdoFotos.length + ' foto(s)?')) return;
     enfileirar({ tipo: 'rdo', rdo: { projetoId: r.projetoId, data: r.data, clima: r.clima, ehFeriado: r.ehFeriado, efetivo: equipe.length + ' funcionário(s)',
       atividades: r.atividades.trim(), ocorrencias: r.ocorrencias.trim(), fotos: S.rdoFotos.slice(), maoDeObra: equipe }, resumo: 'RDO ' + dataBr(r.data) + ' – ' + obra.titulo })
