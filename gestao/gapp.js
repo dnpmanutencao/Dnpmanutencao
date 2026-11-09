@@ -4,7 +4,7 @@
 var APP_GESTAO = true;
 
 var API_URL = 'https://script.google.com/macros/s/AKfycbwlOXiIzS4mSxtW_xriuBU3rhlDIqp4fPvYOD7_o82ctZgL4AIuUVuXfIokqmQ67DiJ/exec';
-var VERSAO = '1.6.1';
+var VERSAO = '1.6.2';
 var ESP_INICIO = '2026-11'; // espelho só pode ser consultado a partir deste mês
 var TIPOS_AJUSTE = ['Corrigir horário', 'Esqueci de bater o ponto', 'Falta justificada / atestado', 'Outro'];
 var TIPOS = { ENTRADA: 'Entrada', SAIDA_INTERVALO: 'Saída intervalo', VOLTA_INTERVALO: 'Volta intervalo', SAIDA: 'Saída' };
@@ -326,8 +326,22 @@ document.addEventListener('visibilitychange', function () { if (!document.hidden
 setInterval(function () { if (!document.hidden) sincronizar(false); }, 120000);
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
 atualizarRede();
+// entrada direta vinda do sistema web (código de uso único, sem pedir senha)
+var _linkSis = (location.hash.match(/[#&]c=([\w-]+)/) || [])[1], _irPara = (location.hash.match(/[#&]ir=(\w+)/) || [])[1];
+if (_linkSis) history.replaceState(null, '', location.pathname);
 Promise.all([DB.get('sessao'), DB.get('dados'), DB.get('historico'), carregarFila()]).then(function (r) {
   S.sessao = r[0] || null; S.dados = r[1] || null; S.historico = r[2] || [];
+  if (_linkSis) {
+    $('tela').innerHTML = '<div class="card muted">Entrando pelo sistema...</div>';
+    return api('gCodigo', { codigo: _linkSis }).then(function (u) {
+      S.sessao = { token: u.token, funcionario: { id: '', nome: u.nome }, email: u.email };
+      return DB.set('sessao', S.sessao);
+    }).then(baixarDados).then(function () {
+      if (_irPara === 'fluxo') { S.tela = 'gestao'; G.view = 'tFluxo'; }
+      render();
+    }).catch(function (e) { aviso(e.message, 'err'); render(); });
+  }
+  if (_irPara === 'fluxo' && S.sessao) { S.tela = 'gestao'; G.view = 'tFluxo'; }
   render();
   if (S.sessao) { if (navigator.onLine) baixarDados().then(render).catch(function (e) { if (String(e.message).indexOf('SESSAO') === 0) sair(true); }); sincronizar(false); }
 }).catch(function (e) { $('tela').innerHTML = '<div class="card">Erro ao abrir o armazenamento do celular: ' + esc(e.message) + '</div>'; });
