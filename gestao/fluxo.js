@@ -14,16 +14,18 @@ function fFiltra(l) { return (!F.obra || String(l.projetoId) === F.obra) && (!F.
 
 function fCarregar(forcar) {
   if (F.carregando) return;
-  if (!F.lanc) DB.get('g_fluxo').then(function (c) { if (c && !F.lanc) { F.todos = c.lanc; F.saldo = c.saldo; F.lanc = fAplicar(F.todos); if (G.view === 'tFluxo') fTela(); } });
+  if (!F.lanc) DB.get('g_fluxo2').then(function (c) { if (c && !F.lanc) { F.todos = c.lanc; F.saldo = c.saldo; F.lanc = F.todos; if (G.view === 'tFluxo') fTela(); } });
   if (!navigator.onLine) return;
   F.carregando = true;
-  Promise.all([sys('listarLancamentos', [{}]), sys('obterSaldoCaixa', [])]).then(function (r) {
-    F.todos = r[0] || []; F.saldo = r[1] || {}; F.lanc = fAplicar(F.todos); DB.set('g_fluxo', { lanc: F.todos, saldo: F.saldo });
+  sys('fxListar', []).then(function (r) {
+    F.todos = (r.itens || []).map(fMapear); F.saldo = r.saldo || {}; F.lanc = F.todos; DB.set('g_fluxo2', { lanc: F.todos, saldo: F.saldo });
   }).catch(function (e) { aviso(e.message, 'err'); }).then(function () { F.carregando = false; if (G.view === 'tFluxo') fTela(); });
 }
 
 // ---------- cálculo do saldo dia a dia ----------
-// modo manual: só lançamentos feitos a partir da data de início; automáticos (folha, medição, custos fixos) só quando liberados
+// converte o registro da aba FluxoCaixa para o formato usado nas telas
+function fMapear(o) { return { id: o.id, tipo: o.tipo, valorTotal: +o.valor || 0, descricao: o.descricao, categoria: o.categoria, projetoId: o.projetoId, nomeProjeto: o.nomeObra, fornecedorCliente: o.fornecedorCliente, formaPagamento: o.formaPagamento, dataVencimento: o.dataVencimento, dataBaixa: o.dataPagamento, status: o.status === 'Pago' ? 'Baixado' : o.status === 'Previsto' ? 'Previsto' : 'Aberto', origemTipo: o.origemTipo, origemId: o.origemId, comprovanteUrl: o.comprovanteUrl, dataLancamento: String(o.criadoEm || '').slice(0, 10) }; }
+// (antigo) modo manual: só lançamentos feitos a partir da data de início; automáticos (folha, medição, custos fixos) só quando liberados
 function fAplicar(l) {
   var s = F.saldo || {}, ini = s.inicio || '', lin = +s.linhaInicio || 0;
   return (l || []).filter(function (x) {
@@ -65,11 +67,11 @@ function fTotDia(d) { var e = 0, s = 0; fDoDia(d).forEach(function (l) { if (fEn
 function fTela() {
   var main = document.querySelector('main'); if (main) main.style.maxWidth = '1180px';
   if (!F.lanc) { $('tela').innerHTML = gVoltar('auto') + '<div class="card muted">Carregando o financeiro...</div>'; fCarregar(); return; }
-  var abas = [['cal', '📅 Calendário'], ['pend', '⚠️ Pendências'], ['rel', '📊 Relatórios']];
+  var abas = [['cal', '📅 Calendário'], ['aprov', '📥 Aprovações' + (F.nAprov ? ' (' + F.nAprov + ')' : '')], ['pend', '⚠️ Pendências'], ['rel', '📊 Relatórios']];
   var h = '<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap"><button class="btn sec" style="width:auto;padding:8px 12px;font-size:13px" onclick="gIr(\'auto\')">←</button>' +
     abas.map(function (a) { return '<button class="btn ' + (F.aba === a[0] ? '' : 'sec') + '" style="width:auto;padding:8px 12px;font-size:13px" onclick="F.aba=\'' + a[0] + '\';fTela()">' + a[1] + '</button>'; }).join('') +
     '<button class="btn sec" style="width:auto;padding:8px 10px;font-size:13px;margin-left:auto" onclick="fCarregar(true)" title="Atualizar">🔄</button></div>';
-  if (F.aba === 'pend') h += fHtmlPend(); else if (F.aba === 'rel') h += fHtmlRel(); else h += fHtmlCal();
+  if (F.aba === 'aprov') h += fHtmlAprov(); else if (F.aba === 'pend') h += fHtmlPend(); else if (F.aba === 'rel') h += fHtmlRel(); else h += fHtmlCal();
   h += '<button onclick="fNovo()" style="position:fixed;right:18px;bottom:84px;width:58px;height:58px;border-radius:50%;background:var(--laranja);color:#fff;font-size:30px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:6">+</button>';
   $('tela').innerHTML = h;
   fLigar();
@@ -142,13 +144,14 @@ function fItem(l) {
   var e = fEnt(l), st = fBaix(l) ? (e ? 'Recebido' : 'Pago') : l.status === 'Previsto' ? 'Previsto' : (l.dataVencimento < fHoje() ? 'Vencido' : (e ? 'A receber' : 'A pagar'));
   var cor = { Recebido: '#1b7f3b', Pago: '#1b7f3b', Previsto: '#6a4fb3', Vencido: '#c62828', 'A receber': '#c77700', 'A pagar': '#c77700' }[st];
   var id = esc(l.id);
-  return '<li style="display:block"><div style="display:flex;gap:8px;align-items:flex-start"><span style="font-size:18px">' + (e ? '🟢' : '🔴') + '</span><div style="flex:1;min-width:0"><b>' + esc(l.descricao || '') + '</b><br><span class="muted" style="font-size:12px">' + esc([l.categoria, l.nomeProjeto, l.fornecedorCliente].filter(Boolean).join(' · ')) + (fBaix(l) && l.dataBaixa !== l.dataVencimento ? ' · venc. ' + fDia(l.dataVencimento) : '') + '</span></div>' +
+  return '<li style="display:block"><div style="display:flex;gap:8px;align-items:flex-start"><span style="font-size:18px">' + (e ? '🟢' : '🔴') + '</span><div style="flex:1;min-width:0"><b>' + esc(l.descricao || '') + '</b><br><span class="muted" style="font-size:12px">' + (l.origemTipo === 'Requisicao' ? '📦 Requisição · ' : l.origemTipo === 'Reembolso' ? '🧾 Reembolso · ' : '') + esc([l.categoria, l.nomeProjeto, l.fornecedorCliente, l.formaPagamento].filter(Boolean).join(' · ')) + (l.comprovanteUrl ? ' <a href="' + esc(l.comprovanteUrl) + '" target="_blank">📎 comprovante</a>' : '') + (fBaix(l) && l.dataBaixa !== l.dataVencimento ? ' · venc. ' + fDia(l.dataVencimento) : '') + '</span></div>' +
     '<div style="text-align:right"><b style="color:' + (e ? '#1b7f3b' : '#c62828') + '">' + (e ? '+' : '−') + fBrl(l.valorTotal) + '</b><br><span style="font-size:11px;font-weight:700;color:' + cor + '">' + st + '</span></div></div>' +
     '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">' +
     (!fBaix(l) && l.status !== 'Previsto' ? '<button class="btn" style="width:auto;padding:6px 10px;font-size:12px" onclick="fBaixar(\'' + id + '\')">✔ ' + (e ? 'Recebido' : 'Pago') + '</button>' : '') +
-    (l.status === 'Previsto' ? '<button class="btn" style="width:auto;padding:6px 10px;font-size:12px" onclick="fAcao(\'confirmarLancamentoPrevisto\',[\'' + id + '\'],\'Confirmado.\')">✔ Confirmar</button>' : '') +
-    (!fBaix(l) ? '<button class="btn sec" style="width:auto;padding:6px 10px;font-size:12px" onclick="fReagendar(\'' + id + '\')">📅 Mudar data</button>' : '<button class="btn sec" style="width:auto;padding:6px 10px;font-size:12px" onclick="fAcao(\'reabrirLancamento\',[\'' + id + '\'],\'Reaberto.\')">↩ Desfazer baixa</button>') +
+    (l.status === 'Previsto' ? '<button class="btn" style="width:auto;padding:6px 10px;font-size:12px" onclick="fAcao(\'fxConfirmar\',[\'' + id + '\'],\'Confirmado.\')">✔ Confirmar</button>' : '') +
+    (!fBaix(l) ? '<button class="btn sec" style="width:auto;padding:6px 10px;font-size:12px" onclick="fReagendar(\'' + id + '\')">📅 Mudar data</button>' : '<button class="btn sec" style="width:auto;padding:6px 10px;font-size:12px" onclick="fAcao(\'fxReabrir\',[\'' + id + '\'],\'Reaberto.\')">↩ Desfazer baixa</button>') +
     '<button class="btn sec" style="width:auto;padding:6px 10px;font-size:12px" onclick="fEditar(\'' + id + '\')">✏️</button>' +
+    '<button class="btn sec" style="width:auto;padding:6px 10px;font-size:12px" onclick="fAnexar(\'' + id + '\')" title="Anexar comprovante">📎</button>' +
     '<button class="btn sec" style="width:auto;padding:6px 10px;font-size:12px;color:var(--erro)" onclick="fExcluir(\'' + id + '\')">🗑️</button></div></li>';
 }
 function fHtmlDia(c) {
@@ -176,7 +179,7 @@ function fLote(modo) {
   if (!confirm((modo === 'data' ? 'Mudar a data de ' : 'Dar baixa em ') + ids.length + ' lançamento(s)?')) return;
   if (!gOnline()) return; aviso('Salvando ' + ids.length + '...');
   var mapa = {}; F.lanc.forEach(function (l) { mapa[l.id] = l; });
-  ids.reduce(function (p, id) { return p.then(function () { var l = mapa[id]; if (!l) return; return modo === 'data' ? sys('alterarVencimentoLancamento', [id, nova]) : sys('darBaixaLancamento', [id, modo === 'venc' ? l.dataVencimento : fHoje()]); }); }, Promise.resolve())
+  ids.reduce(function (p, id) { return p.then(function () { var l = mapa[id]; if (!l) return; return modo === 'data' ? sys('fxAlterarData', [id, nova]) : sys('fxBaixar', [id, modo === 'venc' ? l.dataVencimento : fHoje()]); }); }, Promise.resolve())
     .then(function () { F.sel = {}; aviso('Pronto.', 'ok'); fCarregar(true); }).catch(function (e) { aviso(e.message, 'err'); fCarregar(true); });
 }
 function fParseData(s) { s = String(s).trim(); var m = s.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/); if (m) { var a = m[3] ? (m[3].length === 2 ? '20' + m[3] : m[3]) : fHoje().slice(0, 4); return a + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0'); } return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null; }
@@ -214,30 +217,30 @@ function fBaixar(id) {
   var l = F.lanc.filter(function (x) { return String(x.id) === String(id); })[0]; if (!l) return;
   var d = l.dataVencimento < fHoje() ? prompt('Data em que foi ' + (fEnt(l) ? 'recebido' : 'pago') + ' (dd/mm/aaaa):', fDia(fHoje()) + '/' + fHoje().slice(0, 4)) : fDia(fHoje()) + '/' + fHoje().slice(0, 4);
   if (!d) return; d = fParseData(d); if (!d) return aviso('Data inválida.', 'err');
-  fAcao('darBaixaLancamento', [id, d], fEnt(l) ? 'Recebimento registrado.' : 'Pagamento registrado.');
+  fAcao('fxBaixar', [id, d], fEnt(l) ? 'Recebimento registrado.' : 'Pagamento registrado.');
 }
 function fReagendar(id) {
   var l = F.lanc.filter(function (x) { return String(x.id) === String(id); })[0]; if (!l) return;
   var d = prompt('Nova data de vencimento (dd/mm/aaaa):', fDia(l.dataVencimento) + '/' + l.dataVencimento.slice(0, 4)); if (!d) return;
   d = fParseData(d); if (!d) return aviso('Data inválida.', 'err');
-  fAcao('alterarVencimentoLancamento', [id, d], 'Data alterada para ' + fDia(d) + '.');
+  fAcao('fxAlterarData', [id, d], 'Data alterada para ' + fDia(d) + '.');
 }
 function fExcluir(id) {
   var l = F.lanc.filter(function (x) { return String(x.id) === String(id); })[0]; if (!l) return;
-  if (!confirm('Excluir "' + l.descricao + '" (' + fBrl(l.valorTotal) + ')?' + (l.origemTipo && l.origemTipo !== 'Manual' ? '\n\nAtenção: este lançamento veio de ' + l.origemTipo + '.' : ''))) return;
-  fAcao('excluirLancamento', [id], 'Excluído.');
+  if (!confirm('Excluir "' + l.descricao + '" (' + fBrl(l.valorTotal) + ')?' + (l.origemTipo && l.origemTipo !== 'Manual' ? '\n\nEste lançamento veio de ' + (l.origemTipo === 'Requisicao' ? 'uma requisição' : 'um reembolso') + '. O pedido volta para Aprovações.' : ''))) return;
+  fAcao('fxExcluir', [id], 'Excluído.');
 }
 function fSaldoForm() {
   var s = F.saldo || {};
   $('tela').innerHTML = '<div class="card"><h2>💰 Saldo do banco</h2><p class="muted">Some o saldo de todas as contas e do caixa (dinheiro) e informe o total de um dia. Daí para frente o app calcula sozinho com as baixas e os lançamentos.</p>' +
     '<label>Saldo total (R$)</label><input type="number" step="any" inputmode="decimal" id="fs-v" value="' + (s.definido ? s.valor : '') + '" style="font-size:22px">' +
     '<label>No fim do dia</label><input type="date" id="fs-d" value="' + (s.data || fHoje()) + '">' + (s.informadoPor ? '<p class="muted" style="font-size:12px">Último informado por ' + esc(s.informadoPor) + '</p>' : '') +
-    '<div style="height:10px"></div><button class="btn lar" onclick="fSaldoSalvar()">Salvar saldo</button></div>' +
-    '<div class="card"><h2>🧾 Começar do zero</h2><p class="muted">Use para lançar tudo à mão primeiro. Os lançamentos antigos continuam guardados, só não entram no fluxo. Dá para desligar quando quiser e tudo volta a aparecer.</p>' +
+    '<div style="height:10px"></div><button class="btn lar" onclick="fSaldoSalvar()">Salvar saldo</button><button class="btn sec" style="margin-top:8px" onclick="fTela()">Voltar ao calendário</button></div>' +
+    '<div style="display:none"><h2>🧾 Começar do zero</h2><p class="muted">Use para lançar tudo à mão primeiro. Os lançamentos antigos continuam guardados, só não entram no fluxo. Dá para desligar quando quiser e tudo volta a aparecer.</p>' +
     '<label style="display:flex;gap:8px;align-items:center;color:var(--texto)"><input type="checkbox" id="fc-z" style="width:auto"' + (s.inicio || +s.linhaInicio ? ' checked' : '') + '> Começar o fluxo zerado ' + (+s.linhaInicio && !s.inicio ? '(ativo: a partir do primeiro lançamento novo)' : 'a partir de') + '</label>' + (+s.linhaInicio && !s.inicio ? '<input type="hidden" id="fc-d" value="">' : '<input type="date" id="fc-d" value="' + (s.inicio || fHoje()) + '">') +
     '<label style="display:flex;gap:8px;align-items:center;color:var(--texto);margin-top:12px"><input type="checkbox" id="fc-a" style="width:auto"' + (s.auto ? ' checked' : '') + '> Incluir lançamentos automáticos (folha, medições, custos fixos, requisições)</label>' +
     '<p class="muted" style="font-size:12px">Deixe desmarcado enquanto faz a atualização manual. Marque quando quiser que o sistema alimente o fluxo sozinho.</p>' +
-    '<button class="btn lar" onclick="fConfigSalvar()">Salvar modo de início</button><button class="btn sec" style="margin-top:8px" onclick="fTela()">Voltar ao calendário</button></div>';
+    '</div>';
 }
 function fConfigSalvar() {
   var z = $('fc-z').checked, d = $('fc-d').value, a = $('fc-a').checked, lin = z && !d && +(F.saldo || {}).linhaInicio;
@@ -249,7 +252,7 @@ function fConfigSalvar() {
 function fSaldoSalvar() {
   var v = $('fs-v').value, d = $('fs-d').value; if (v === '' || !d) return aviso('Informe valor e data.', 'err');
   if (!gOnline()) return; aviso('Salvando...');
-  sys('salvarSaldoCaixa', [Number(v), d]).then(function () { aviso('Saldo salvo.', 'ok'); fCarregar(true); fTela(); }).catch(function (e) { aviso(e.message, 'err'); });
+  sys('fxSalvarSaldo', [Number(v), d]).then(function () { aviso('Saldo salvo.', 'ok'); fCarregar(true); fTela(); }).catch(function (e) { aviso(e.message, 'err'); });
 }
 
 // ---------- lançamento rápido ----------
@@ -270,6 +273,7 @@ function fForm() {
   if (e.novo && e.sit === 'aberto') h += '<label>Parcelas</label><input type="number" id="fe-p" min="1" value="' + (e.p || 1) + '"><p class="muted" style="font-size:12px;margin:2px 0">Com mais de 1 parcela o valor é dividido e lançado mês a mês.</p>';
   h += '<label>Categoria</label><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">' + topo.map(function (c) { return '<button class="btn sec" style="width:auto;padding:5px 10px;font-size:12px" onclick="$(\'fe-c\').value=this.textContent">' + esc(c) + '</button>'; }).join('') + '</div><input id="fe-c" list="fe-cl" value="' + esc(e.c != null ? e.c : (l.categoria || '')) + '"><datalist id="fe-cl">' + Object.keys(cats).map(function (c) { return '<option value="' + esc(c) + '">'; }).join('') + '</datalist>' +
     '<label>Obra (opcional)</label><select id="fe-o"><option value="">— nenhuma (despesa da empresa) —</option></select>' +
+    '<label>Forma de pagamento</label><input id="fe-fp" list="fe-fpl" value="' + esc(e.fp != null ? e.fp : (l.formaPagamento || '')) + '"><datalist id="fe-fpl"><option value="PIX"><option value="Boleto"><option value="Cartão de crédito"><option value="Cartão de débito"><option value="Transferência"><option value="Dinheiro"></datalist>' +
     '<label>' + (ent ? 'Cliente' : 'Fornecedor') + ' (opcional)</label><input id="fe-f" list="fe-fl" value="' + esc(e.f != null ? e.f : (l.fornecedorCliente || '')) + '"><datalist id="fe-fl">' + Object.keys(forn).slice(0, 200).map(function (c) { return '<option value="' + esc(c) + '">'; }).join('') + '</datalist>' +
     '<div style="height:12px"></div><button class="btn lar" id="fe-ok" style="padding:14px;font-size:16px">Salvar</button></div>';
   $('tela').innerHTML = h; window.scrollTo(0, 0);
@@ -278,7 +282,7 @@ function fForm() {
   if (!e.v && $('fe-v')) $('fe-v').focus();
   $('fe-ok').onclick = fSalvar;
 }
-function fCap() { var e = F.ed; if (!$('fe-v')) return; e.v = $('fe-v').value; e.d = $('fe-d').value; e.data = $('fe-dt').value; e.c = $('fe-c').value; e.o = $('fe-o').value; e.f = $('fe-f').value; if ($('fe-p')) e.p = $('fe-p').value; }
+function fCap() { var e = F.ed; if (!$('fe-v')) return; e.fp = $('fe-fp') ? $('fe-fp').value : e.fp; e.v = $('fe-v').value; e.d = $('fe-d').value; e.data = $('fe-dt').value; e.c = $('fe-c').value; e.o = $('fe-o').value; e.f = $('fe-f').value; if ($('fe-p')) e.p = $('fe-p').value; }
 function fSalvar() {
   fCap(); var e = F.ed, v = Number(e.v);
   if (!v || v <= 0) return aviso('Informe o valor.', 'err');
@@ -287,10 +291,61 @@ function fSalvar() {
   if (!gOnline()) return;
   var b = $('fe-ok'); b.disabled = true; aviso('Salvando...');
   var p;
-  if (e.novo) p = sys('criarLancamento', [{ tipo: e.tipo, valorTotal: v, descricao: e.d.trim(), situacao: e.sit, dataVencimento: e.data, dataPagamento: e.sit === 'pago' ? e.data : '', numeroParcelas: e.sit === 'aberto' ? (Number(e.p) || 1) : 1, categoria: e.c || 'Outro', projetoId: e.o || '', fornecedorCliente: e.f || '' }]);
-  else p = sys('editarLancamento', [e.l.id, { descricao: e.d.trim(), valorTotal: v, categoria: e.c || 'Outro', projetoId: e.o || '', fornecedorCliente: e.f || '' }]).then(function () { if (e.data !== e.l.dataVencimento && !fBaix(e.l)) return sys('alterarVencimentoLancamento', [e.l.id, e.data]); });
+  var dd = { tipo: e.tipo, valor: v, descricao: e.d.trim(), categoria: e.c || 'Outro', projetoId: e.o || '', fornecedorCliente: e.f || '', formaPagamento: e.fp || '' };
+  if (e.novo) { dd.status = e.sit === 'pago' ? 'Pago' : e.sit === 'previsto' ? 'Previsto' : 'A pagar'; dd.dataVencimento = e.data; dd.dataPagamento = e.sit === 'pago' ? e.data : ''; dd.parcelas = e.sit === 'aberto' ? (Number(e.p) || 1) : 1; }
+  else { dd.id = e.l.id; dd.dataVencimento = e.data; }
+  p = sys('fxSalvar', [dd]);
   p.then(function () { aviso('Lançamento salvo.', 'ok'); F.dia = e.data; F.mes = e.data.slice(0, 7); F.aba = 'cal'; F.ed = null; fCarregar(true); fTela(); })
     .catch(function (er) { aviso(er.message, 'err'); b.disabled = false; });
+}
+
+// ---------- aprovações: requisições e reembolsos ----------
+function fHtmlAprov() {
+  if (!F.aprov) { fContarAprov(); return '<div class="card muted">Carregando pedidos...</div>'; }
+  var bloco = function (tit, lista, tipo) {
+    return '<div class="card"><h2 style="font-size:16px">' + tit + ' (' + lista.length + ')</h2><ul class="lista">' + (lista.map(function (r) {
+      var v = tipo === 'Requisicao' ? r.valorEstimado : r.valor;
+      return '<li style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b>nº ' + esc(r.numero || '') + ' · ' + esc(r.descricao || '') + '</b><b style="color:#c62828">' + (v ? fBrl(v) : '—') + '</b></div><span class="muted" style="font-size:12px">' + esc([r.nomeSolicitante, r.nomeProjeto || r.nomeCliente, r.formaPagamento, r.rotuloTipoDespesa, r.data ? fDia(String(r.data).slice(0, 10)) : '', r.status].filter(Boolean).join(' · ')) + (r.quantidade ? ' · ' + esc(r.quantidade) + ' ' + esc(r.unidade || '') : '') + (r.observacoes ? '<br>' + esc(r.observacoes) : '') + '</span>' +
+        '<div style="margin-top:6px"><button class="btn" style="width:auto;padding:6px 12px;font-size:13px" onclick="fAprovarForm(\'' + tipo + '\',\'' + esc(r.id) + '\')">✔ Aprovar e lançar a pagar</button></div></li>';
+    }).join('') || '<li class="muted">Nenhum pedido esperando.</li>') + '</ul></div>';
+  };
+  return '<div class="card" style="background:#fff8e1;font-size:13px">Ao aprovar, o pedido entra no fluxo como <b>a pagar</b> na data que você escolher. Quando você marcar como pago no calendário, o pedido também fica como pago.</div>' +
+    bloco('📦 Requisições de compra', F.aprov.requisicoes || [], 'Requisicao') + bloco('🧾 Reembolsos', F.aprov.reembolsos || [], 'Reembolso') +
+    '<button class="btn sec" onclick="F.aprov=null;fTela()">🔄 Atualizar pedidos</button>';
+}
+function fAprovarForm(tipo, id) {
+  var lista = tipo === 'Requisicao' ? F.aprov.requisicoes : F.aprov.reembolsos, r = lista.filter(function (x) { return String(x.id) === String(id); })[0]; if (!r) return;
+  var v = tipo === 'Requisicao' ? r.valorEstimado : r.valor;
+  $('tela').innerHTML = '<div class="card"><h2>Aprovar ' + (tipo === 'Requisicao' ? 'requisição' : 'reembolso') + ' nº ' + esc(r.numero || '') + '</h2><p class="muted">' + esc(r.descricao || '') + (r.nomeSolicitante ? ' · ' + esc(r.nomeSolicitante) : '') + '</p>' +
+    '<label>Valor a pagar (R$)</label><input type="number" step="any" inputmode="decimal" id="fa-v" value="' + esc(v || '') + '" style="font-size:22px;font-weight:700">' +
+    '<label>Data prevista do pagamento</label><input type="date" id="fa-d" value="' + fHoje() + '">' +
+    '<label>Categoria</label><input id="fa-c" value="' + (tipo === 'Requisicao' ? 'Compras' : 'Reembolso') + '">' +
+    '<label>Forma de pagamento</label><input id="fa-fp" value="' + esc(r.formaPagamento || '') + '" list="fa-fpl"><datalist id="fa-fpl"><option value="PIX"><option value="Boleto"><option value="Cartão de crédito"><option value="Transferência"><option value="Dinheiro"></datalist>' +
+    (tipo === 'Requisicao' ? '<label>Fornecedor (opcional)</label><input id="fa-f">' : '') +
+    '<div style="height:12px"></div><button class="btn lar" id="fa-ok">✔ Aprovar e lançar a pagar</button><button class="btn sec" style="margin-top:8px" onclick="fTela()">Cancelar</button></div>';
+  $('fa-ok').onclick = function () {
+    var val = Number($('fa-v').value), dt = $('fa-d').value; if (!(val > 0)) return aviso('Informe o valor.', 'err');
+    if (!gOnline()) return; this.disabled = true; aviso('Aprovando...');
+    sys('fxAprovarPedido', [tipo, id, { valor: val, dataVencimento: dt, categoria: $('fa-c').value, formaPagamento: $('fa-fp').value, fornecedor: $('fa-f') ? $('fa-f').value : '' }])
+      .then(function () { aviso('Aprovado e lançado no fluxo.', 'ok'); F.aprov = null; F.aba = 'cal'; F.dia = dt; F.mes = dt.slice(0, 7); fCarregar(true); fTela(); })
+      .catch(function (e) { aviso(e.message, 'err'); $('fa-ok').disabled = false; });
+  };
+}
+function fAnexar(id) {
+  var inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*,application/pdf';
+  inp.onchange = function () {
+    var a = inp.files[0]; if (!a) return; if (a.size > 15e6) return aviso('Arquivo muito grande (máx. 15 MB).', 'err');
+    if (!gOnline()) return; var rd = new FileReader();
+    rd.onload = function () { aviso('Enviando comprovante...'); sys('fxAnexar', [id, { data: String(rd.result).split(',')[1], mimeType: a.type, nome: a.name }]).then(function () { aviso('Comprovante anexado.', 'ok'); fCarregar(true); }).catch(function (e) { aviso(e.message, 'err'); }); };
+    rd.readAsDataURL(a);
+  };
+  inp.click();
+}
+function fContarAprov() {
+  if (!navigator.onLine || F.aprov || F.carregandoAprov) return; F.carregandoAprov = true;
+  sys('fxPendentesAprovacao', []).then(function (r) { F.aprov = r; F.nAprov = (r.requisicoes || []).length + (r.reembolsos || []).length; })
+    .catch(function (e) { F.aprov = { requisicoes: [], reembolsos: [] }; aviso(e.message, 'err'); })
+    .then(function () { F.carregandoAprov = false; if (G.view === 'tFluxo' && !F.ed) fTela(); });
 }
 
 // estilo responsivo (computador: calendário + dia lado a lado)
@@ -300,7 +355,7 @@ function fSalvar() {
 var _fRota = gRotaExtra;
 gRotaExtra = function (v) {
   var main = document.querySelector('main'); if (main && v !== 'tFluxo') main.style.maxWidth = '';
-  if (v === 'tFluxo') { if (F.ed) fForm(); else fTela(); return true; }
+  if (v === 'tFluxo') { if (F.ed) fForm(); else { fTela(); fContarAprov(); } return true; }
   return _fRota(v);
 };
 if (typeof T_ROTAS !== 'undefined') T_ROTAS.tFin = function () { gIr('tFluxo'); };
