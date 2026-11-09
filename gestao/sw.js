@@ -1,5 +1,5 @@
 /* DNP Gestão — guarda o app no celular para abrir sem internet. */
-var CACHE = 'dnp-gestao-v9';
+var CACHE = 'dnp-gestao-v10';
 var ARQUIVOS = ['./', 'index.html', 'gapp.js', '../gestao.js', '../inspecao.js', 'modulos.js', 'auto.js', 'med.js', 'telas.js', 'fluxo.js', 'manifest.webmanifest', 'icon.svg'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ARQUIVOS); }).then(function () { return self.skipWaiting(); }));
