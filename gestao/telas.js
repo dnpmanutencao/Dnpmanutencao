@@ -125,9 +125,10 @@ function tTelaEspelho() {
   var e = tCarrega('esp_' + T.mes + f.id, 'obterEspelhoPonto', [T.mes, f.id], 'tEspelho');
   var h = gVoltar('tFreq') + tH('🕒 Espelho de ponto', esc(f.nome) + ' · ' + T.mes.split('-').reverse().join('/'));
   if (!e) { $('tela').innerHTML = h + tCarregando(); return; }
+  T.esp = e;
   T.situacoes = e.situacoes || ['Trabalhado', 'Falta', 'Falta justificada', 'Atestado', 'Folga', 'Férias', 'Feriado', 'Afastado'];
   var t = e.totais || {};
-  h += '<div class="card"><ul class="lista">' + Object.keys(t).filter(function (k) { return typeof t[k] !== 'object'; }).map(function (k) { return '<li><span>' + esc(mRot(k)) + '</span><b>' + esc(mVal(k, t[k])) + '</b></li>'; }).join('') + '</ul>' + tBtn('📄 PDF do espelho', "tPdf('gerarEspelhoPonto',[T.mes,T.func.id])", 'lar') + '</div>';
+  h += '<div class="card"><ul class="lista">' + Object.keys(t).filter(function (k) { return typeof t[k] !== 'object'; }).map(function (k) { return '<li><span>' + esc(mRot(k)) + '</span><b>' + esc(mVal(k, t[k])) + '</b></li>'; }).join('') + '</ul>' + tBtn('🖨️ Imprimir / PDF', 'tImprimirEspelho()', 'lar') + '</div>';
   T.dias = e.dias || [];
   h += '<div class="card"><p class="muted" style="margin:0 0 6px">Toque num dia para corrigir</p><ul class="lista">' + T.dias.map(function (d, i) {
     var r = d.registro || {}, bat = [1, 2, 3].map(function (n) { return r['entrada' + n] ? r['entrada' + n] + '–' + (r['saida' + n] || '…') : ''; }).filter(String).join('  ');
@@ -136,6 +137,47 @@ function tTelaEspelho() {
   }).join('') + '</ul></div>';
   $('tela').innerHTML = h;
 }
+
+// Folha do espelho para imprimir ou salvar em PDF (mesmo layout do sistema web)
+function tHHMM(v) {
+  if (v === null || v === undefined || v === '') return '';
+  if (typeof v === 'string' && v.indexOf(':') >= 0) return v;
+  var n = Number(v); if (isNaN(n)) return esc(String(v)); if (!n) return '';
+  var h = Math.floor(n), m = Math.round((n - h) * 60); if (m === 60) { h++; m = 0; }
+  return h + ':' + (m < 10 ? '0' : '') + m;
+}
+function tImprimirEspelho() {
+  var e = T.esp; if (!e) { aviso('Abra o espelho primeiro.', 'err'); return; }
+  var f = e.funcionario || T.func || {}, t = e.totais || {}, ma = String(e.mesAno || T.mes);
+  var meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  var mes = (meses[Number(ma.slice(5, 7)) - 1] || '') + ' de ' + ma.slice(0, 4);
+  var br = function (s) { return s ? String(s).slice(0, 10).split('-').reverse().join('/') : ''; };
+  var cols = ['entrada1', 'saida1', 'entrada2', 'saida2', 'entrada3', 'saida3'];
+  var linhas = (e.dias || []).map(function (d) {
+    var r = d.registro || {};
+    return '<tr><td>' + br(d.data) + '</td><td>' + esc(d.diaSemana || '') + '</td><td>' + esc(d.obras || '') + '</td><td>' + esc(r.situacao || '') + '</td>' +
+      cols.map(function (k) { return '<td>' + esc(r[k] || '') + '</td>'; }).join('') +
+      '<td>' + tHHMM(r.horasNormais) + '</td><td>' + tHHMM(r.horasExtra50) + '</td><td>' + tHHMM(r.horasExtra100) + '</td><td>' + tHHMM(r.horasNoturnas) + '</td></tr>';
+  }).join('');
+  var css = '#t-print{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:#fff;color:#000;overflow:auto;padding:16px;font-family:Arial,sans-serif;font-size:11px}' +
+    '#t-print table{border-collapse:collapse;width:100%}#t-print td,#t-print th{border:1px solid #999;padding:3px;text-align:center;color:#000}' +
+    '#t-print h2,#t-print p{margin:4px 0;color:#000}#t-print .ass{margin-top:50px;display:flex;justify-content:space-around}' +
+    '#t-print .ass div{border-top:1px solid #000;width:40%;text-align:center;padding-top:4px}' +
+    '#t-print .tp-bar{display:flex;gap:8px;margin-bottom:12px}#t-print .tp-bar button{flex:1;padding:12px;font-size:15px;border-radius:8px;border:0}' +
+    '@media print{body>*:not(#t-print){display:none!important}#t-print{position:static;overflow:visible;padding:0}#t-print .tp-bar{display:none}@page{size:landscape;margin:10mm}}';
+  var el = document.getElementById('t-print'); if (el) el.remove();
+  el = document.createElement('div'); el.id = 't-print';
+  el.innerHTML = '<style>' + css + '</style>' +
+    '<div class="tp-bar"><button style="background:#0B1A2E;color:#fff" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>' +
+    '<button style="background:#ddd;color:#000" onclick="document.getElementById(\'t-print\').remove()">Fechar</button></div>' +
+    '<h2>Espelho de Ponto — ' + mes + '</h2><p><b>' + esc(e.empresa || '') + '</b></p>' +
+    '<p>Funcionário: <b>' + esc(f.nome || '') + '</b> · Função: ' + esc(f.funcao || '-') + ' · CPF: ' + esc(f.cpf || '-') + ' · Admissão: ' + (br(f.admissao) || '-') + '</p>' +
+    '<table><thead><tr><th>Data</th><th>Dia</th><th>Obra</th><th>Situação</th><th>Ent.1</th><th>Saí.1</th><th>Ent.2</th><th>Saí.2</th><th>Ent.3</th><th>Saí.3</th><th>Normais</th><th>HE50</th><th>HE100</th><th>Not.</th></tr></thead><tbody>' + linhas +
+    '<tr style="font-weight:bold"><td colspan="10">Totais: ' + (t.diasTrabalhados || 0) + ' dias trab., ' + (t.faltas || 0) + ' faltas, ' + (t.faltasJustificadas || 0) + ' justificadas</td><td>' + tHHMM(t.horasNormais) + '</td><td>' + tHHMM(t.horasExtra50) + '</td><td>' + tHHMM(t.horasExtra100) + '</td><td>' + tHHMM(t.horasNoturnas) + '</td></tr></tbody></table>' +
+    '<div class="ass"><div>Empregador</div><div>Empregado</div></div>';
+  document.body.appendChild(el);
+}
+
 function tTelaDia() {
   var d = T.dias && T.dias[T.dia]; if (!d) return gIr('tEspelho');
   var r = d.registro || {};
