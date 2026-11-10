@@ -400,3 +400,55 @@ aAbrirFn = function (n, item) {
   if (T_ATALHO[n] && !(item && /^(listarAtividadesCRM)$/.test(n))) return gIr(T_ATALHO[n]);
   return _tAbrir(n, item);
 };
+
+
+// ================= DOCUMENTOS DA EMPRESA (pasta "DNP - Documentos da Empresa" no Drive) =================
+// Lista a pasta e baixa cada arquivo pelo servidor (funciona sem acesso direto ao Drive).
+function tTam(b) { b = Number(b) || 0; return b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+function tPodeCompartilhar() { try { return !!(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'x.pdf', { type: 'application/pdf' })] })); } catch (e) { return false; } }
+function tTelaDocsEmp() {
+  var l = tCarrega('docsEmp', 'listarPastaDocumentosEmpresa', [], 'tDocsEmp');
+  var h = gVoltar('menu') + tH('📁 Documentos da empresa', 'Certidões, contrato social, cartão CNPJ, alvará, PGR, PCMSO e outros');
+  if (!l) { $('tela').innerHTML = h + tCarregando(); return; }
+  var share = tPodeCompartilhar();
+  h += '<div class="card">' + (l.length ? tBtn('⬇️ Baixar todos (' + l.length + ')', 'tDocBaixarTodos()', 'lar') : '') +
+    tBtn('🔄 Atualizar lista', "delete T.d.docsEmp;render()", 'sec') + '</div>';
+  h += '<div class="card"><ul class="lista">' + (l.map(function (f) {
+    return '<li style="display:block"><div style="font-weight:600;word-break:break-word">' + esc(f.nome) + '</div>' +
+      '<div class="muted" style="font-size:13px;margin:2px 0 6px">' + tTam(f.tamanho) + (f.atualizado ? ' · ' + esc(f.atualizado) : '') + '</div>' +
+      '<div style="display:flex;gap:8px"><button class="btn" style="flex:1;margin:0" onclick="tDocBaixar(\'' + tId(f.id) + '\')">⬇️ Baixar</button>' +
+      (share ? '<button class="btn sec" style="flex:1;margin:0" onclick="tDocBaixar(\'' + tId(f.id) + '\',true)">📤 Enviar</button>' : '') + '</div></li>';
+  }).join('') || '<li class="muted">A pasta está vazia.</li>') + '</ul></div>';
+  $('tela').innerHTML = h;
+}
+function tDocBaixar(id, compartilhar) {
+  if (!gOnline()) return Promise.resolve();
+  aviso('Baixando...');
+  return sys('baixarArquivoDocumentosEmpresa', [id]).then(function (r) {
+    var bin = atob(r.base64), u8 = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    var arq = new File([u8], r.nome, { type: r.mime || 'application/octet-stream' });
+    if (compartilhar && navigator.canShare && navigator.canShare({ files: [arq] })) {
+      aviso('Pronto.', 'ok');
+      return navigator.share({ files: [arq], title: r.nome }).catch(function () {});
+    }
+    var url = URL.createObjectURL(arq), a = document.createElement('a');
+    a.href = url; a.download = r.nome; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    aviso('Baixado: ' + r.nome, 'ok');
+  }).catch(function (e) { aviso(e.message, 'err'); });
+}
+function tDocBaixarTodos() {
+  var l = T.d.docsEmp || [], i = 0;
+  if (!l.length || !gOnline()) return;
+  (function prox() {
+    if (i >= l.length) { aviso('Pronto: ' + l.length + ' arquivos baixados.', 'ok'); return; }
+    var f = l[i++]; aviso('Baixando ' + i + ' de ' + l.length + '...');
+    tDocBaixar(f.id).then(function () { setTimeout(prox, 800); });
+  })();
+}
+T_ROTAS.tDocsEmp = tTelaDocsEmp;
+var _tMenuExtra = gMenuExtra;
+gMenuExtra = function () {
+  return _tMenuExtra() + (gPode('usuarios', 'ver') ? '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'tDocsEmp\')">📁 Documentos da empresa<small>certidões, alvará, PGR · baixar</small></button>' : '');
+};
