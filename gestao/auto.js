@@ -50,6 +50,7 @@ function aTelaHome() {
     ['frequencia', "gIr('tFreq')", '📅 Frequência', 'espelho de ponto'], ['rh', "gIr('tFolha')", '💵 Folha', 'cálculo, avulsos, lançar'],
     ['epi', "gIr('tEpi')", '🦺 EPI', 'entregas, ficha, OS'], ['epi', "gIr('tTurmas')", '🎓 Treinamentos', 'turmas, presença'],
     ['requisicoes', "gIr('novaReq')", '🛒 Nova requisição', 'sem internet'], ['requisicoes', "gIr('novoReemb')", '🧾 Novo reembolso', 'foto do recibo'],
+    ['usuarios', "gIr('tDocsEmp')", '📁 Documentos da empresa', 'certidões, ficha, alvará, PGR'],
     [null, "gIr('insps')", '🔎 Inspeções', 'relatório com fotos'], [null, "S.tela='sistema';render()", '🖥️ Sistema web', 'tela do computador']];
   var html = '<div class="card"><h2>Gestão DNP</h2><div class="grade">' + at.filter(function (x) { return !x[0] || gPode(x[0], 'ver'); }).map(function (x) {
     return '<button class="bat" style="text-align:left;padding:14px" onclick="' + x[1] + '">' + x[2] + '<small>' + x[3] + '</small></button>';
