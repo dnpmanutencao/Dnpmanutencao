@@ -93,14 +93,14 @@ function tCronoSalvar() {
 function tTelaDiarios() {
   var p = T.proj; if (!p) return gIr('tObras');
   var l = tCarrega('diar_' + p.id, 'listarDiariosObra', [p.id], 'tDiarios');
-  var h = gVoltar('tObra') + tH('📒 Diários de obra', esc(p.nome) + ' · novos RDOs são lançados pelo app DNP Campo');
+  var h = gVoltar('tObra') + tH('📒 Diários de obra', esc(p.nome) + ' · toque em Editar para corrigir o RDO ou anexar fotos');
   if (!l) { $('tela').innerHTML = h + tCarregando(); return; }
   l = l.slice().sort(function (a, b) { return (Number(b.numero) || 0) - (Number(a.numero) || 0); });
   $('tela').innerHTML = h + '<div class="card"><ul class="lista">' + (l.length ? l.map(function (d, i) {
     return '<li style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b>RDO nº ' + esc(d.numero) + ' · ' + mdData(d.dataIso || d.data) + '</b>' + (d.medido ? aBadge('Medido') : '') + '</div><span class="muted" style="font-size:13px">' + esc(d.clima || '') + (d.efetivo != null ? ' · Efetivo: ' + esc(d.efetivo) : '') + (d.custoMaoDeObraTotal ? ' · M.O.: ' + mdBrl(d.custoMaoDeObraTotal) : '') + '</span>' +
       (d.atividades ? '<p style="margin:6px 0;font-size:13px">' + esc(String(d.atividades).slice(0, 220)) + '</p>' : '') +
       ((d.etapas || []).length ? '<p class="muted" style="font-size:12px;margin:4px 0">' + d.etapas.map(function (e) { return esc(e.nomeEtapa || e.descricao || '') + (e.percentualAcumulado != null ? ' ' + esc(mVal('percentual', e.percentualAcumulado)) + '%' : ''); }).join(' · ') + '</p>' : '') +
-      '<button class="btn sec" style="padding:8px;margin-top:4px" onclick="tPdf(\'exportarDiarioObraPdf\',[T.proj.id,\'' + tId(d.id) + '\'])">📄 PDF</button></li>';
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><button class="btn" style="padding:8px;flex:1" onclick="tRdoAbrir(\'' + tId(d.id) + '\')">' + (d.medido ? '📷 Fotos' : '✏️ Editar / 📷 Fotos') + ' (' + (d.fotos || []).length + ')</button><button class="btn sec" style="padding:8px;flex:1" onclick="tPdf(\'exportarDiarioObraPdf\',[T.proj.id,\'' + tId(d.id) + '\'])">📄 PDF</button></div></li>';
   }).join('') : '<li class="muted">Nenhum diário.</li>') + '</ul></div>';
 }
 
@@ -386,9 +386,108 @@ function tTelaFin() {
   $('tela').innerHTML = h;
 }
 
+// ================= EDITAR RDO (qualquer RDO da obra) + FOTOS =================
+// Texto, clima e equipe: editarDiarioObra (as etapas apontadas são reenviadas como estão).
+// Fotos: sobem uma a uma (adicionarFotosDiarioObra) e já ficam salvas no RDO na hora.
+var T_CLIMAS = ['Bom', 'Nublado', 'Chuvoso', 'Impraticável'];
+function tRdoAbrir(id) {
+  var d = (T.d['diar_' + T.proj.id] || []).filter(function (x) { return String(x.id) === String(id); })[0];
+  if (!d) return aviso('RDO não encontrado. Atualize a lista.', 'err');
+  T.rdo = JSON.parse(JSON.stringify(d));
+  T.rdo.equipe = (d.maoDeObra || []).map(function (m) { return { funcionarioId: m.funcionarioId, nome: m.nomeFuncionario, entrada1: m.entrada1 || '', saida1: m.saida1 || '', entrada2: m.entrada2 || '', saida2: m.saida2 || '' }; });
+  T.rdoMudou = false;
+  gIr('tRdoEd');
+}
+function tRdoFotoUrl(f) { return f.id ? 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(f.id) + '&sz=w400' : (f.url || ''); }
+function tRdoLer() { // guarda o que foi digitado antes de redesenhar
+  var r = T.rdo; if (!r || !$('re-data')) return;
+  r.dataIso = $('re-data').value; r.clima = $('re-clima').value; r.ehFeriado = $('re-fer').checked;
+  r.atividades = $('re-ativ').value; r.ocorrencias = $('re-ocor').value;
+  r.equipe.forEach(function (m, i) { ['funcionarioId', 'entrada1', 'saida1', 'entrada2', 'saida2'].forEach(function (k) { var el = $('re-' + k + '-' + i); if (el) m[k] = el.value; }); });
+}
+function tTelaRdoEd() {
+  var r = T.rdo; if (!r || !T.proj) return gIr('tDiarios');
+  tRdoLer();
+  var funcs = tCarrega('funcs', 'listarFuncionariosAtivos', [], 'tRdoEd') || [];
+  var nomes = {}; funcs.forEach(function (f) { nomes[f.id] = mTitulo(f); });
+  r.equipe.forEach(function (m) { if (m.funcionarioId && !nomes[m.funcionarioId]) nomes[m.funcionarioId] = m.nome || '(funcionário inativo)'; });
+  var lista = Object.keys(nomes).map(function (id) { return { id: id, nome: nomes[id] }; }).sort(function (a, b) { return a.nome.localeCompare(b.nome); });
+  var climas = T_CLIMAS.indexOf(r.clima) < 0 && r.clima ? T_CLIMAS.concat([r.clima]) : T_CLIMAS;
+  var hora = function (k, i, v) { return '<input type="time" id="re-' + k + '-' + i + '" value="' + esc(v || '') + '" style="min-width:0">'; };
+  var h = '<button class="btn sec" style="margin-bottom:10px" onclick="tRdoVoltar()">← Voltar</button>' + tH('📒 RDO nº ' + esc(r.numero) + ' · ' + mdData(r.dataIso || r.data), esc(T.proj.nome) + (r.medido ? ' · já medido: só fotos podem ser adicionadas' : ''));
+  // fotos
+  var fotos = r.fotos || [];
+  h += '<div class="card"><h2 style="font-size:15px">📷 Fotos (' + fotos.length + ')</h2>' +
+    (fotos.length ? '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">' + fotos.map(function (f, i) {
+      return '<div style="position:relative"><a href="' + esc(f.url || '#') + '" target="_blank"><img src="' + esc(tRdoFotoUrl(f)) + '" alt="' + esc(f.nome || 'foto') + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#ddd" onerror="this.style.opacity=.3"></a>' +
+        '<button onclick="tRdoFotoExcluir(' + i + ')" title="Remover foto" style="position:absolute;top:4px;right:4px;border:0;border-radius:50%;width:28px;height:28px;background:rgba(0,0,0,.6);color:#fff;font-size:14px">✕</button></div>';
+    }).join('') + '</div>' : '<p class="muted">Nenhuma foto neste RDO.</p>') +
+    '<input type="file" id="re-fotos" accept="image/*" multiple style="display:none" onchange="tRdoFotosEnviar(this)">' +
+    tBtn('📷 Adicionar fotos', "$('re-fotos').click()", 'lar') + '<p class="muted" style="font-size:12px;margin:6px 0 0">As fotos são salvas no RDO assim que enviadas (pasta "Diario de Obra" da obra no Drive).</p></div>';
+  if (!r.medido) {
+    h += '<div class="card"><h2 style="font-size:15px">✏️ Dados do dia</h2>' +
+      '<div class="row"><div><label>Data</label><input type="date" id="re-data" value="' + esc(r.dataIso || '') + '"></div><div><label>Clima</label><select id="re-clima">' + climas.map(function (c) { return '<option' + (c === r.clima ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select></div></div>' +
+      '<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="re-fer" style="width:auto"' + (r.ehFeriado ? ' checked' : '') + '> Domingo ou feriado</label>' +
+      '<label>Atividades</label><textarea id="re-ativ" rows="5">' + esc(r.atividades || '') + '</textarea>' +
+      '<label>Ocorrências</label><textarea id="re-ocor" rows="3">' + esc(r.ocorrencias || '') + '</textarea></div>';
+    h += '<div class="card"><h2 style="font-size:15px">👷 Equipe e horários (' + r.equipe.length + ')</h2>' + (funcs.length ? '' : '<p class="muted">Carregando funcionários...</p>') +
+      r.equipe.map(function (m, i) {
+        return '<div style="border-top:1px solid var(--borda,#ddd);padding:8px 0"><div style="display:flex;gap:6px"><select id="re-funcionarioId-' + i + '" style="flex:1">' + gOpts(lista, m.funcionarioId, function (x) { return x.nome; }, 'Escolha o funcionário') + '</select>' +
+          '<button class="btn sec" style="width:auto;padding:6px 12px" onclick="tRdoEquipeTirar(' + i + ')">✕</button></div>' +
+          '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:4px;font-size:11px" class="muted"><span>Entrada</span><span>Saída</span><span>Entrada 2</span><span>Saída 2</span>' +
+          hora('entrada1', i, m.entrada1) + hora('saida1', i, m.saida1) + hora('entrada2', i, m.entrada2) + hora('saida2', i, m.saida2) + '</div></div>';
+      }).join('') + tBtn('➕ Adicionar funcionário', 'tRdoEquipeAdd()', 'sec') + '</div>';
+    if ((r.etapas || []).length) h += '<div class="card"><h2 style="font-size:15px">📐 Etapas apontadas</h2><p class="muted" style="font-size:13px">' + r.etapas.map(function (e) { return esc(e.nomeEtapa || '') + (e.percentualAcumulado != null ? ' · ' + esc(mVal('percentual', e.percentualAcumulado)) + '%' : ''); }).join('<br>') + '</p><p class="muted" style="font-size:12px">Ficam como estão. Para mudar etapas ou quantidades use o sistema web.</p></div>';
+    h += tBtn('💾 Salvar alterações do RDO', 'tRdoSalvar()', 'lar');
+  }
+  $('tela').innerHTML = h;
+  ['re-data', 're-clima', 're-fer', 're-ativ', 're-ocor'].forEach(function (id) { if ($(id)) $(id).addEventListener('input', function () { T.rdoMudou = true; }); });
+  Array.prototype.forEach.call(document.querySelectorAll('[id^="re-funcionarioId-"],[id^="re-entrada"],[id^="re-saida"]'), function (el) { el.addEventListener('input', function () { T.rdoMudou = true; }); });
+}
+function tRdoVoltar() { if (T.rdoMudou && !confirm('Sair sem salvar as alterações do texto/equipe?')) return; T.rdo = null; gIr('tDiarios'); }
+function tRdoEquipeAdd() { tRdoLer(); T.rdo.equipe.push({ funcionarioId: '', entrada1: '07:00', saida1: '12:00', entrada2: '13:00', saida2: '17:00' }); T.rdoMudou = true; render(); }
+function tRdoEquipeTirar(i) { tRdoLer(); T.rdo.equipe.splice(i, 1); T.rdoMudou = true; render(); }
+function tRdoSalvar() {
+  tRdoLer(); var r = T.rdo;
+  if (!r.dataIso) return aviso('Informe a data.', 'err');
+  var equipe = r.equipe.filter(function (m) { return m.funcionarioId && m.entrada1 && m.saida1; });
+  if (equipe.length < r.equipe.length && !confirm((r.equipe.length - equipe.length) + ' linha(s) da equipe sem funcionário ou sem entrada/saída serão ignoradas. Continuar?')) return;
+  if (!equipe.length && !String(r.atividades || '').trim()) return aviso('Informe as atividades ou a equipe com horários.', 'err');
+  var dados = { data: r.dataIso, clima: r.clima, ehFeriado: !!r.ehFeriado, efetivo: equipe.length ? equipe.length + ' funcionário(s)' : (r.efetivo || ''),
+    atividades: String(r.atividades || '').trim(), ocorrencias: String(r.ocorrencias || '').trim(), fotos: [],
+    maoDeObra: equipe.map(function (m) { return { funcionarioId: m.funcionarioId, entrada1: m.entrada1, saida1: m.saida1, entrada2: m.entrada2 || '', saida2: m.saida2 || '' }; }),
+    etapas: (r.etapas || []).map(function (e) { return { projetoEtapaId: e.projetoEtapaId, descricao: e.descricao || '', percentualAcumulado: e.percentualAcumulado, itens: (e.itens || []).map(function (it) { return { orcamentoItemId: it.orcamentoItemId, quantidade: it.quantidade }; }) }; }) };
+  if (!confirm('Salvar as alterações do RDO nº ' + r.numero + '?\n' + equipe.length + ' funcionário(s) na equipe.')) return;
+  tFn('editarDiarioObra', [T.proj.id, r.id, dados], 'Salvando RDO...').then(function () { T.rdoMudou = false; T.rdo = null; tLimpa('diar_'); gIr('tDiarios'); }).catch(function () {});
+}
+function tRdoFotosEnviar(inp) {
+  var arqs = Array.prototype.slice.call(inp.files || []); inp.value = '';
+  if (!arqs.length || !gOnline()) return;
+  tRdoLer();
+  var r = T.rdo, n = 0, falhas = 0, projId = T.proj.id;
+  arqs.reduce(function (p, a, k) {
+    return p.then(function () {
+      aviso('Enviando foto ' + (k + 1) + '/' + arqs.length + '...');
+      return lerFoto(a, 1600, 0.7).then(function (data) {
+        var nome = 'RDO' + r.numero + '_' + (r.dataIso || '') + '_' + Date.now() + '.jpg';
+        return sys('adicionarFotosDiarioObra', [projId, r.id, [{ nome: nome, mimeType: 'image/jpeg', data: String(data).split(',')[1] }]]);
+      }).then(function (res) { n++; if (res && res.fotos) r.fotos = res.fotos; if (G.view === 'tRdoEd' && T.rdo === r) render(); })
+        .catch(function (e) { falhas++; aviso(e.message, 'err'); });
+    });
+  }, Promise.resolve()).then(function () {
+    tLimpa('diar_'); // a lista volta atualizada
+    aviso(n + ' foto(s) adicionada(s)' + (falhas ? ', ' + falhas + ' com erro' : '') + '.', falhas ? 'err' : 'ok');
+  });
+}
+function tRdoFotoExcluir(i) {
+  var r = T.rdo, f = (r.fotos || [])[i]; if (!f || !confirm('Remover esta foto do RDO? Ela vai para a lixeira do Drive.')) return;
+  tRdoLer();
+  tFn('removerFotoDiarioObra', [T.proj.id, r.id, f.id], 'Removendo foto...').then(function (res) { if (res && res.fotos) r.fotos = res.fotos; tLimpa('diar_'); render(); }).catch(function () {});
+}
+
 // ================= rotas e ganchos =================
 var _tRota = gRotaExtra;
-var T_ROTAS = { tObras: tTelaObras, tObra: tTelaObra, tCrono: tTelaCrono, tDiarios: tTelaDiarios, tFreq: tTelaFreq, tEspelho: tTelaEspelho, tDia: tTelaDia, tFolha: tTelaFolha, tFolhaFunc: tTelaFolhaFunc, tFunil: tTelaFunil, tOpo: tTelaOpo, tAtiv: tTelaAtiv, tTurmas: tTelaTurmas, tTurma: tTelaTurma, tEpi: tTelaEpi, tEpiFunc: tTelaEpiFunc, tFuncDocs: tTelaFuncDocs, tFin: tTelaFin, tCronoEd: function () { tCronoEditar(T.cronoI); } };
+var T_ROTAS = { tObras: tTelaObras, tObra: tTelaObra, tCrono: tTelaCrono, tDiarios: tTelaDiarios, tFreq: tTelaFreq, tEspelho: tTelaEspelho, tDia: tTelaDia, tFolha: tTelaFolha, tFolhaFunc: tTelaFolhaFunc, tFunil: tTelaFunil, tOpo: tTelaOpo, tAtiv: tTelaAtiv, tTurmas: tTelaTurmas, tTurma: tTelaTurma, tEpi: tTelaEpi, tEpiFunc: tTelaEpiFunc, tFuncDocs: tTelaFuncDocs, tFin: tTelaFin, tCronoEd: function () { tCronoEditar(T.cronoI); }, tRdoEd: tTelaRdoEd };
 gRotaExtra = function (v) { if (T_ROTAS[v]) { T_ROTAS[v](); return true; } return _tRota(v); };
 // módulos genéricos que ganharam tela própria: abrem direto a tela nova
 var T_ATALHO = { listarDiariosObra: 'tDiarios', obterCronograma: 'tCrono', listarResumoFrequencia: 'tFreq', obterEspelhoPonto: 'tFreq', folhaCalcularMes: 'tFolha', listarOportunidades: 'tFunil', listarAtividadesCRM: 'tAtiv', listarTurmas: 'tTurmas', obterResumoFinanceiro: 'tFin', listarEntregasFuncionario: 'tEpi', obterDetalheFuncionario: null };
