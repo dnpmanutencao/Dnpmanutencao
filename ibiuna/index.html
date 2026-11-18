@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b3d22">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Pedreira Ibiúna · Gestão Operacional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --g950:#072a17;--g900:#0b3d22;--g800:#0f4f2b;--g700:#126235;--g600:#178041;--g500:#22a34f;--g200:#bfe5cb;--g100:#e7f5ec;
+  --amber:#f2b705;--amber-l:#fff4cc;--orange:#ef7d1a;--red:#d63b2b;--red-l:#fde4e1;--blue:#2b78d0;--blue-l:#e3effc;--gray:#9aa5a0;--purple:#8a4fbf;
+  --ink:#14211a;--muted:#5b6a61;--line:#dbe3de;--bg:#eef2ef;--card:#fff;
+  --r:12px;--sh:0 1px 2px rgba(10,40,20,.06),0 2px 8px rgba(10,40,20,.05);
+  --nav:64px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Barlow,system-ui,sans-serif;font-size:16px;-webkit-text-size-adjust:100%}
+h1,h2,h3,.cond{font-family:"Barlow Condensed",Barlow,sans-serif;letter-spacing:.01em}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+
+/* header */
+header{position:sticky;top:0;z-index:20;background:linear-gradient(90deg,var(--g950),var(--g800));color:#fff;padding:10px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.brand svg{flex:none}
+.brand>div{min-width:0}
+.brand b{display:block;font-family:"Barlow Condensed";font-size:20px;line-height:1;font-weight:700;letter-spacing:.03em}
+.brand small{display:block;font-size:12px;opacity:.8;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.month{display:flex;align-items:center;background:rgba(255,255,255,.12);border-radius:10px;overflow:hidden}
+.month button{background:none;border:0;color:#fff;width:34px;height:38px;font-size:20px}
+.month span{font-family:"Barlow Condensed";font-weight:600;font-size:17px;min-width:96px;text-align:center;text-transform:capitalize}
+
+main{max-width:1240px;margin:0 auto;padding:14px 12px calc(var(--nav) + 24px)}
+.banner{background:var(--amber-l);border:1px solid #f0d77a;color:#5c4500;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:14px}
+.banner.err{background:var(--red-l);border-color:#f1b3ab;color:#7a1d12}
+
+/* bottom nav */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;height:var(--nav);background:#fff;border-top:1px solid var(--line);display:flex;justify-content:center}
+nav.tabs .in{display:flex;width:100%;max-width:640px}
+nav.tabs button{flex:1;background:none;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-size:12px;font-weight:600}
+nav.tabs button svg{width:24px;height:24px}
+nav.tabs button.on{color:var(--g700)}
+nav.tabs button.on svg{stroke:var(--g600)}
+
+/* cards */
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);border:1px solid #e4eae6;overflow:hidden}
+.card>h3{margin:0;background:var(--g800);color:#fff;font-size:15px;font-weight:600;text-transform:uppercase;padding:7px 12px;letter-spacing:.04em}
+.card .bd{padding:12px}
+.sect-title{font-family:"Barlow Condensed";font-weight:700;font-size:20px;color:var(--g800);margin:18px 2px 8px;text-transform:uppercase;letter-spacing:.03em}
+
+/* segmented */
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#dfe7e2;padding:5px;border-radius:12px;margin-bottom:12px}
+.seg button{border:0;background:none;padding:10px 4px;border-radius:9px;font-weight:700;color:var(--muted);font-size:14px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.seg button svg{width:22px;height:22px}
+.seg button.on{background:#fff;color:var(--g800);box-shadow:var(--sh)}
+
+/* forms */
+form.f{display:grid;gap:12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+label.fl{display:block;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px}
+.inp,select.inp,textarea.inp{width:100%;height:50px;border:1.5px solid var(--line);border-radius:10px;background:#fff;padding:0 12px;font-size:18px;font-weight:600;outline:none}
+textarea.inp{height:76px;padding:10px 12px;font-size:16px;font-weight:500;resize:vertical}
+.inp:focus{border-color:var(--g500);box-shadow:0 0 0 3px rgba(34,163,79,.15)}
+.inp[readonly]{background:#f4f7f5;color:var(--muted)}
+.step{display:flex;align-items:stretch}
+.step .inp{border-radius:0;text-align:center;border-left:0;border-right:0;min-width:0}
+.step button{width:52px;flex:none;border:1.5px solid var(--line);background:#f4f7f5;font-size:24px;font-weight:700;color:var(--g700)}
+.step button:first-child{border-radius:10px 0 0 10px}
+.step button:last-child{border-radius:0 10px 10px 0}
+.step button:active{background:var(--g100)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:0 16px;height:48px;min-width:64px;font-size:18px;font-weight:700;font-family:"Barlow Condensed"}
+.chip.sm{height:38px;font-size:15px;min-width:0;padding:0 12px;font-family:Barlow;font-weight:600}
+.chip.on{background:var(--g700);border-color:var(--g700);color:#fff}
+.calc{display:flex;justify-content:space-between;gap:8px;background:var(--g100);border:1px solid var(--g200);border-radius:10px;padding:10px 12px}
+.calc div{text-align:center;flex:1}
+.calc small{display:block;font-size:11px;font-weight:700;color:var(--g700);text-transform:uppercase}
+.calc b{font-family:"Barlow Condensed";font-size:24px;color:var(--g900)}
+.btn{height:54px;border:0;border-radius:12px;background:var(--g600);color:#fff;font-size:18px;font-weight:700;width:100%;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:disabled{opacity:.5}
+.btn.ghost{background:#fff;color:var(--g700);border:1.5px solid var(--g200)}
+.btn.danger{background:var(--red)}
+.btn.sm{height:40px;font-size:15px;width:auto;padding:0 14px}
+.editbar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--amber-l);border:1px solid #f0d77a;border-radius:10px;padding:8px 10px;font-weight:600;font-size:14px}
+.paradas{display:grid;gap:8px}
+.prow{display:grid;grid-template-columns:1fr 168px;align-items:center;gap:8px}
+.prow span{font-weight:600;font-size:15px}
+.prow .step .inp{height:44px;font-size:17px}
+.prow .step button{width:44px;font-size:20px}
+.today{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.today .t{background:#fff;border-radius:10px;padding:8px 10px;border:1px solid #e4eae6}
+.today small{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase}
+.today b{font-family:"Barlow Condensed";font-size:22px}
+.note{font-size:13px;color:var(--muted)}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.kpi{background:#fff;border-radius:var(--r);box-shadow:var(--sh);border:1px solid #e4eae6;overflow:hidden;display:flex;flex-direction:column}
+.kpi h4{margin:0;background:var(--g800);color:#fff;font:600 13px "Barlow Condensed";text-transform:uppercase;letter-spacing:.05em;padding:6px 8px;text-align:center}
+.kpi .v{font-family:"Barlow Condensed";font-weight:700;font-size:30px;text-align:center;padding:6px 4px 0;line-height:1.1}
+.kpi .s{font-size:12px;text-align:center;color:var(--muted);text-transform:uppercase;font-weight:600}
+.kpi .s b{color:var(--ink);font-size:15px}
+.kpi .pb{margin:6px 8px 8px;height:22px;background:#e9eeeb;border-radius:4px;position:relative;overflow:hidden}
+.kpi .pb i{position:absolute;left:0;top:0;bottom:0;background:var(--amber)}
+.kpi .pb em{position:absolute;right:6px;top:0;line-height:22px;font-style:normal;font-weight:700;font-size:14px;font-family:"Barlow Condensed"}
+.kpi .dv{text-align:center;font-family:"Barlow Condensed";font-weight:700;font-size:22px;padding-bottom:8px}
+.up{color:var(--g600)}.down{color:var(--red)}
+.oee{grid-column:1/-1;background:var(--g900);color:#fff;border-radius:var(--r);display:flex;align-items:center;gap:14px;padding:12px}
+.oee .ring{position:relative;width:118px;height:118px;flex:none}
+.oee .ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 30px "Barlow Condensed"}
+.oee .ring small{position:absolute;top:8px;width:100%;text-align:center;font:600 13px "Barlow Condensed";letter-spacing:.08em;opacity:.8}
+.oee .bars{flex:1;display:grid;gap:7px}
+.oee .bars div{font-size:13px;font-weight:600}
+.oee .bars .pb{height:20px;background:rgba(255,255,255,.15);border-radius:4px;position:relative;overflow:hidden;margin-top:2px}
+.oee .bars .pb i{position:absolute;left:0;top:0;bottom:0;background:#9be3ae}
+.oee .bars .pb em{position:absolute;right:6px;line-height:20px;font-style:normal;font:700 14px "Barlow Condensed";color:var(--g950)}
+.grid2{display:grid;gap:12px;margin-top:12px}
+.chartbox{position:relative;height:230px}
+.legend{display:grid;gap:5px;font-size:14px}
+.legend div{display:grid;grid-template-columns:12px 1fr auto auto;gap:8px;align-items:center}
+.legend i{width:12px;height:12px;border-radius:3px}
+.legend span:last-child{color:var(--muted);min-width:40px;text-align:right}
+.mt{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center}
+.mt div{background:#f3f6f4;border-radius:10px;padding:8px 4px}
+.mt small{display:block;font:600 13px "Barlow Condensed";color:var(--g800);letter-spacing:.05em}
+.mt b{font:700 22px "Barlow Condensed"}
+.att{display:grid;gap:8px}
+.att div{display:grid;grid-template-columns:1fr 56px 66px;gap:6px;align-items:center;font-weight:600;font-size:15px}
+.att b{text-align:center;border-radius:8px;padding:6px 0;font:700 19px "Barlow Condensed"}
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+table.t th{background:var(--g100);color:var(--g900);font-weight:700;text-transform:uppercase;font-size:11px;padding:7px 6px;text-align:right;white-space:nowrap;position:sticky;top:0}
+table.t td{padding:7px 6px;border-bottom:1px solid #edf1ee;text-align:right;white-space:nowrap}
+table.t th:first-child,table.t td:first-child{text-align:left}
+table.t tr.tot td{font-weight:700;background:var(--g800);color:#fff}
+table.t td.l,table.t th.l{text-align:left}
+.tscroll{overflow:auto;max-height:520px}
+.neg{color:var(--red);font-weight:600}.pos{color:var(--g600);font-weight:600}
+.gauge{display:flex;flex-direction:column;align-items:center}
+.gauge b{font:700 40px "Barlow Condensed";margin-top:-14px}
+.os-open{display:grid;gap:6px}
+.os-open div{font-size:14px;border-left:4px solid var(--orange);background:#fff7ef;padding:6px 8px;border-radius:6px}
+
+/* registros */
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.rec{background:#fff;border-radius:10px;border:1px solid #e4eae6;padding:10px 12px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;margin-bottom:8px}
+.rec .ic{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff}
+.rec .ic svg{width:22px;height:22px}
+.rec .ttl{font-weight:700;font-size:15px}
+.rec .sub{font-size:13px;color:var(--muted)}
+.rec .act{display:flex;gap:4px}
+.rec .act button{width:38px;height:38px;border-radius:8px;border:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center}
+.rec .act svg{width:18px;height:18px}
+.dayh{font:700 15px "Barlow Condensed";color:var(--g800);text-transform:uppercase;margin:14px 2px 6px;letter-spacing:.04em}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--orange);color:#fff;vertical-align:1px;margin-left:4px}
+.badge.ok{background:var(--g600)}
+
+/* settings */
+.set{display:grid;gap:12px}
+.empty{text-align:center;color:var(--muted);padding:30px 10px}
+
+/* modal + toast */
+.modal{position:fixed;inset:0;background:rgba(5,25,12,.5);z-index:50;display:flex;align-items:flex-end;justify-content:center;padding:12px}
+.modal .box{background:#fff;border-radius:16px;padding:18px;max-width:440px;width:100%;margin-bottom:calc(var(--nav) - 50px)}
+.modal p{margin:0 0 16px;font-size:16px;line-height:1.4}
+.modal .acts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav) + 14px);background:var(--g900);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:92vw;text-align:center}
+.toast.err{background:var(--red)}
+
+
+/* módulo manutenção */
+.tb{display:flex;gap:8px;margin-bottom:10px;align-items:center}
+.tb .srch{height:44px;font-size:16px;font-weight:500;flex:1}
+.tb .btn.sm{flex:none;height:44px}
+.li{background:#fff;border:1px solid #e4eae6;border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer}
+.li:active{background:var(--g100)}
+.lt{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.lt b{font-size:15px}
+.ls{font-size:13px;color:var(--muted);margin-top:2px}
+.st{display:inline-block;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;text-transform:uppercase;letter-spacing:.02em;flex:none}
+.tag{font-family:"Barlow Condensed";font-weight:700;background:var(--g100);color:var(--g800);padding:1px 6px;border-radius:5px;margin-right:2px}
+.crit{display:inline-block;width:20px;text-align:center;border-radius:4px;color:#fff;font-size:12px}
+.crit.cA{background:var(--red)}.crit.cB{background:var(--amber);color:#3a2c00}.crit.cC{background:var(--gray)}
+.qty{font:700 20px "Barlow Condensed";white-space:nowrap}.qty small{font-size:13px;color:var(--muted)}
+.warn{color:#b07d00}
+.urg{background:var(--red);color:#fff;font-size:11px;padding:2px 6px;border-radius:5px;vertical-align:2px;font-family:Barlow}
+.act-hint{color:var(--g700)}
+.bdg{display:inline-block;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:var(--red);color:#fff;font-style:normal;font-size:11px;font-weight:700;margin-left:5px;padding:0 5px;vertical-align:1px}
+nav.tabs button{position:relative}
+nav.tabs .bdg{position:absolute;top:6px;left:calc(50% + 6px);margin:0}
+#mntSeg{grid-template-columns:repeat(4,1fr)}
+#mntSeg button{flex-direction:row;justify-content:center;padding:11px 2px}
+.sheet{position:fixed;inset:0;background:rgba(5,25,12,.45);z-index:40;display:flex;justify-content:center}
+.sh{background:var(--bg);width:100%;max-width:680px;height:100%;display:flex;flex-direction:column;box-shadow:0 0 30px rgba(0,0,0,.25)}
+.shh{display:flex;align-items:center;justify-content:space-between;background:var(--g800);color:#fff;padding:10px 12px 10px 16px;flex:none}
+.shh b{font:600 19px "Barlow Condensed";letter-spacing:.03em;text-transform:uppercase}
+.shh .x{background:rgba(255,255,255,.15);border:0;color:#fff;width:40px;height:40px;border-radius:10px;font-size:18px}
+.shb{overflow:auto;padding:14px 14px 40px;flex:1;-webkit-overflow-scrolling:touch}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;background:#fff;border:1px solid #e4eae6;border-radius:10px;padding:10px 12px;font-size:14px}
+.kv span{color:var(--muted)}
+.h4{font:700 16px "Barlow Condensed";color:var(--g800);text-transform:uppercase;letter-spacing:.04em;margin:16px 0 6px}
+.acts2{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.acts2 .btn{flex:1 1 150px;height:48px;font-size:16px}
+.acts3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}.acts3 .btn{height:48px;font-size:16px}
+.rm{width:44px;height:44px;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--red);font-size:16px;flex:none}
+.prow2{display:grid;grid-template-columns:1fr 150px 44px;gap:6px;align-items:center;margin-bottom:8px}
+.prow2 .inp{height:46px;font-size:15px}.prow2 .step .inp{font-size:17px}.prow2 .step button{width:40px;font-size:20px}
+.rcitens{display:grid;gap:10px;margin-bottom:8px}
+.rci{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;display:grid;gap:8px}
+.rci-h{display:flex;justify-content:space-between;align-items:center}.rci .rm{width:34px;height:34px}
+.rci .inp{height:46px}
+.tl{display:grid;gap:0;border-left:3px solid var(--g200);margin-left:6px}
+.tl div{padding:4px 0 10px 14px;position:relative}
+.tl div:before{content:"";position:absolute;left:-8px;top:8px;width:11px;height:11px;border-radius:50%;background:var(--g600)}
+.tl b{display:block;font-size:14px}.tl span{font-size:12px;color:var(--muted)}.tl p{margin:3px 0 0;font-size:13px;background:#fff;border-radius:6px;padding:5px 8px}
+.flow{display:grid;grid-template-columns:repeat(4,1fr);margin:4px 0 12px}
+.flow div{text-align:center;position:relative;font-size:12px;font-weight:600;color:var(--muted)}
+.flow div:not(:first-child):before{content:"";position:absolute;top:13px;right:50%;width:100%;height:3px;background:var(--line);z-index:0}
+.flow div.on:not(:first-child):before{background:var(--g500)}
+.flow i{position:relative;z-index:1;display:flex;margin:0 auto 3px;width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;background:#fff;border:2px solid var(--line);font-style:normal;font-weight:700}
+.flow .on i{background:var(--g600);border-color:var(--g600);color:#fff}.flow .on{color:var(--g800)}
+.tm{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid #edf1ee}
+#teamHits .tm{flex-direction:row;justify-content:space-between;align-items:center}
+.chip:disabled{opacity:.6}
+.ck{display:flex;gap:8px;align-items:center;font-weight:600}
+.ck input{width:22px;height:22px}
+.mt.four{grid-template-columns:repeat(2,1fr)}
+@media(min-width:720px){#v-mnt{max-width:900px;margin:0 auto}}
+#mntSeg{display:flex;overflow-x:auto;scrollbar-width:none;gap:4px}
+#mntSeg::-webkit-scrollbar{display:none}
+#mntSeg button{flex:1 0 auto;padding:11px 12px}
+ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
+.tk{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid #e4eae6;border-radius:10px;padding:10px;margin-bottom:6px;width:100%;text-align:left;font-size:15px}
+.tk i{flex:none;width:24px;height:24px;border-radius:6px;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;color:#fff}
+.tk.done i{background:var(--g600);border-color:var(--g600)}.tk.done span{color:var(--muted);text-decoration:line-through}
+.ix{background:#fff;border:1px solid #e4eae6;border-left:5px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.ix.ok{border-left-color:var(--g500)}.ix.nok{border-left-color:var(--red);background:#fff8f7}
+.ixt{font-weight:600;font-size:15px;margin-bottom:8px}
+.ixb{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.ixb button{height:46px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-weight:700;font-size:16px}
+.ixb button.on.OK{background:var(--g600);border-color:var(--g600);color:#fff}
+.ixb button.on.NOK{background:var(--red);border-color:var(--red);color:#fff}
+.ixb button.on.NA{background:#8a948f;border-color:#8a948f;color:#fff}
+.ixnum{display:grid;grid-template-columns:120px 1fr auto;gap:8px;align-items:center}.ixnum .inp{height:46px}.ixnum b{font:700 18px "Barlow Condensed"}
+.sticky{position:sticky;bottom:-40px;background:var(--bg);padding:10px 0 14px;margin-top:12px;display:grid;gap:6px;text-align:center}
+
+@media(min-width:720px){
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .oee{grid-column:auto/span 3}
+  .grid2{grid-template-columns:1fr 1fr}
+  .wide{grid-column:1/-1}
+  #v-lancar,#v-ajustes{max-width:640px;margin:0 auto}
+}
+@media(min-width:1100px){
+  .kpis{grid-template-columns:repeat(6,1fr) 1.9fr}
+  .oee{grid-column:auto}
+  .grid2{grid-template-columns:1.6fr 1fr 1fr}
+  .grid2.b{grid-template-columns:1.6fr 1fr 1fr}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg width="40" height="30" viewBox="0 0 40 30" aria-hidden="true"><path d="M1 28 L14 8 L20 16 L26 6 L39 28 Z" fill="#22a34f"/><path d="M14 8 L17.5 13.5 L14 12 L10.6 13.3 Z M26 6 L30 12.4 L26 11 L22.3 12.6Z" fill="#fff"/></svg>
+    <div><b>PEDREIRA IBIÚNA</b><small id="hSub">Gestão de produção e manutenção</small></div>
+  </div>
+  <div class="month">
+    <button id="mPrev" aria-label="Mês anterior">‹</button>
+    <span id="mLabel"></span>
+    <button id="mNext" aria-label="Próximo mês">›</button>
+  </div>
+</header>
+
+<main>
+  <div id="banner" class="banner hidden"></div>
+
+  <!-- ===================== LANÇAR ===================== -->
+  <section id="v-lancar">
+    <div class="seg" id="formSeg">
+      <button data-f="viagem" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 16V7h12v9M13 10h5l4 4v2h-9"/><circle cx="6" cy="17.5" r="2"/><circle cx="18" cy="17.5" r="2"/></svg>Viagens</button>
+      <button data-f="brit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V10l7-6 7 6v11"/><path d="M9 21v-6h6v6"/></svg>Britagem</button>
+      <button data-f="mnt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Manutenção</button>
+    </div>
+
+    <div class="today" id="todayBox"></div>
+
+    <!-- VIAGENS -->
+    <div class="card" id="f-viagem">
+      <h3>Apontamento de viagens</h3>
+      <div class="bd">
+        <form class="f" id="fv" autocomplete="off">
+          <div class="editbar hidden" data-editbar><span>Editando lançamento</span><button type="button" class="btn ghost sm" data-cancel>Cancelar</button></div>
+          <div class="row2">
+            <div><label class="fl">Data</label><input class="inp" type="date" name="data" required></div>
+            <div><label class="fl">Turno</label><select class="inp" name="turno"><option>1</option><option>2</option><option>3</option></select></div>
+          </div>
+          <div><label class="fl">Nº da frota</label><div class="chips" id="fvFrota"></div></div>
+          <div><label class="fl">Quantidade de viagens</label>
+            <div class="step"><button type="button" data-d="-1">−</button><input class="inp" name="viagens" inputmode="numeric" placeholder="0"><button type="button" data-d="1">+</button></div></div>
+          <div><label class="fl">Peso médio por viagem (t)</label>
+            <div class="step"><button type="button" data-d="-0.1">−</button><input class="inp" name="peso" inputmode="decimal" placeholder="0,0"><button type="button" data-d="0.1">+</button></div></div>
+          <div class="row2">
+            <div><label class="fl">Horímetro inicial</label><input class="inp" name="horIni" inputmode="decimal" placeholder="opcional"></div>
+            <div><label class="fl">Horímetro final</label><input class="inp" name="horFim" inputmode="decimal" placeholder="opcional"></div>
+          </div>
+          <div class="calc"><div><small>Produção</small><b data-o="prod">0 t</b></div><div><small>Horas</small><b data-o="horas">—</b></div><div><small>Viagens/h</small><b data-o="vh">—</b></div></div>
+          <div><label class="fl">Observação</label><textarea class="inp" name="obs" placeholder="opcional"></textarea></div>
+          <button class="btn" type="submit">Salvar viagens</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- BRITAGEM -->
+    <div class="card hidden" id="f-brit">
+      <h3>Britagem primária · horímetro e paradas</h3>
+      <div class="bd">
+        <form class="f" id="fb" autocomplete="off">
+          <div class="editbar hidden" data-editbar><span>Editando lançamento</span><button type="button" class="btn ghost sm" data-cancel>Cancelar</button></div>
+          <div class="row2">
+            <div><label class="fl">Data</label><input class="inp" type="date" name="data" required></div>
+            <div><label class="fl">Turno</label><select class="inp" name="turno"><option>1</option><option>2</option><option>3</option></select></div>
+          </div>
+          <div class="row2">
+            <div><label class="fl">Horímetro inicial</label><input class="inp" name="horIni" inputmode="decimal" required></div>
+            <div><label class="fl">Horímetro final</label><input class="inp" name="horFim" inputmode="decimal" required></div>
+          </div>
+          <div><label class="fl">Horas programadas no turno</label>
+            <div class="step"><button type="button" data-d="-0.5">−</button><input class="inp" name="horasProg" inputmode="decimal"><button type="button" data-d="0.5">+</button></div></div>
+          <div><label class="fl">Paradas operacionais (horas)</label><div class="paradas" id="fbParadas"></div>
+            <p class="note">Paradas de manutenção mecânica e elétrica são lançadas na aba Manutenção.</p></div>
+          <div class="calc"><div><small>Horas trab.</small><b data-o="ht">—</b></div><div><small>Paradas op.</small><b data-o="po">0,0 h</b></div><div><small>F.U.</small><b data-o="fu">—</b></div></div>
+          <div><label class="fl">Observações</label><textarea class="inp" name="obs" placeholder="Ex.: ajuste de peneira, troca de revestimento…"></textarea></div>
+          <button class="btn" type="submit">Salvar britagem</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- MANUTENÇÃO -->
+    <div class="card hidden" id="f-mnt">
+      <h3>Ordem de serviço · manutenção</h3>
+      <div class="bd">
+        <form class="f" id="fm" autocomplete="off">
+          <div class="editbar hidden" data-editbar><span>Editando OS</span><button type="button" class="btn ghost sm" data-cancel>Cancelar</button></div>
+          <div><label class="fl">Data</label><input class="inp" type="date" name="data" required></div>
+          <div><label class="fl">Ativo / equipamento</label><select class="inp" name="ativo" id="fmAtivo"></select></div>
+          <div><label class="fl">Área</label><div class="chips" data-radio="area"><button type="button" class="chip sm on" data-v="Mecânica">Mecânica</button><button type="button" class="chip sm" data-v="Elétrica">Elétrica</button></div></div>
+          <div><label class="fl">Tipo</label><div class="chips" data-radio="natureza"><button type="button" class="chip sm on" data-v="Corretiva">Corretiva (falha)</button><button type="button" class="chip sm" data-v="Preventiva">Preventiva</button></div></div>
+          <div><label class="fl">Parou a britagem?</label><div class="chips" data-radio="para"><button type="button" class="chip sm on" data-v="sim">Sim</button><button type="button" class="chip sm" data-v="nao">Não</button></div></div>
+          <div class="row3">
+            <div><label class="fl">Início</label><input class="inp" type="time" name="hIni"></div>
+            <div><label class="fl">Fim</label><input class="inp" type="time" name="hFim"></div>
+            <div><label class="fl">Horas</label><input class="inp" name="horas" inputmode="decimal" placeholder="0,0"></div>
+          </div>
+          <div><label class="fl">Descrição do serviço / causa</label><textarea class="inp" name="desc" required placeholder="O que aconteceu e o que foi feito"></textarea></div>
+          <div><label class="fl">Peças utilizadas (saem do estoque)</label><div id="fmPecas"></div><button type="button" class="btn ghost sm" id="fmAddPeca">+ Adicionar peça do estoque</button><p class="note" data-o="custo"></p></div>
+          <div><label class="fl">Status</label><div class="chips" data-radio="status"><button type="button" class="chip sm" data-v="Aberta">Em aberto</button><button type="button" class="chip sm on" data-v="Concluída">Concluída</button></div></div>
+          <button class="btn" type="submit">Salvar OS</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PAINEL ===================== -->
+  <section id="v-painel" class="hidden">
+    <div class="kpis" id="kpis"></div>
+    <div class="grid2">
+      <div class="card wide-md"><h3>Produção diária × meta diária</h3><div class="bd"><div class="chartbox"><canvas id="chDaily"></canvas></div></div></div>
+      <div class="card"><h3>Principais paradas (horas)</h3><div class="bd"><div class="chartbox" style="height:180px"><canvas id="chPar"></canvas></div><div class="legend" id="parLegend" style="margin-top:10px"></div></div></div>
+      <div class="card"><h3>Projeção × meta (mês)</h3><div class="bd"><div class="gauge" id="gauge"></div><div class="mt" id="projBox" style="margin-top:10px"></div></div></div>
+    </div>
+    <div class="grid2 b">
+      <div class="card"><h3>Evolução acumulada da produção</h3><div class="bd"><div class="chartbox"><canvas id="chAcc"></canvas></div></div></div>
+      <div class="card"><h3>Manutenção</h3><div class="bd"><div class="mt" id="mntBox"></div><div style="margin-top:12px" class="os-open" id="osOpen"></div></div></div>
+      <div class="card"><h3>Atendimento da meta</h3><div class="bd"><div class="att" id="attBox"></div></div></div>
+    </div>
+    <div class="grid2" style="grid-template-columns:1fr">
+      <div class="card"><h3>Viagens × veículos (mês)</h3><div class="bd tscroll" id="vehBox"></div></div>
+      <div class="card"><h3>Controle diário · produção e paradas</h3><div class="bd tscroll" id="dailyBox" style="padding:0"></div></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap" id="exportBar" class="hidden">
+      <button class="btn ghost sm" id="exDaily">Baixar controle diário (.csv)</button>
+      <button class="btn ghost sm" id="exRaw">Baixar todos os lançamentos (.csv)</button>
+    </div>
+  </section>
+
+  <!-- ===================== MANUTENÇÃO ===================== -->
+  <section id="v-mnt" class="hidden">
+    <div class="seg" id="mntSeg"></div>
+    <div id="mntBody"></div>
+  </section>
+
+  <!-- ===================== REGISTROS ===================== -->
+  <section id="v-reg" class="hidden">
+    <div class="filters" id="regFilter">
+      <button class="chip sm on" data-k="all">Todos</button>
+      <button class="chip sm" data-k="viagens">Viagens</button>
+      <button class="chip sm" data-k="britagem">Britagem</button>
+      <button class="chip sm" data-k="manutencao">Manutenção</button>
+      <button class="chip sm" data-k="mine">Só os meus</button>
+    </div>
+    <div id="regList"></div>
+  </section>
+
+  <!-- ===================== AJUSTES ===================== -->
+  <section id="v-ajustes" class="hidden">
+    <div class="banner hidden" id="ajRO">Somente o administrador ou o gerente pode alterar metas e parâmetros.</div>
+    <div class="card"><h3 id="ajMesT">Metas do mês</h3><div class="bd set">
+      <form id="fMeta" class="f">
+        <div class="row2">
+          <div><label class="fl">Meta mensal (t)</label><input class="inp" name="metaMensal" inputmode="decimal"></div>
+          <div><label class="fl">Dias programados</label><input class="inp" name="diasProgramados" inputmode="numeric"></div>
+        </div>
+        <div class="calc"><div><small>Meta diária</small><b data-o="md">—</b></div><div><small>Necessidade</small><b data-o="nec">—</b></div></div>
+        <button class="btn" type="submit">Salvar metas do mês</button>
+      </form>
+    </div></div>
+    <div class="card" style="margin-top:12px"><h3>Parâmetros gerais</h3><div class="bd set">
+      <form id="fCfg" class="f">
+        <div class="row2">
+          <div><label class="fl">Meta mensal padrão (t)</label><input class="inp" name="metaMensal" inputmode="decimal"></div>
+          <div><label class="fl">Dias programados padrão</label><input class="inp" name="diasProgramados" inputmode="numeric"></div>
+        </div>
+        <div class="row2">
+          <div><label class="fl">Horas programadas / dia</label><input class="inp" name="horasDia" inputmode="decimal"></div>
+          <div><label class="fl">Produtividade planejada (t/h)</label><input class="inp" name="prodPlanejada" inputmode="decimal"></div>
+        </div>
+        <div class="row2">
+          <div><label class="fl">Peso padrão por viagem (t)</label><input class="inp" name="pesoPadrao" inputmode="decimal"></div>
+          <div><label class="fl">Meta OEE (%)</label><input class="inp" name="metaOEE" inputmode="decimal"></div>
+        </div>
+        <div><label class="fl">Frota (separe por vírgula)</label><input class="inp" name="frota" style="font-size:16px"></div>
+        <div><label class="fl">Equipamentos avulsos (usados só se não houver ativos cadastrados)</label><textarea class="inp" name="equipamentos"></textarea></div>
+        <div><label class="fl">Categorias de parada operacional</label><textarea class="inp" name="paradasOp"></textarea></div>
+        <button class="btn" type="submit">Salvar parâmetros</button>
+      </form>
+    </div></div>
+    <div class="card" style="margin-top:12px"><h3>Compras · alçada de aprovação</h3><div class="bd"><form id="fAlc" class="f">
+      <div><label class="fl">Supervisor aprova sozinho até (R$)</label><input class="inp" name="alcada" inputmode="decimal"></div>
+      <p class="note" style="margin:0">Acima desse valor, a requisição também precisa da aprovação do gerente. Ninguém aprova a própria requisição (exceto o administrador).</p>
+      <button class="btn" type="submit">Salvar alçada</button></form></div></div>
+    <div class="card" style="margin-top:12px"><h3>Equipe e papéis</h3><div class="bd">
+      <div id="teamSearch" class="hidden"><input class="inp" placeholder="Buscar pessoa para adicionar…" style="font-size:16px"><div id="teamHits"></div></div>
+      <div id="teamList"></div></div></div>
+    <p class="note" style="margin-top:14px">Como os indicadores são calculados: produção = viagens × peso médio; meta diária = meta mensal ÷ dias programados; projeção = média diária × dias programados; OEE = disponibilidade (horas trabalhadas ÷ programadas) × performance (t/h real ÷ t/h planejada) × qualidade (100%); MTBF = horas trabalhadas ÷ nº de falhas; MTTR = horas de manutenção ÷ nº de falhas.</p>
+  </section>
+</main>
+
+<nav class="tabs"><div class="in">
+  <button data-v="lancar" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Lançar</button>
+  <button data-v="painel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Painel</button>
+  <button data-v="mnt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Manutenção<i class="bdg hidden" id="navBdg"></i></button>
+  <button data-v="reg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>Registros</button>
+  <button data-v="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Ajustes</button>
+</div></nav>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="backend.js"></script>
+<script>
+"use strict";
+/* ---------- helpers ---------- */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const fin=n=>typeof n==='number'&&isFinite(n);
+const nf=(n,d=0)=>(fin(n)?n:0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pf=(x,d=1)=>fin(x)?(x*100).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})+'%':'—';
+const num=v=>{if(v===''||v==null)return null;let t=String(v).trim().replace(/\s/g,'');if(t.includes(','))t=t.replace(/\./g,'').replace(',','.');else if(/^\d{1,3}(\.\d{3})+$/.test(t))t=t.replace(/\./g,'');const n=parseFloat(t);return isFinite(n)?n:null;};
+const parList=r=>Array.isArray(r.paradas)?r.paradas.map(p=>[p.cat,+p.h||0]):Object.entries(r.paradas||{}).map(([k,v])=>[k,+v||0]);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
+const ymOf=s=>s.slice(0,7);
+const daysIn=ym=>{const[y,m]=ym.split('-').map(Number);return new Date(y,m,0).getDate();};
+const shiftYm=(ym,k)=>{const[y,m]=ym.split('-').map(Number);const d=new Date(y,m-1+k,1);return d.getFullYear()+'-'+pad(d.getMonth()+1);};
+const monthLabel=ym=>{const[y,m]=ym.split('-').map(Number);return new Date(y,m-1,1).toLocaleDateString('pt-BR',{month:'short',year:'numeric'}).replace('.','').replace(' de ',' ');};
+const dLabel=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});};
+const dShort=s=>s.slice(8,10)+'/'+s.slice(5,7);
+const list=s=>String(s||'').split(/[,\n;]/).map(x=>x.trim()).filter(Boolean);
+const uniq=a=>[...new Set(a)];
+
+const DEFAULT_CFG={metaMensal:99176,diasProgramados:28,horasDia:9,prodPlanejada:550,pesoPadrao:22.3,metaOEE:0.85,
+  frota:['V1','V2','V3','V4','V5'],
+  equipamentos:['Britador primário','Alimentador vibratório','Grelha','Correia transportadora','Peneira','Painel elétrico / motor','Escavadeira','Caminhão V1','Caminhão V2','Caminhão V3','Caminhão V4','Caminhão V5','Outro'],
+  paradasOp:['Gaiola / engaiolamento','Pulmão cheio','Falta de energia','Falta máq./caminhão','Pesagem caminhão','Início / fim de turno','Arrumando frente','DDS'],alcada:5000};
+const COLORS=['#2b78d0','#ef7d1a','#9aa5a0','#f2b705','#22a34f','#8a4fbf','#d63b2b','#14a3a3','#c2410c','#4b5563','#0f4f2b','#e879a6'];
+
+const S={db:null,user:null,uid:null,canWrite:null,isAdmin:false,downloads:null,
+  month:ymOf(todayStr()),cfg:{...DEFAULT_CFG},metaDoc:null,
+  viagens:[],brit:[],manut:[],loaded:{},subs:[],monthUnsub:null,
+  view:'lancar',form:'viagem',isOwner:false,ativos:[],pecas:[],movs:[],reqs:[],osAbertas:[],papeis:{},pessoas:[],cfgRaw:{},sheet:null,mntTab:'os',planos:[],rotinas:[],insps:[],britLast:[],viagLast:[],ready:{},flt:{os:'Aberta',est:'all',rc:'pend',pl:'due',ins:'pend'},q:{ativo:'',peca:''},edit:null,regFilter:'all',names:{},charts:{}};
+
+/* ---------- UI utils ---------- */
+let toastT;
+function toast(msg,err){let t=$('.toast');if(!t){t=document.createElement('div');document.body.appendChild(t);}t.className='toast'+(err?' err':'');t.textContent=msg;clearTimeout(toastT);toastT=setTimeout(()=>t.remove(),err?5000:2600);}
+function ask(msg,okLabel='Confirmar',danger){return new Promise(res=>{const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="box"><p></p><div class="acts"><button class="btn ghost" data-a="0">Cancelar</button><button class="btn ${danger?'danger':''}" data-a="1"></button></div></div>`;$('p',m).textContent=msg;$('[data-a="1"]',m).textContent=okLabel;m.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a||e.target===m){m.remove();res(a?.dataset.a==='1');}});document.body.appendChild(m);});}
+function banner(msg,err){const b=$('#banner');if(!msg){b.classList.add('hidden');return;}b.textContent=msg;b.className='banner'+(err?' err':'');}
+let rq=0;function render(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;renderAll();});}
+
+function dbErr(e){const c=e&&e.code;
+  if(c==='permission')return e.message||'Sem permissão para esta ação.';
+  if(c==='invalid_argument'){S.canWrite=false;applyPerms();return 'Sem permissão para gravar. Peça ao responsável acesso de edição ao app.';}
+  if(c==='quota_exceeded')return 'Limite de armazenamento atingido. Avise o responsável para arquivar meses antigos.';
+  if(c==='resource_exhausted')return 'Muitas gravações seguidas. Aguarde alguns segundos e tente de novo.';
+  if(c==='revoked')return 'Seu acesso ao app foi alterado. Recarregue a página.';
+  return 'Sem conexão com o servidor. Confira a internet e tente de novo — seus dados continuam no formulário.';}
+async function withRetry(fn){try{return await fn();}catch(e){if(e&&e.code==='unavailable'){await new Promise(r=>setTimeout(r,600+Math.random()*900));return await fn();}throw e;}}
+
+/* ---------- effective config ---------- */
+function metas(){const m=S.metaDoc||{};return{metaMensal:fin(m.metaMensal)?m.metaMensal:S.cfg.metaMensal,diasProgramados:fin(m.diasProgramados)?m.diasProgramados:S.cfg.diasProgramados};}
+
+/* ---------- compute ---------- */
+function compute(){
+  const ym=S.month,N=daysIn(ym),cfg=S.cfg,M=metas();
+  const metaDia=M.diasProgramados>0?M.metaMensal/M.diasProgramados:0;
+  const days=[];for(let i=1;i<=N;i++){days.push({d:ym+'-'+pad(i),i,viag:0,prod:0,ht:0,hp:0,hasBrit:false,par:{},po:0,mec:0,ele:0,falhas:0,obs:[]});}
+  const byD=Object.fromEntries(days.map(x=>[x.d,x]));
+  const veh={};
+  for(const v of S.viagens){const x=byD[v.data];if(!x)continue;const n=+v.viagens||0,p=+v.peso||0;x.viag+=n;x.prod+=n*p;
+    const k=v.frota||'?';veh[k]=veh[k]||{viag:0,prod:0,horas:0};veh[k].viag+=n;veh[k].prod+=n*p;
+    if(fin(v.horIni)&&fin(v.horFim)&&v.horFim>v.horIni)veh[k].horas+=v.horFim-v.horIni;}
+  for(const b of S.brit){const x=byD[b.data];if(!x)continue;x.hasBrit=true;
+    if(fin(b.horIni)&&fin(b.horFim)&&b.horFim>=b.horIni)x.ht+=b.horFim-b.horIni;
+    x.hp+=fin(b.horasProg)?b.horasProg:cfg.horasDia;
+    for(const[k,h]of parList(b)){if(fin(h)&&h>0){x.par[k]=(x.par[k]||0)+h;x.po+=h;}}
+    if(b.obs)x.obs.push(b.obs);}
+  const openOS=[];
+  for(const m of S.manut){if(m.status==='Aberta'&&ymOf(m.data)===ym)openOS.push(m);
+    const x=byD[m.data];if(!x||m.paraBritagem===false)continue;const h=fin(m.horas)?m.horas:0;
+    if(m.area==='Elétrica')x.ele+=h;else x.mec+=h;if(m.natureza!=='Preventiva')x.falhas++;}
+  for(const x of days){if(!x.hasBrit&&x.prod>0)x.hp=cfg.horasDia;x.meta=metaDia;x.at=metaDia>0?x.prod/metaDia:0;
+    const all={...x.par};if(x.mec)all['Manutenção mecânica']=x.mec;if(x.ele)all['Manutenção elétrica']=x.ele;
+    let top='',tv=0;for(const[k,v]of Object.entries(all))if(v>tv){tv=v;top=k;}x.top=top;x.manut=x.mec+x.ele;}
+  const sum=f=>days.reduce((a,x)=>a+f(x),0);
+  const T={prod:sum(x=>x.prod),viag:sum(x=>x.viag),ht:sum(x=>x.ht),hp:sum(x=>x.hp),po:sum(x=>x.po),mec:sum(x=>x.mec),ele:sum(x=>x.ele),falhas:sum(x=>x.falhas)};
+  T.manut=T.mec+T.ele;T.diasTrab=days.filter(x=>x.prod>0).length;
+  T.media=T.diasTrab?T.prod/T.diasTrab:0;T.proj=T.media*M.diasProgramados;T.projPct=M.metaMensal?T.proj/M.metaMensal:0;
+  T.pesoMed=T.viag?T.prod/T.viag:0;T.tph=T.ht?T.prod/T.ht:0;
+  T.disp=T.hp?T.ht/T.hp:0;T.perf=cfg.prodPlanejada?T.tph/cfg.prodPlanejada:0;T.qual=1;T.oee=T.disp*T.perf*T.qual;
+  T.mtbf=T.falhas?T.ht/T.falhas:null;T.mttr=T.falhas?T.manut/T.falhas:null;T.dispFis=T.hp?1-T.manut/T.hp:null;
+  const pc={};for(const x of days){for(const[k,v]of Object.entries(x.par))pc[k]=(pc[k]||0)+v;}
+  if(T.mec)pc['Manutenção mecânica']=T.mec;if(T.ele)pc['Manutenção elétrica']=T.ele;
+  T.paradas=Object.entries(pc).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]);T.parTot=T.paradas.reduce((a,e)=>a+e[1],0);
+  const wd=days.filter(x=>x.prod>0);T.acima=wd.filter(x=>x.at>1.01).length;T.na=wd.filter(x=>x.at>=0.99&&x.at<=1.01).length;T.abaixo=wd.length-T.acima-T.na;
+  return{days,T,M,metaDia,veh,openOS};
+}
+
+/* ---------- views ---------- */
+function setView(v){S.view=v;for(const s of ['lancar','painel','mnt','reg','ajustes'])$('#v-'+s).classList.toggle('hidden',s!==v);
+  $$('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));window.scrollTo(0,0);render();}
+function setForm(f){S.form=f;$$('#formSeg button').forEach(b=>b.classList.toggle('on',b.dataset.f===f));
+  for(const k of ['viagem','brit','mnt'])$('#f-'+k).classList.toggle('hidden',k!==f);renderToday();}
+
+function renderAll(){
+  $('#mLabel').textContent=monthLabel(S.month);
+  if(S.view==='lancar')renderToday();
+  if(S.view==='painel')renderPainel();
+  if(S.view==='reg')renderReg();
+  if(S.view==='ajustes'){renderAjustes();renderTeam();}
+  if(S.view==='mnt')renderMnt();
+  if(S.sheet&&S.sheet.refresh)S.sheet.refresh();
+  const nb=S.reqs.filter(rcPendingFor).length+(has('manutencao')?rotPending().length+plansDue().length:0);const bd=$('#navBdg');bd.textContent=nb;bd.classList.toggle('hidden',!nb);
+}
+
+function renderToday(){
+  const box=$('#todayBox');const fid={viagem:'#fv',brit:'#fb',mnt:'#fm'}[S.form];const d=$(fid).data.value||todayStr();
+  if(ymOf(d)!==S.month||!S.loaded.viagens){box.innerHTML='';return;}
+  const {days,metaDia}=compute();const x=days.find(z=>z.d===d);if(!x){box.innerHTML='';return;}
+  const at=metaDia?x.prod/metaDia:0;
+  box.innerHTML=`<div class="t"><small>Produção ${d===todayStr()?'hoje':dShort(d)}</small><b class="${at>=0.99?'up':''}">${nf(x.prod)} t</b></div>
+  <div class="t"><small>Meta do dia</small><b>${nf(metaDia)} t</b></div><div class="t"><small>Atingido</small><b class="${at>=0.99?'up':'down'}">${x.prod?pf(at,0):'—'}</b></div>`;
+}
+
+function pbar(p,color){const w=Math.max(0,Math.min(1,p||0))*100;return`<div class="pb"><i style="width:${w}%;background:${color}"></i><em>${pf(p,0)}</em></div>`;}
+const atColor=p=>p>=0.99?'#7bd08f':p>=0.85?'#f2b705':'#f39a8e';
+
+function renderPainel(){
+  const R=compute(),{T,M,metaDia,days}=R;
+  const elapsed=(()=>{const t=todayStr();if(ymOf(t)>S.month)return M.diasProgramados;if(ymOf(t)<S.month)return 0;return Math.min(M.diasProgramados,T.diasTrab);})();
+  const prodPct=M.metaMensal?T.prod/M.metaMensal:0;
+  const htPct=T.hp?T.ht/T.hp:0;
+  const r=46,c=2*Math.PI*r,oeeW=Math.max(0,Math.min(1,T.oee));
+  $('#kpis').innerHTML=`
+  <div class="kpi"><h4>Produção mensal</h4><div class="v">${nf(T.prod)} t</div><div class="s">Meta <b>${nf(M.metaMensal)} t</b></div>${pbar(prodPct,'var(--amber)')}</div>
+  <div class="kpi"><h4>Média diária</h4><div class="v">${nf(T.media)} t</div><div class="s">Meta <b>${nf(metaDia)} t</b></div>${pbar(metaDia?T.media/metaDia:0,atColor(metaDia?T.media/metaDia:0))}</div>
+  <div class="kpi"><h4>Projeção mensal</h4><div class="v">${nf(T.proj)} t</div><div class="s">Desvio projeção</div><div class="dv ${T.projPct>=1?'up':'down'}">${T.diasTrab?(T.projPct>=1?'▲ +':'▼ ')+pf(T.projPct-1):'—'}</div></div>
+  <div class="kpi"><h4>Peso médio</h4><div class="v">${nf(T.pesoMed,1)} t</div><div class="s">${nf(T.viag)} viagens</div></div>
+  <div class="kpi"><h4>Horas trabalhadas</h4><div class="v">${nf(T.ht,1)} h</div><div class="s">Programadas <b>${nf(T.hp,1)} h</b></div>${pbar(htPct,'var(--amber)')}</div>
+  <div class="kpi"><h4>Produtividade</h4><div class="v">${nf(T.tph)} t/h</div><div class="s">Planejada <b>${nf(S.cfg.prodPlanejada)} t/h</b></div></div>
+  <div class="oee"><div class="ring"><svg width="118" height="118" viewBox="0 0 118 118"><circle cx="59" cy="59" r="${r}" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="12"/><circle cx="59" cy="59" r="${r}" fill="none" stroke="${T.oee>=S.cfg.metaOEE?'#22c55e':'#f2b705'}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${c*oeeW} ${c}" transform="rotate(-90 59 59)"/></svg><small>OEE</small><b>${pf(T.oee,0)}</b></div>
+    <div class="bars"><div>Disponibilidade<div class="pb"><i style="width:${Math.min(100,T.disp*100)}%"></i><em>${pf(T.disp,0)}</em></div></div>
+    <div>Performance<div class="pb"><i style="width:${Math.min(100,T.perf*100)}%"></i><em>${pf(T.perf,0)}</em></div></div>
+    <div>Qualidade<div class="pb"><i style="width:100%"></i><em>${pf(T.qual,0)}</em></div></div>
+    <div style="opacity:.75;font-weight:500">Meta OEE ${pf(S.cfg.metaOEE,0)}</div></div></div>`;
+
+  // paradas legend
+  $('#parLegend').innerHTML=T.paradas.length?T.paradas.map((e,i)=>`<div><i style="background:${COLORS[i%COLORS.length]}"></i><span>${esc(e[0])}</span><b>${nf(e[1],1)} h</b><span>${pf(e[1]/T.parTot,0)}</span></div>`).join('')+`<div style="border-top:1px solid var(--line);padding-top:5px"><i></i><b>Total</b><b>${nf(T.parTot,1)} h</b><span></span></div>`:'<div class="note">Nenhuma parada lançada no mês.</div>';
+
+  // gauge
+  $('#gauge').innerHTML=gaugeSVG(T.projPct)+`<b class="${T.projPct>=1?'up':'down'}">${T.diasTrab?pf(T.projPct,0):'—'}</b>`;
+  $('#projBox').innerHTML=`<div><small>PROJEÇÃO</small><b>${nf(T.proj)} t</b></div><div><small>META</small><b>${nf(M.metaMensal)} t</b></div><div><small>DIAS TRAB.</small><b>${T.diasTrab}/${M.diasProgramados}</b></div>`;
+
+  $('#mntBox').innerHTML=`<div><small>MTBF</small><b>${T.mtbf==null?'—':nf(T.mtbf,1)+' h'}</b></div><div><small>MTTR</small><b>${T.mttr==null?'—':nf(T.mttr,2)+' h'}</b></div><div><small>DISP. FÍSICA</small><b>${T.dispFis==null?'—':pf(T.dispFis)}</b></div>
+   <div><small>FALHAS</small><b>${T.falhas}</b></div><div><small>MNT. MEC.</small><b>${nf(T.mec,1)} h</b></div><div><small>MNT. ELÉT.</small><b>${nf(T.ele,1)} h</b></div>
+   <div><small>CUSTO PEÇAS</small><b style="font-size:17px">${brl(S.movs.filter(m=>m.tipo==='saida'&&ymOf(m.data||'')===S.month).reduce((a,m)=>a+(+m.qtd||0)*(+m.custoUnit||0),0))}</b></div>
+   <div data-go="compras"><small>RC EM ABERTO</small><b>${S.reqs.filter(r=>RC_OPEN.includes(r.status)).length}</b></div>
+   <div data-go="planos"><small>PREV. VENCIDAS</small><b class="${plansDue().length?'down':''}">${plansDue().length}</b></div>
+   <div data-go="insp"><small>INSP. PENDENTES</small><b class="${rotPending().length?'warn':''}">${rotPending().length}</b></div>
+   <div data-go="insp"><small>NOK NO MÊS</small><b>${S.insps.filter(i=>ymOf(i.data)===S.month).reduce((a,i)=>a+(i.nok||0),0)}</b></div>
+   <div data-go="estoque"><small>ABAIXO DO MÍN.</small><b class="${lowItems(stockMap()).length?'down':''}">${lowItems(stockMap()).length}</b></div>`;
+  $('#osOpen').innerHTML=S.osAbertas.length?`<div style="border:0;background:none;padding:0;font-weight:700;color:var(--orange)">OS em aberto (${S.osAbertas.length})</div>`+S.osAbertas.map(o=>`<div data-open="os|${esc(o._id)}" style="cursor:pointer"><b>${esc(o.equip)}</b> · ${dShort(o.data)} — ${esc(o.desc)}</div>`).join(''):'<p class="note" style="margin:0">Nenhuma OS em aberto.</p>';
+
+  const wd=T.diasTrab||0,P=n=>wd?pf(n/wd,0):'—';
+  $('#attBox').innerHTML=`<div><span>✅ Dias acima da meta</span><b style="background:var(--g100)">${T.acima}</b><b style="background:var(--g100)">${P(T.acima)}</b></div>
+  <div><span>🟨 Dias na meta</span><b style="background:var(--amber-l)">${T.na}</b><b style="background:var(--amber-l)">${P(T.na)}</b></div>
+  <div><span>🔻 Dias abaixo da meta</span><b style="background:var(--red-l)">${T.abaixo}</b><b style="background:var(--red-l)">${P(T.abaixo)}</b></div>
+  <p class="note" style="margin:4px 0 0">Na meta = 99% a 101% da meta diária.</p>`;
+
+  // vehicles
+  const fr=uniq([...S.cfg.frota,...Object.keys(R.veh)]);
+  let vt=0,vp=0;const maxP=Math.max(1,...fr.map(f=>R.veh[f]?R.veh[f].prod/Math.max(1,R.veh[f].viag):0));
+  $('#vehBox').innerHTML=`<table class="t"><tr><th>Veículo</th><th>Viagens</th><th>Peso médio (t)</th><th>Produção (t)</th><th>Horas</th><th class="l" style="width:35%">Peso médio</th></tr>`+
+   fr.map(f=>{const v=R.veh[f]||{viag:0,prod:0,horas:0};vt+=v.viag;vp+=v.prod;const pm=v.viag?v.prod/v.viag:0;
+    return`<tr><td><b>${esc(f)}</b></td><td>${nf(v.viag)}</td><td>${nf(pm,1)}</td><td>${nf(v.prod)}</td><td>${v.horas?nf(v.horas,1):'—'}</td><td class="l"><div style="height:12px;border-radius:3px;background:var(--blue);width:${pm/maxP*100}%"></div></td></tr>`;}).join('')+
+   `<tr class="tot"><td>TOTAL</td><td>${nf(vt)}</td><td>${nf(vt?vp/vt:0,1)}</td><td>${nf(vp)}</td><td></td><td></td></tr></table>`;
+
+  // daily table
+  const rows=days.filter(x=>x.prod>0||x.hasBrit||x.manut>0);
+  $('#dailyBox').innerHTML=rows.length?`<table class="t"><tr><th>Data</th><th>Viagens</th><th>Peso méd.</th><th>Produção</th><th>Meta</th><th>Desvio</th><th>H. trab.</th><th>t/h</th><th>Par. op.</th><th>Manut.</th><th class="l">Principal parada</th><th class="l">Observações</th></tr>`+
+    rows.map(x=>{const dv=x.at-1;return`<tr><td>${dShort(x.d)}</td><td>${nf(x.viag)}</td><td>${x.viag?nf(x.prod/x.viag,1):'—'}</td><td><b>${nf(x.prod)}</b></td><td>${nf(x.meta)}</td><td class="${dv>=-0.01?'pos':'neg'}">${x.prod?(dv>0?'+':'')+pf(dv):'—'}</td><td>${x.ht?nf(x.ht,1):'—'}</td><td>${x.ht?nf(x.prod/x.ht):'—'}</td><td>${nf(x.po,1)}</td><td>${nf(x.manut,1)}</td><td class="l">${esc(x.top)}</td><td class="l" style="white-space:normal;min-width:160px">${esc(x.obs.join(' · '))}</td></tr>`;}).join('')+
+    `<tr class="tot"><td>TOTAL</td><td>${nf(T.viag)}</td><td>${nf(T.pesoMed,1)}</td><td>${nf(T.prod)}</td><td>${nf(M.metaMensal)}</td><td>${T.prod?pf(T.prod/M.metaMensal-1):''}</td><td>${nf(T.ht,1)}</td><td>${nf(T.tph)}</td><td>${nf(T.po,1)}</td><td>${nf(T.manut,1)}</td><td></td><td></td></tr></table>`
+    :'<div class="empty">Nenhum lançamento neste mês ainda.</div>';
+
+  $('#exportBar').classList.toggle('hidden',!S.downloads);
+  drawCharts(R);
+}
+
+function gaugeSVG(p){
+  const cx=110,cy=100,r=80,max=1.2,ang=v=>Math.PI*(1-Math.max(0,Math.min(max,v))/max);
+  const pt=(a,rr)=>[cx+rr*Math.cos(a),cy-rr*Math.sin(a)];
+  const arc=(a0,a1,col)=>{const[x0,y0]=pt(ang(a0),r),[x1,y1]=pt(ang(a1),r);return`<path d="M${x0} ${y0} A${r} ${r} 0 0 1 ${x1} ${y1}" stroke="${col}" stroke-width="22" fill="none"/>`;};
+  const a=ang(fin(p)?p:0),[nx,ny]=pt(a,r-18);
+  return`<svg viewBox="0 0 220 112" width="220" height="112">${arc(0,0.9,'#e23b2e')}${arc(0.9,1,'#f2b705')}${arc(1,1.2,'#22a34f')}
+  <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#14211a" stroke-width="5" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="7" fill="#14211a"/></svg>`;
+}
+
+function drawCharts(R){
+  if(typeof Chart==='undefined')return;
+  Chart.defaults.font.family='Barlow';Chart.defaults.color='#5b6a61';
+  const labels=R.days.map(x=>x.i),prod=R.days.map(x=>x.prod?Math.round(x.prod):null),meta=R.days.map(()=>Math.round(R.metaDia));
+  const barCol=R.days.map(x=>x.at>=0.99?'#178041':x.at>=0.85?'#f2b705':'#d63b2b');
+  upsert('chDaily',{type:'bar',data:{labels,datasets:[
+    {type:'line',label:'Meta diária',data:meta,borderColor:'#ef7d1a',borderDash:[6,4],borderWidth:2,pointRadius:0,order:0},
+    {label:'Produção (t)',data:prod,backgroundColor:barCol,borderRadius:3,order:1}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{boxWidth:12}}},scales:{x:{grid:{display:false},ticks:{autoSkip:true,maxRotation:0}},y:{beginAtZero:true,ticks:{callback:v=>nf(v)}}}}});
+  let a=0,am=0;const acc=[],accM=[];const t=todayStr();
+  R.days.forEach(x=>{a+=x.prod;am+=R.M.metaMensal/R.days.length;accM.push(Math.round(am));acc.push(x.d<=t||x.prod?Math.round(a):null);});
+  upsert('chAcc',{type:'line',data:{labels,datasets:[
+    {label:'Produção acumulada',data:acc,borderColor:'#178041',backgroundColor:'rgba(23,128,65,.12)',fill:true,pointRadius:2,tension:.2},
+    {label:'Meta acumulada',data:accM,borderColor:'#ef7d1a',borderDash:[6,4],pointRadius:0,borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{boxWidth:12}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0}},y:{beginAtZero:true,ticks:{callback:v=>nf(v)}}}}});
+  const P=R.T.paradas;S.parTot=R.T.parTot;
+  upsert('chPar',{type:'doughnut',data:{labels:P.map(e=>e[0]),datasets:[{data:P.length?P.map(e=>+e[1].toFixed(2)):[1],backgroundColor:P.length?P.map((e,i)=>COLORS[i%COLORS.length]):['#e5e9e7'],borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{display:false},tooltip:{enabled:!!P.length}}},
+    plugins:[{id:'center',afterDraw(ch){const{ctx,chartArea:{left,right,top,bottom}}=ch;ctx.save();ctx.font='700 22px "Barlow Condensed"';ctx.fillStyle='#14211a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(nf(S.parTot||0,1)+' h',(left+right)/2,(top+bottom)/2);ctx.restore();}}]});
+}
+function upsert(id,cfg){const ch=S.charts[id];if(ch&&ch.config.type===cfg.type){ch.data=cfg.data;ch.options=cfg.options;ch.update('none');return;}if(ch)ch.destroy();S.charts[id]=new Chart(document.getElementById(id),cfg);}
+
+/* ---------- registros ---------- */
+async function loadNames(ids){if(!S.user||!S.user.profiles)return;const need=uniq(ids).filter(i=>i&&!(i in S.names));if(!need.length)return;
+  try{const ps=await S.user.profiles(need);for(const i of need)S.names[i]=(ps&&ps[i]&&ps[i].name)||'';render();}catch(e){for(const i of need)S.names[i]='';}}
+const who=id=>id&&id===S.uid?'você':(S.names[id]||'');
+const ICON={viagens:['var(--blue)','<path d="M1 16V7h12v9M13 10h5l4 4v2h-9"/><circle cx="6" cy="17.5" r="2"/><circle cx="18" cy="17.5" r="2"/>'],
+  britagem:['var(--g600)','<path d="M3 21h18M5 21V10l7-6 7 6v11"/><path d="M9 21v-6h6v6"/>'],
+  manutencao:['var(--orange)','<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>']};
+function renderReg(){
+  const f=S.regFilter;let items=[
+    ...S.viagens.map(r=>({col:'viagens',r})),...S.brit.map(r=>({col:'britagem',r})),...S.manut.map(r=>({col:'manutencao',r}))];
+  if(f==='mine')items=items.filter(x=>x.r.por===S.uid);else if(f!=='all')items=items.filter(x=>x.col===f);
+  items.sort((a,b)=>(b.r.data+(b.r.em||'')).localeCompare(a.r.data+(a.r.em||'')));
+  loadNames(items.map(x=>x.r.por));
+  if(!items.length){$('#regList').innerHTML=`<div class="empty">${S.db?'Nenhum lançamento em '+monthLabel(S.month)+'.':'Conectando…'}</div>`;return;}
+  let html='',last='';
+  for(const{col,r}of items){if(r.data!==last){html+=`<div class="dayh">${dLabel(r.data)}</div>`;last=r.data;}
+    let ttl,sub;
+    if(col==='viagens'){ttl=`${esc(r.frota)} · ${nf(r.viagens)} viagens × ${nf(r.peso,1)} t = ${nf((r.viagens||0)*(r.peso||0))} t`;sub=`Turno ${r.turno||1}`+(fin(r.horIni)&&fin(r.horFim)?` · horímetro ${nf(r.horIni,1)} → ${nf(r.horFim,1)}`:'');}
+    else if(col==='britagem'){const po=parList(r).reduce((a,e)=>a+e[1],0);ttl=`Britador · ${nf((r.horFim||0)-(r.horIni||0),1)} h trabalhadas`;sub=`Turno ${r.turno||1} · paradas op. ${nf(po,1)} h`+(r.obs?' · '+esc(r.obs):'');}
+    else{ttl=`${esc(r.equip)} · ${esc(r.area)} ${r.natureza==='Preventiva'?'preventiva':'corretiva'} · ${nf(r.horas,1)} h <span class="badge ${r.status==='Aberta'?'':'ok'}">${r.status==='Aberta'?'em aberto':'concluída'}</span>`;sub=esc(r.desc)+(r.paraBritagem===false?' · não parou a britagem':'');}
+    const w=who(r.por);const can=S.canWrite!==false&&(S.isAdmin||r.por===S.uid);
+    html+=`<div class="rec"><div class="ic" style="background:${ICON[col][0]}"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">${ICON[col][1]}</svg></div>
+      <div><div class="ttl">${ttl}</div><div class="sub">${sub}${w?' · por '+esc(w):''}</div></div>
+      <div class="act">${can?`<button title="Editar" data-ed="${col}|${esc(r._id)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button title="Excluir" data-del="${col}|${esc(r._id)}"><svg viewBox="0 0 24 24" fill="none" stroke="#d63b2b" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>`:''}</div></div>`;}
+  $('#regList').innerHTML=html;
+}
+
+/* ---------- ajustes ---------- */
+function renderAjustes(){
+  const ro=!S.isAdmin;$('#ajRO').classList.toggle('hidden',!ro);
+  $$('#v-ajustes input,#v-ajustes textarea,#v-ajustes button').forEach(e=>e.disabled=ro);
+  $('#ajMesT').textContent='Metas de '+monthLabel(S.month);
+  const fm=$('#fMeta'),M=metas();
+  if(document.activeElement?.form!==fm){fm.metaMensal.value=nf(M.metaMensal);fm.diasProgramados.value=M.diasProgramados;}
+  updMetaCalc();
+  const fa=$('#fAlc');if(document.activeElement?.form!==fa)fa.alcada.value=nf(S.cfg.alcada||5000,2);
+  const fc=$('#fCfg'),c=S.cfg;
+  if(document.activeElement?.form!==fc){fc.metaMensal.value=nf(c.metaMensal);fc.diasProgramados.value=c.diasProgramados;fc.horasDia.value=nf(c.horasDia,1);fc.prodPlanejada.value=nf(c.prodPlanejada);
+    fc.pesoPadrao.value=nf(c.pesoPadrao,1);fc.metaOEE.value=nf(c.metaOEE*100);fc.frota.value=c.frota.join(', ');fc.equipamentos.value=c.equipamentos.join(', ');fc.paradasOp.value=c.paradasOp.join(', ');}
+}
+function updMetaCalc(){const fm=$('#fMeta');const m=num(fm.metaMensal.value),d=num(fm.diasProgramados.value);const md=m&&d?m/d:null;
+  $('[data-o="md"]',fm).textContent=md?nf(md)+' t':'—';$('[data-o="nec"]',fm).textContent=md&&S.cfg.horasDia?nf(md/S.cfg.horasDia)+' t/h':'—';}
+
+/* ---------- forms setup ---------- */
+function applyCfg(){
+  const c=S.cfg;
+  // frota chips
+  const fv=$('#fv'),cur=fv.dataset.frota;
+  $('#fvFrota').innerHTML=c.frota.map(f=>`<button type="button" class="chip ${f===cur?'on':''}" data-v="${esc(f)}">${esc(f)}</button>`).join('');
+  // equipamentos
+  fillAtivoSelect();
+  // paradas
+  const fb=$('#fb');const prev={};$$('[data-par]',fb).forEach(i=>prev[i.dataset.par]=i.value);
+  const cats=uniq([...c.paradasOp,...(fb._extra||[])]);
+  $('#fbParadas').innerHTML=cats.map(k=>`<div class="prow"><span>${esc(k)}</span><div class="step"><button type="button" data-d="-0.1">−</button><input class="inp" data-par="${esc(k)}" inputmode="decimal" placeholder="0" value=""><button type="button" data-d="0.1">+</button></div></div>`).join('');
+  $$('[data-par]',fb).forEach(i=>{if(prev[i.dataset.par])i.value=prev[i.dataset.par];});
+  if(!fb.horasProg.value)fb.horasProg.value=nf(c.horasDia,1);
+  if(!fv.peso.value&&!S.edit)fv.peso.value=nf(c.pesoPadrao,1);
+  updCalcs();
+}
+function resetForm(id){const f=$(id);f.reset();f.data.value=todayStr();$$('[data-editbar]',f).forEach(e=>e.classList.add('hidden'));
+  if(id==='#fv'){f.dataset.frota='';f.peso.value=nf(S.cfg.pesoPadrao,1);}
+  if(id==='#fb'){f._extra=[];$$('[data-par]',f).forEach(i=>i.value='');f.horasProg.value=nf(S.cfg.horasDia,1);}
+  if(id==='#fm'){$('#fmPecas').innerHTML='';delete f.horas.dataset.manual;osPecasCusto();setRadio(f,'area','Mecânica');setRadio(f,'natureza','Corretiva');setRadio(f,'para','sim');setRadio(f,'status','Concluída');}
+  S.edit=null;applyCfg();}
+function setRadio(f,name,v){$$(`[data-radio="${name}"] .chip`,f).forEach(b=>b.classList.toggle('on',b.dataset.v===v));}
+function getRadio(f,name){return $(`[data-radio="${name}"] .chip.on`,f)?.dataset.v;}
+
+function updCalcs(){
+  const fv=$('#fv'),n=num(fv.viagens.value)||0,p=num(fv.peso.value)||0,hi=num(fv.horIni.value),hf=num(fv.horFim.value);
+  const h=hi!=null&&hf!=null&&hf>hi?hf-hi:null;
+  $('[data-o="prod"]',fv).textContent=nf(n*p)+' t';$('[data-o="horas"]',fv).textContent=h!=null?nf(h,1)+' h':'—';$('[data-o="vh"]',fv).textContent=h?nf(n/h,1):'—';
+  const fb=$('#fb'),bi=num(fb.horIni.value),bf=num(fb.horFim.value),hp=num(fb.horasProg.value);const ht=bi!=null&&bf!=null&&bf>=bi?bf-bi:null;
+  let po=0;$$('[data-par]',fb).forEach(i=>po+=num(i.value)||0);
+  $('[data-o="ht"]',fb).textContent=ht!=null?nf(ht,1)+' h':'—';$('[data-o="po"]',fb).textContent=nf(po,1)+' h';$('[data-o="fu"]',fb).textContent=ht!=null&&hp?pf(ht/hp,0):'—';
+  const fm=$('#fm');if(fm.hIni.value&&fm.hFim.value&&!fm.horas.dataset.manual){const[a,b]=fm.hIni.value.split(':').map(Number),[c,d]=fm.hFim.value.split(':').map(Number);let m=(c*60+d)-(a*60+b);if(m<0)m+=1440;fm.horas.value=nf(m/60,2);}
+}
+
+async function prefillHor(){ // horímetro inicial = último final
+  if(!S.db)return;
+  try{
+    const fv=$('#fv');const fr=fv.dataset.frota;
+    if(fr&&!fv.horIni.value&&!S.edit){const q=await S.db.collection('viagens').where('frota','==',fr).where('data','<=',fv.data.value).orderBy('data','desc').limit(5).get();
+      const last=q.docs.map(d=>d.data()).filter(x=>fin(x.horFim)&&!(x.data===fv.data.value&&String(x.turno)===fv.turno.value)).sort((a,b)=>(b.data+b.turno).localeCompare(a.data+a.turno))[0];
+      if(last&&!fv.horIni.value&&fv.dataset.frota===fr){fv.horIni.value=nf(last.horFim,1);updCalcs();}}
+  }catch(e){}
+}
+async function prefillBrit(){
+  if(!S.db)return;const fb=$('#fb');if(fb.horIni.value||S.edit)return;
+  try{const q=await S.db.collection('britagem').where('data','<=',fb.data.value).orderBy('data','desc').limit(5).get();
+    const last=q.docs.map(d=>d.data()).filter(x=>fin(x.horFim)&&!(x.data===fb.data.value&&String(x.turno)===fb.turno.value)).sort((a,b)=>(b.data+b.turno).localeCompare(a.data+a.turno))[0];
+    if(last&&!fb.horIni.value){fb.horIni.value=nf(last.horFim,1);updCalcs();}}catch(e){}
+}
+
+function needWrite(){if(!S.db){toast('Sem conexão com o banco de dados.',true);return false;}if(S.canWrite===false){toast('Você tem acesso só de leitura.',true);return false;}return true;}
+function busy(f,on){const b=$('button[type=submit]',f);b.disabled=on;if(on){b.dataset.t=b.textContent;b.textContent='Salvando…';}else if(b.dataset.t)b.textContent=b.dataset.t;}
+
+async function saveDoc(col,id,body,f){
+  const ref=S.db.collection(col).doc(id);
+  if(!S.edit||S.edit.id!==id){const ex=await withRetry(()=>ref.get());if(ex.exists){if(!await ask('Já existe um lançamento para esta data/turno'+(body.frota?' e frota':'')+'. Substituir pelo novo?','Substituir'))return false;}}
+  await withRetry(()=>ref.set(body));
+  if(S.edit&&S.edit.col===col&&S.edit.id!==id){try{await S.db.collection(col).doc(S.edit.id).delete();}catch(e){}}
+  return true;
+}
+
+async function onSaveViagem(e){
+  e.preventDefault();if(!needWrite())return;const f=e.target;
+  const data=f.data.value,frota=f.dataset.frota,turno=+f.turno.value,viagens=num(f.viagens.value),peso=num(f.peso.value),horIni=num(f.horIni.value),horFim=num(f.horFim.value);
+  if(!data)return toast('Informe a data.',true);if(!frota)return toast('Escolha a frota.',true);
+  if(viagens==null||viagens<0||!Number.isInteger(viagens))return toast('Informe a quantidade de viagens.',true);
+  if(peso==null||peso<=0)return toast('Informe o peso médio.',true);
+  if(peso>100&&!await ask(`Peso médio de ${nf(peso,1)} t por viagem parece alto. Confirmar?`))return;
+  if(horIni!=null&&horFim!=null&&horFim<horIni)return toast('Horímetro final menor que o inicial.',true);
+  const body={data,turno,frota,viagens,peso,horIni,horFim,obs:f.obs.value.trim(),por:S.edit?.por||S.uid||null,em:new Date().toISOString()};
+  if(S.edit)body.editadoPor=S.uid||null;
+  busy(f,true);
+  try{if(await saveDoc('viagens',`${data}_${frota.replace(/[^\w.\-~:@+]/g,'_')}_T${turno}`,body,f)){toast(`✔ ${frota}: ${nf(viagens*peso)} t salvas`);
+      const keepDate=data,keepTurno=f.turno.value;resetForm('#fv');f.data.value=keepDate;f.turno.value=keepTurno;}}
+  catch(err){toast(dbErr(err),true);}finally{busy(f,false);}
+}
+async function onSaveBrit(e){
+  e.preventDefault();if(!needWrite())return;const f=e.target;
+  const data=f.data.value,turno=+f.turno.value,horIni=num(f.horIni.value),horFim=num(f.horFim.value),horasProg=num(f.horasProg.value);
+  if(!data)return toast('Informe a data.',true);if(horIni==null||horFim==null)return toast('Informe os horímetros do britador.',true);
+  if(horFim<horIni)return toast('Horímetro final menor que o inicial.',true);
+  if(horFim-horIni>24&&!await ask(`Foram ${nf(horFim-horIni,1)} h trabalhadas no turno. Confirmar?`))return;
+  const paradas=[];$$('[data-par]',f).forEach(i=>{const v=num(i.value);if(v&&v>0)paradas.push({cat:i.dataset.par,h:v});});
+  const body={data,turno,horIni,horFim,horasProg:horasProg??S.cfg.horasDia,paradas,obs:f.obs.value.trim(),por:S.edit?.por||S.uid||null,em:new Date().toISOString()};
+  if(S.edit)body.editadoPor=S.uid||null;
+  busy(f,true);
+  try{if(await saveDoc('britagem',`${data}_T${turno}`,body,f)){toast('✔ Britagem salva');resetForm('#fb');}}
+  catch(err){toast(dbErr(err),true);}finally{busy(f,false);}
+}
+async function onSaveMnt(e){
+  e.preventDefault();if(!needWrite())return;const f=e.target;
+  const horas=num(f.horas.value);const av=f.ativo.value;const at=av&&!av.startsWith('eq:')?ativoById(av):null;
+  const pecas=collectOSPecas();const custoPecas=pecas.reduce((a,p)=>a+p.qtd*p.custoUnit,0);
+  const body={data:f.data.value,ativoId:at?at._id:null,equip:at?ativoLabel(at):av.replace(/^eq:/,''),area:getRadio(f,'area'),natureza:getRadio(f,'natureza'),paraBritagem:getRadio(f,'para')==='sim',
+    hIni:f.hIni.value||null,hFim:f.hFim.value||null,horas:horas??0,desc:f.desc.value.trim(),status:getRadio(f,'status'),pecas,custoPecas,por:S.edit?.por||S.uid||null,em:new Date().toISOString()};
+  if(!body.data)return toast('Informe a data.',true);if(!body.equip)return toast('Escolha o ativo.',true);if(!body.desc)return toast('Descreva o serviço.',true);
+  if(body.status==='Concluída'&&!(horas>0)&&body.paraBritagem&&!await ask('Nenhuma hora de parada informada. Salvar mesmo assim?'))return;
+  const old=S.edit&&S.edit.col==='manutencao'?(S.edit.pecas||[]):[];const st=stockMap();
+  const falta=pecas.filter(p=>p.qtd>(st[p.pecaId]||0)+((old.find(o=>o.pecaId===p.pecaId)||{}).qtd||0)+1e-9);
+  if(falta.length&&!await ask('Estoque insuficiente para: '+falta.map(p=>(pecaById(p.pecaId)||{}).codigo).join(', ')+'. Lançar mesmo assim (o saldo ficará negativo)?','Lançar'))return;
+  if(S.edit){body.editadoPor=S.uid||null;Object.assign(body,S.edit.extra||{});}
+  const finishPlan=body.planoId&&body.status==='Concluída'&&S.edit&&S.edit.wasStatus==='Aberta';
+  busy(f,true);
+  try{const id=S.edit?S.edit.id:`${body.data}_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
+    await withRetry(()=>S.db.collection('manutencao').doc(id).set(body));
+    try{await syncOSMovs(id,body,old);}catch(err){toast('OS salva, mas a baixa das peças falhou: '+dbErr(err),true);resetForm('#fm');return;}
+    if(finishPlan)await planDone(id,body.data,body.planoId);
+    toast(pecas.length?`✔ OS salva · ${pecas.length} peça(s) baixada(s)`:'✔ OS salva');resetForm('#fm');}
+  catch(err){toast(dbErr(err),true);}finally{busy(f,false);}
+}
+
+function startEdit(col,id){
+  const arr={viagens:S.viagens,britagem:S.brit,manutencao:allOS()}[col];const r=arr.find(x=>x._id===id);if(!r)return;
+  setView('lancar');
+  if(col==='viagens'){setForm('viagem');const f=$('#fv');resetForm('#fv');S.edit={col,id,por:r.por};f.data.value=r.data;f.turno.value=r.turno||1;f.dataset.frota=r.frota;applyCfg();
+    if(!S.cfg.frota.includes(r.frota))$('#fvFrota').insertAdjacentHTML('beforeend',`<button type="button" class="chip on" data-v="${esc(r.frota)}">${esc(r.frota)}</button>`);
+    f.viagens.value=r.viagens;f.peso.value=nf(r.peso,1);f.horIni.value=fin(r.horIni)?nf(r.horIni,1):'';f.horFim.value=fin(r.horFim)?nf(r.horFim,1):'';f.obs.value=r.obs||'';}
+  if(col==='britagem'){setForm('brit');const f=$('#fb');resetForm('#fb');S.edit={col,id,por:r.por};f._extra=parList(r).map(e=>e[0]);f.data.value=r.data;f.turno.value=r.turno||1;
+    f.horIni.value=nf(r.horIni,1);f.horFim.value=nf(r.horFim,1);f.horasProg.value=nf(r.horasProg,1);f.obs.value=r.obs||'';applyCfg();
+    const pm=Object.fromEntries(parList(r));$$('[data-par]',f).forEach(i=>{const v=pm[i.dataset.par];i.value=v?nf(v,1):'';});}
+  if(col==='manutencao'){setForm('mnt');const f=$('#fm');resetForm('#fm');S.edit={col,id,por:r.por,pecas:r.pecas||[],wasStatus:r.status,extra:Object.fromEntries(['planoId','tarefas','duracaoEst','auto','inspecaoRotinaId','concluidaPor','concluidaEm'].filter(k=>r[k]!==undefined).map(k=>[k,r[k]]))};f.data.value=r.data;
+    const av=r.ativoId&&ativoById(r.ativoId)?r.ativoId:'eq:'+r.equip;if(![...f.ativo.options].some(o=>o.value===av))f.ativo.insertAdjacentHTML('beforeend',`<option value="${esc(av)}">${esc(r.equip)}</option>`);f.ativo.value=av;
+    $('#fmPecas').innerHTML=(r.pecas||[]).map(p=>osPecaRow(p.pecaId,p.qtd)).join('');osPecasCusto();
+    setRadio(f,'area',r.area);setRadio(f,'natureza',r.natureza);setRadio(f,'para',r.paraBritagem===false?'nao':'sim');setRadio(f,'status',r.status);
+    f.hIni.value=r.hIni||'';f.hFim.value=r.hFim||'';f.horas.value=nf(r.horas,2);f.horas.dataset.manual='1';f.desc.value=r.desc||'';}
+  const fid={viagens:'#fv',britagem:'#fb',manutencao:'#fm'}[col];$$('[data-editbar]',$(fid)).forEach(e=>e.classList.remove('hidden'));
+  updCalcs();
+}
+async function delRec(col,id){if(!needWrite())return;if(!await ask('Excluir este lançamento? Essa ação não pode ser desfeita.','Excluir',true))return;
+  try{await withRetry(()=>S.db.collection(col).doc(id).delete());
+    if(col==='manutencao')for(const m of S.movs.filter(m=>m.ref==='OS'&&m.refId===id))await withRetry(()=>S.db.collection('movimentos').doc(m._id).delete());
+    toast('Lançamento excluído');}catch(e){toast(dbErr(e),true);}}
+
+/* ---------- exports ---------- */
+const csvN=(n,d=2)=>fin(n)?n.toFixed(d).replace('.',','):'';
+const csvS=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
+async function saveCsv(name,rows){if(!S.downloads)return;const data='﻿'+rows.map(r=>r.join(';')).join('\r\n');
+  try{await S.downloads.save({filename:name,data});}catch(e){if(e&&e.code!=='declined')toast('Não foi possível baixar o arquivo.',true);}}
+function exportDaily(){const R=compute();const cats=uniq([...S.cfg.paradasOp,...R.days.flatMap(x=>Object.keys(x.par))]);
+  const rows=[['Data','Meta diária (t)','Viagens','Peso médio (t)','Produção (t)','Desvio %','Horas trabalhadas','Horas programadas','Produtividade (t/h)',...cats.map(csvS),'Total paradas op. (h)','Mnt. mecânica (h)','Mnt. elétrica (h)','Nº falhas','Principal parada','Observações']];
+  for(const x of R.days)rows.push([x.d.split('-').reverse().join('/'),csvN(x.meta,1),x.viag,csvN(x.viag?x.prod/x.viag:0),csvN(x.prod,1),x.prod?csvN((x.at-1)*100,1):'',csvN(x.ht,1),csvN(x.hp,1),csvN(x.ht?x.prod/x.ht:0,1),...cats.map(k=>csvN(x.par[k]||0,2)),csvN(x.po,2),csvN(x.mec,2),csvN(x.ele,2),x.falhas,csvS(x.top),csvS(x.obs.join(' | '))]);
+  saveCsv(`controle-diario-${S.month}.csv`,rows);}
+function exportRaw(){const rows=[['Tipo','Data','Turno','Frota/Equipamento','Viagens','Peso médio (t)','Produção (t)','Horímetro inicial','Horímetro final','Horas','Área','Natureza','Parou britagem','Status','Paradas op.','Descrição/obs.','Registrado em']];
+  for(const r of S.viagens)rows.push(['Viagens',r.data,r.turno,csvS(r.frota),r.viagens,csvN(r.peso),csvN(r.viagens*r.peso,1),csvN(r.horIni,1),csvN(r.horFim,1),fin(r.horIni)&&fin(r.horFim)?csvN(r.horFim-r.horIni,1):'','','','','','',csvS(r.obs),r.em||'']);
+  for(const r of S.brit)rows.push(['Britagem',r.data,r.turno,'Britador primário','','','',csvN(r.horIni,1),csvN(r.horFim,1),csvN(r.horFim-r.horIni,1),'','','','',csvS(parList(r).map(([k,v])=>k+': '+String(v).replace('.',',')+' h').join(' | ')),csvS(r.obs),r.em||'']);
+  for(const r of S.manut)rows.push(['Manutenção',r.data,'',csvS(r.equip),'','','','','',csvN(r.horas,2),r.area,r.natureza,r.paraBritagem===false?'Não':'Sim',r.status,'',csvS(r.desc),r.em||'']);
+  saveCsv(`lancamentos-${S.month}.csv`,rows);}
+
+/* ---------- data ---------- */
+function subscribeMonth(){
+  for(const u of S.subs)try{u();}catch(e){}S.subs=[];S.viagens=[];S.brit=[];S.manut=[];S.loaded={};S.metaDoc=null;render();
+  if(!S.db)return;const ym=S.month,a=ym+'-01',b=ym+'-31';
+  const timer=setTimeout(()=>{if(!S.loaded.viagens)banner('Os dados ainda não carregaram. Confira a internet — o que aparece pode estar desatualizado.');},10000);
+  const sub=(col,key)=>S.subs.push(S.db.collection(col).where('data','>=',a).where('data','<=',b).onSnapshot(snap=>{
+      S[key]=snap.docs.map(d=>({...d.data(),_id:d.id}));if(!snap.metadata.fromCache){S.loaded[col]=true;if(col==='viagens'){clearTimeout(timer);banner(null);}}else S.loaded[col]=S.loaded[col]||snap.size>0;render();},
+    err=>{clearTimeout(timer);S.loaded[col]=true;if(err.code==='revoked')banner('Seu acesso foi alterado. Recarregue a página.',true);else banner('Não foi possível ler '+col+' agora.',true);render();}));
+  sub('viagens','viagens');sub('britagem','brit');sub('manutencao','manut');
+  S.subs.push(S.db.doc('metas/'+ym).onSnapshot(s=>{S.metaDoc=s.exists?s.data():null;render();},()=>{}));
+}
+function applyPerms(){
+  const ro=S.canWrite===false;
+  $$('#fv,#fb,#fm').forEach(f=>$$('button[type=submit]',f).forEach(b=>b.disabled=ro));
+  if(ro)banner('Você está com acesso só de leitura: pode ver o painel, mas não lançar. Peça ao responsável acesso de edição.');
+  $('#hSub').textContent=S.isAdmin?'Gestão operacional · responsável':'Gestão de produção e manutenção';
+}
+
+/* ---------- events ---------- */
+function bind(){
+  $$('nav.tabs button').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+  $$('#formSeg button').forEach(b=>b.onclick=()=>setForm(b.dataset.f));
+  $('#mPrev').onclick=()=>{S.month=shiftYm(S.month,-1);subscribeMonth();};
+  $('#mNext').onclick=()=>{S.month=shiftYm(S.month,1);subscribeMonth();};
+  document.addEventListener('click',e=>{
+    const st=e.target.closest('.step button');if(st){const inp=$('input',st.parentElement);const d=+st.dataset.d;const dec=String(d).includes('.')?1:0;let v=(num(inp.value)||0)+d;if(v<0)v=0;inp.value=dec?nf(v,1):String(Math.round(v));inp.dispatchEvent(new Event('input',{bubbles:true}));return;}
+    const ch=e.target.closest('#fvFrota .chip');if(ch){$$('#fvFrota .chip').forEach(c=>c.classList.toggle('on',c===ch));$('#fv').dataset.frota=ch.dataset.v;if(!S.edit)$('#fv').horIni.value='';prefillHor();return;}
+    const rd=e.target.closest('[data-radio] .chip');if(rd){$$('.chip',rd.parentElement).forEach(c=>c.classList.toggle('on',c===rd));return;}
+    const rf=e.target.closest('#regFilter .chip');if(rf){S.regFilter=rf.dataset.k;$$('#regFilter .chip').forEach(c=>c.classList.toggle('on',c===rf));render();return;}
+    const ed=e.target.closest('[data-ed]');if(ed){const[c,i]=ed.dataset.ed.split('|');startEdit(c,i);return;}
+    const dl=e.target.closest('[data-del]');if(dl){const[c,i]=dl.dataset.del.split('|');delRec(c,i);return;}
+    const cn=e.target.closest('[data-cancel]');if(cn){resetForm('#'+cn.closest('form').id);return;}
+  });
+  document.addEventListener('input',e=>{if(e.target.name==='horas'&&e.target.form?.id==='fm')e.target.dataset.manual='1';if(e.target.closest('#fv,#fb,#fm'))updCalcs();if(e.target.form?.id==='fMeta')updMetaCalc();});
+  $('#fm').hIni.addEventListener('change',()=>{delete $('#fm').horas.dataset.manual;updCalcs();});$('#fm').hFim.addEventListener('change',()=>{delete $('#fm').horas.dataset.manual;updCalcs();});
+  $('#fv').data.addEventListener('change',()=>{if(!S.edit){$('#fv').horIni.value='';prefillHor();}renderToday();});
+  $('#fb').data.addEventListener('change',()=>{if(!S.edit){$('#fb').horIni.value='';prefillBrit();}renderToday();});
+  $('#fm').data.addEventListener('change',renderToday);
+  $('#fv').addEventListener('submit',onSaveViagem);$('#fb').addEventListener('submit',onSaveBrit);$('#fm').addEventListener('submit',onSaveMnt);
+  $('#fMeta').addEventListener('submit',async e=>{e.preventDefault();if(!needWrite())return;const f=e.target;const m=num(f.metaMensal.value),d=num(f.diasProgramados.value);
+    if(!(m>0)||!(d>0&&d<=31))return toast('Confira a meta e os dias programados.',true);busy(f,true);
+    try{await withRetry(()=>S.db.doc('metas/'+S.month).set({metaMensal:m,diasProgramados:Math.round(d),por:S.uid||null,em:new Date().toISOString()}));toast('✔ Metas de '+monthLabel(S.month)+' salvas');}catch(err){toast(dbErr(err),true);}finally{busy(f,false);}});
+  $('#fCfg').addEventListener('submit',async e=>{e.preventDefault();if(!needWrite())return;const f=e.target;
+    const c={metaMensal:num(f.metaMensal.value),diasProgramados:Math.round(num(f.diasProgramados.value)||0),horasDia:num(f.horasDia.value),prodPlanejada:num(f.prodPlanejada.value),pesoPadrao:num(f.pesoPadrao.value),metaOEE:(num(f.metaOEE.value)||0)/100,
+      frota:uniq(list(f.frota.value)),equipamentos:uniq(list(f.equipamentos.value)),paradasOp:uniq(list(f.paradasOp.value))};
+    if(!(c.metaMensal>0&&c.diasProgramados>0&&c.horasDia>0&&c.prodPlanejada>0&&c.pesoPadrao>0)||!c.frota.length)return toast('Preencha todos os parâmetros com valores maiores que zero.',true);
+    busy(f,true);try{await withRetry(()=>S.db.doc('cfg/geral').set({...S.cfgRaw,...c}));toast('✔ Parâmetros salvos');}catch(err){toast(dbErr(err),true);}finally{busy(f,false);}});
+  $('#exDaily').onclick=exportDaily;$('#exRaw').onclick=exportRaw;
+}
+
+/* ================= MANUTENÇÃO: ATIVOS · ESTOQUE · COMPRAS ================= */
+const rid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const brl=n=>(fin(n)?n:0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const nq=n=>nf(n,fin(n)&&Math.abs(n%1)>1e-9?2:0);
+const nowIso=()=>new Date().toISOString();
+const safeId=s=>String(s||'').replace(/[^A-Za-z0-9_\-.~:@+]/g,'_').slice(0,150)||'x';
+const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+const empty=t=>`<div class="empty">${t}</div>`;
+const ROLES=[['manutencao','Manutenção','Cadastra ativos e abre OS'],['almoxarife','Almoxarife','Controla o estoque e recebe compras'],['compras','Compras','Emite pedidos aos fornecedores'],['supervisor','Supervisor','Aprova compras até a alçada'],['gerente','Gerente','Aprova qualquer valor e altera ajustes']];
+const UNID=['un','pç','jg','kit','m','kg','L','cx','par','rolo'];
+const CAT_PECA=['Mecânica','Elétrica','Desgaste','Lubrificante','Pneu / rodante','Filtro','Consumível','Outro'];
+const CAT_ATIVO=['Britagem','Alimentação','Transportador','Peneiramento','Elétrico','Carregamento','Transporte','Utilidades','Outro'];
+const RC_ST={'Em aprovação':'#c98d00','Aprovação gerência':'#ef7d1a','Em revisão':'#8a4fbf','Aprovada':'#2b78d0','Pedido emitido':'#1d4f91','Recebida parcial':'#0f8c8c','Recebida':'#178041','Reprovada':'#d63b2b','Cancelada':'#8a948f'};
+const RC_OPEN=['Em aprovação','Aprovação gerência','Em revisão','Aprovada','Pedido emitido','Recebida parcial'];
+const stBadge=(s,c)=>`<span class="st" style="background:${c||RC_ST[s]||'#888'}">${esc(s)}</span>`;
+
+function myRoles(){return((S.papeis.users||{})[S.uid]||{}).roles||[];}
+function has(r){if(S.isOwner)return true;const m=myRoles();return m.includes('gerente')||m.includes(r);}
+const canAtivos=()=>has('manutencao')||has('supervisor');
+const canStock=()=>has('almoxarife');
+function stockMap(){const m={};for(const v of S.movs){const q=+v.qtd||0;m[v.pecaId]=(m[v.pecaId]||0)+(v.tipo==='saida'?-q:q);}return m;}
+const pecaById=id=>S.pecas.find(p=>p._id===id);
+const ativoById=id=>S.ativos.find(a=>a._id===id);
+const ativoLabel=a=>a?`${a.tag} · ${a.nome}`:'';
+const byTag=(a,b)=>String(a.tag||'').localeCompare(String(b.tag||''),'pt-BR',{numeric:true});
+const byCod=(a,b)=>String(a.codigo||'').localeCompare(String(b.codigo||''),'pt-BR',{numeric:true});
+const lowItems=st=>S.pecas.filter(p=>p.inativa!==true&&p.estoqueMin>0&&(st[p._id]||0)<=p.estoqueMin);
+const rcTotal=r=>(r.itens||[]).reduce((a,i)=>a+(+i.qtd||0)*(+i.valorUnit||0),0);
+function allOS(){const m=new Map();for(const o of [...S.manut,...S.osAbertas])m.set(o._id,o);return[...m.values()];}
+
+function rcPendingFor(r){const mine=r.por===S.uid,self=!mine||S.isOwner;
+  if(r.status==='Em aprovação'&&has('supervisor')&&self)return'Aprovar';
+  if(r.status==='Aprovação gerência'&&has('gerente')&&self)return'Aprovar (gerência)';
+  if(r.status==='Aprovada'&&has('compras'))return'Emitir pedido';
+  if((r.status==='Pedido emitido'||r.status==='Recebida parcial')&&(has('almoxarife')||has('compras')))return'Receber';
+  if(r.status==='Em revisão'&&mine)return'Revisar';return null;}
+
+/* ---------- generic sheet + text prompt ---------- */
+function sheet(title,html,mount){
+  if(S.sheet)S.sheet.close();
+  const m=document.createElement('div');m.className='sheet';
+  m.innerHTML=`<div class="sh"><div class="shh"><b></b><button type="button" class="x" aria-label="Fechar">✕</button></div><div class="shb">${html}</div></div>`;
+  $('.shh b',m).textContent=title;const sh={el:m,body:$('.shb',m),refresh:null,close(){m.remove();if(S.sheet===sh)S.sheet=null;}};
+  $('.x',m).onclick=()=>sh.close();document.body.appendChild(m);S.sheet=sh;mount&&mount(sh.body,sh);return sh;}
+function askText(msg,ph,okLabel='Confirmar',required=true,danger){return new Promise(res=>{const m=document.createElement('div');m.className='modal';
+  m.innerHTML=`<div class="box"><p></p><textarea class="inp" style="margin-bottom:12px"></textarea><div class="acts"><button class="btn ghost" data-a="0">Cancelar</button><button class="btn ${danger?'danger':''}" data-a="1"></button></div></div>`;
+  $('p',m).textContent=msg;const ta=$('textarea',m);ta.placeholder=ph||'';$('[data-a="1"]',m).textContent=okLabel;
+  m.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a&&e.target!==m)return;if(a&&a.dataset.a==='1'){const v=ta.value.trim();if(required&&!v){ta.style.borderColor='var(--red)';ta.focus();return;}m.remove();res(v);}else{m.remove();res(null);}});
+  document.body.appendChild(m);setTimeout(()=>ta.focus(),50);});}
+async function w(fn,okMsg){try{await withRetry(fn);if(okMsg)toast(okMsg);return true;}catch(e){toast(dbErr(e),true);return false;}}
+function optAtivos(sel,allowNone){const a=[...S.ativos].filter(x=>x.status!=='Inativo'||x._id===sel).sort(byTag);
+  return(allowNone?`<option value="">— nenhum —</option>`:'')+a.map(x=>`<option value="${esc(x._id)}" ${x._id===sel?'selected':''}>${esc(ativoLabel(x))}</option>`).join('');}
+function optPecas(sel,st){return`<option value="">— escolha a peça —</option>`+[...S.pecas].filter(p=>!p.inativa||p._id===sel).sort(byCod).map(p=>`<option value="${esc(p._id)}" ${p._id===sel?'selected':''}>${esc(p.codigo)} · ${esc(p.descricao)} (saldo ${nq(st[p._id]||0)} ${esc(p.unidade||'')})</option>`).join('');}
+
+/* ---------- MANUTENÇÃO VIEW ---------- */
+function renderMnt(){
+  const st=stockMap(),low=lowItems(st),pend=S.reqs.filter(rcPendingFor);
+  $('#mntSeg').innerHTML=[['os','OS',S.osAbertas.length],['insp','Inspeções',rotPending().length],['planos','Planos',plansDue().length],['ativos','Ativos',0],['estoque','Estoque',low.length],['compras','Compras',pend.length]]
+    .map(([k,l,n])=>`<button data-m="${k}" class="${S.mntTab===k?'on':''}">${l}${n?`<i class="bdg">${n}</i>`:''}</button>`).join('');
+  const box=$('#mntBody');
+  if(box.dataset.tab!==S.mntTab){box.dataset.tab=S.mntTab;box.innerHTML=mntToolbar(S.mntTab)+'<div id="mntList"></div>';}
+  $$('#mntBody [data-flt]').forEach(c=>c.classList.toggle('on',c.dataset.v===S.flt[c.dataset.flt]));
+  $$('#mntBody [data-need]').forEach(b=>b.classList.toggle('hidden',!({ativos:canAtivos,planos:canAtivos,estoque:canStock}[b.dataset.need]||(()=>true))()));
+  const L=$('#mntList');
+  if(S.mntTab==='os')L.innerHTML=listOS();
+  if(S.mntTab==='planos')L.innerHTML=listPlanos();
+  if(S.mntTab==='insp')L.innerHTML=listInsp();
+  if(S.mntTab==='ativos')L.innerHTML=listAtivos();
+  if(S.mntTab==='estoque')L.innerHTML=listEstoque(st,low);
+  if(S.mntTab==='compras')L.innerHTML=listCompras(pend);
+}
+function mntToolbar(t){
+  const chips=(k,opts)=>`<div class="filters">${opts.map(([v,l])=>`<button class="chip sm" data-flt="${k}" data-v="${v}">${l}</button>`).join('')}</div>`;
+  if(t==='os')return`<div class="tb"><button class="btn sm" data-act="novaOS">+ Nova OS</button></div>`+chips('os',[['Aberta','Em aberto'],['Concluída','Concluídas no mês'],['all','Todas do mês']]);
+  if(t==='planos')return`<div class="tb"><button class="btn sm" data-act="novoPlano" data-need="planos">+ Novo plano</button></div>`+chips('pl',[['due','Vencidos e próximos'],['setup','A configurar'],['all','Todos']]);
+  if(t==='insp')return`<div class="tb"><button class="btn sm" data-act="novaRotina" data-need="planos">+ Nova rotina</button></div>`+chips('ins',[['pend','Para fazer'],['all','Todas as rotinas'],['hist','Realizadas']]);
+  if(t==='ativos')return`<div class="tb"><input class="inp srch" data-q="ativo" placeholder="Buscar tag, nome, local…"><button class="btn sm" data-act="novoAtivo" data-need="ativos">+ Novo ativo</button></div>`;
+  if(t==='estoque')return`<div class="tb"><input class="inp srch" data-q="peca" placeholder="Buscar código ou descrição…"><button class="btn sm" data-act="novaPeca" data-need="estoque">+ Nova peça</button></div>`+chips('est',[['all','Todas'],['low','Abaixo do mínimo'],['zero','Zeradas']])+`<div id="estSum"></div>`;
+  if(t==='compras')return`<div class="tb"><button class="btn sm" data-act="novaRC">+ Nova requisição</button></div>`+chips('rc',[['pend','Comigo'],['open','Em andamento'],['done','Concluídas'],['all','Todas']]);
+  return'';}
+
+function listOS(){
+  const f=S.flt.os;let arr=f==='Aberta'?S.osAbertas:f==='Concluída'?S.manut.filter(m=>m.status!=='Aberta'):S.manut;
+  arr=[...arr].sort((a,b)=>(b.data+(b.em||'')).localeCompare(a.data+(a.em||'')));
+  if(!arr.length)return empty(f==='Aberta'?'Nenhuma OS em aberto. 👍':'Nenhuma OS em '+monthLabel(S.month)+'.');
+  return arr.map(o=>`<div class="li" data-open="os|${esc(o._id)}"><div class="lt"><b>${esc(o.equip)}</b>${o.status==='Aberta'?stBadge('em aberto','var(--orange)'):stBadge('concluída','var(--g600)')}</div>
+    <div class="ls">${dShort(o.data)} · ${esc(o.area)} ${o.natureza==='Preventiva'?'preventiva':'corretiva'} · ${nf(o.horas,1)} h${o.custoPecas?' · peças '+brl(o.custoPecas):''}</div><div class="ls">${esc(o.desc)}</div></div>`).join('');}
+
+function listAtivos(){
+  const q=norm(S.q.ativo),open={};for(const o of S.osAbertas)if(o.ativoId)open[o.ativoId]=(open[o.ativoId]||0)+1;
+  const arr=S.ativos.filter(a=>!q||norm([a.tag,a.nome,a.categoria,a.local,a.modelo].join(' ')).includes(q)).sort(byTag);
+  if(!S.ativos.length)return empty('Nenhum ativo cadastrado ainda.');if(!arr.length)return empty('Nenhum ativo encontrado.');
+  return arr.map(a=>{const s=a.status==='Inativo'?stBadge('inativo','#8a948f'):open[a._id]?stBadge('em manutenção','var(--orange)'):stBadge('operando','var(--g600)');
+    return`<div class="li" data-open="ativo|${esc(a._id)}"><div class="lt"><b><span class="tag">${esc(a.tag)}</span> ${esc(a.nome)}</b>${s}</div>
+    <div class="ls">${esc(a.categoria||'')}${a.local?' · '+esc(a.local):''}${a.fabricante?' · '+esc(a.fabricante)+' '+esc(a.modelo||''):''} · criticidade <b class="crit c${esc(a.criticidade||'B')}">${esc(a.criticidade||'B')}</b>${open[a._id]?` · ${open[a._id]} OS aberta(s)`:''}</div></div>`;}).join('');}
+
+function listEstoque(st,low){
+  const q=norm(S.q.peca),f=S.flt.est;
+  let val=0;for(const p of S.pecas)val+=Math.max(0,st[p._id]||0)*(+p.custoUnit||0);
+  const sum=$('#estSum');if(sum)sum.innerHTML=`<div class="mt" style="margin-bottom:10px"><div><small>ITENS</small><b>${S.pecas.length}</b></div><div><small>ABAIXO DO MÍN.</small><b class="${low.length?'down':''}">${low.length}</b></div><div><small>VALOR EM ESTOQUE</small><b style="font-size:18px">${brl(val)}</b></div></div>`+
+    (low.length?`<button class="btn ghost sm" data-act="rcLow" style="margin-bottom:10px;width:100%">Requisitar compra dos ${low.length} itens abaixo do mínimo</button>`:'');
+  let arr=S.pecas.filter(p=>!q||norm([p.codigo,p.descricao,p.categoria,p.localizacao,p.fornecedor].join(' ')).includes(q));
+  if(f==='low')arr=arr.filter(p=>low.includes(p));if(f==='zero')arr=arr.filter(p=>(st[p._id]||0)<=0);
+  arr.sort(byCod);
+  if(!S.pecas.length)return empty('Nenhuma peça cadastrada. Toque em “+ Nova peça” para começar o estoque.');if(!arr.length)return empty('Nenhuma peça neste filtro.');
+  return arr.map(p=>{const s=st[p._id]||0,isLow=p.estoqueMin>0&&s<=p.estoqueMin;const b=s<=0?stBadge('zerado','var(--red)'):isLow?stBadge('abaixo do mín.','var(--amber)'):'';
+    return`<div class="li" data-open="peca|${esc(p._id)}"><div class="lt"><b><span class="tag">${esc(p.codigo)}</span> ${esc(p.descricao)}</b><span class="qty ${s<=0?'down':isLow?'warn':''}">${nq(s)} <small>${esc(p.unidade||'')}</small></span></div>
+    <div class="ls">${esc(p.categoria||'')}${p.localizacao?' · local '+esc(p.localizacao):''} · mín. ${nq(p.estoqueMin||0)}${p.custoUnit?' · '+brl(p.custoUnit)+'/'+esc(p.unidade||'un'):''} ${b}</div></div>`;}).join('');}
+
+function listCompras(pend){
+  const f=S.flt.rc;let arr=f==='pend'?pend:f==='open'?S.reqs.filter(r=>RC_OPEN.includes(r.status)):f==='done'?S.reqs.filter(r=>!RC_OPEN.includes(r.status)):S.reqs;
+  arr=[...arr].sort((a,b)=>(b.em||'').localeCompare(a.em||''));loadNames(arr.map(r=>r.por));
+  if(!arr.length)return empty(f==='pend'?'Nada aguardando você. 👍':'Nenhuma requisição neste filtro.');
+  const noAppr=!Object.values(S.papeis.users||{}).some(u=>(u.roles||[]).some(r=>r==='supervisor'||r==='gerente'));
+  return(noAppr?`<div class="banner">Ainda não há aprovadores definidos: só o administrador aprova. Defina supervisor e gerente em Ajustes → Usuários e papéis.</div>`:'')+
+   arr.map(r=>{const act=rcPendingFor(r),it=r.itens||[];
+    return`<div class="li" data-open="rc|${esc(r._id)}"><div class="lt"><b>${esc(r.numero)} ${r.urgencia&&r.urgencia!=='Normal'?`<span class="urg">${esc(r.urgencia)}</span>`:''}</b>${stBadge(r.status)}</div>
+    <div class="ls">${it.length} item(ns): ${esc(it.slice(0,2).map(i=>i.descricao).join(', '))}${it.length>2?'…':''}</div>
+    <div class="ls">${dShort(r.data)} · ${brl(r.valorFinal??rcTotal(r))}${who(r.por)?' · '+esc(who(r.por)):''}${r.ativoNome?' · '+esc(r.ativoNome):''}${act?` · <b class="act-hint">➜ ${act}</b>`:''}</div></div>`;}).join('');}
+
+/* ---------- OS detail ---------- */
+function osDetail(id){
+  const s=sheet('Ordem de serviço','',(body,sh)=>{
+    sh.refresh=()=>{const o=allOS().find(x=>x._id===id);if(!o){body.innerHTML=empty('Esta OS não está carregada (mude o mês ou ela foi excluída).');return;}
+      const rcs=S.reqs.filter(r=>r.osId===id);loadNames([o.por]);
+      body.innerHTML=`<div class="lt" style="margin-bottom:8px"><b style="font-size:18px">${esc(o.equip)}</b>${o.status==='Aberta'?stBadge('em aberto','var(--orange)'):stBadge('concluída','var(--g600)')}</div>
+      <div class="kv"><span>Data</span><b>${dLabel(o.data)}</b><span>Tipo</span><b>${esc(o.area)} · ${esc(o.natureza)}</b><span>Horário</span><b>${esc(o.hIni||'—')} → ${esc(o.hFim||'—')} (${nf(o.horas,1)} h)</b><span>Parou a britagem</span><b>${o.paraBritagem===false?'Não':'Sim'}</b><span>Aberta por</span><b>${esc(who(o.por)||'—')}</b></div>
+      <p style="margin:10px 0">${esc(o.desc)}</p>
+      ${o.planoId?`<p class="note" style="margin:0 0 6px">Preventiva do plano <a href="#" data-open="plano|${esc(o.planoId)}">${esc((S.planos.find(p=>p._id===o.planoId)||{}).nome||'ver plano')}</a>${o.auto?' · gerada automaticamente':''}${o.duracaoEst?' · duração estimada '+nf(o.duracaoEst,1)+' h':''}</p>`:''}
+      ${(o.tarefas||[]).length?`<h4 class="h4">Tarefas (${o.tarefas.filter(t=>t.ok).length}/${o.tarefas.length})</h4>${o.tarefas.map((t,k)=>`<button type="button" class="tk ${t.ok?'done':''}" ${o.status==='Aberta'?`data-act="task" data-id="${esc(id)}|${k}"`:'disabled'}><i>${t.ok?'✓':''}</i><span>${esc(t.t)}</span></button>`).join('')}`:''}
+      ${o.planoId&&o.status==='Aberta'?(()=>{const pl=S.planos.find(p=>p._id===o.planoId);return pl&&(pl.pecas||[]).length?`<p class="note">Peças previstas: ${pl.pecas.map(x=>{const pc=pecaById(x.pecaId);return nq(x.qtd)+'× '+esc(pc?pc.codigo:'?');}).join(', ')} — lance as usadas em “Editar”.</p>`:'';})():''}
+      <h4 class="h4">Peças utilizadas</h4>${(o.pecas||[]).length?`<table class="t"><tr><th class="l">Peça</th><th>Qtd</th><th>Custo</th></tr>${o.pecas.map(p=>{const pc=pecaById(p.pecaId);return`<tr><td class="l">${esc(pc?pc.codigo+' · '+pc.descricao:'(peça removida)')}</td><td>${nq(p.qtd)}</td><td>${brl(p.qtd*(p.custoUnit||0))}</td></tr>`;}).join('')}<tr class="tot"><td>Total</td><td></td><td>${brl(o.custoPecas)}</td></tr></table>`:'<p class="note">Nenhuma peça lançada.</p>'}
+      <h4 class="h4">Requisições de compra</h4>${rcs.length?rcs.map(r=>`<div class="li" data-open="rc|${esc(r._id)}"><div class="lt"><b>${esc(r.numero)}</b>${stBadge(r.status)}</div></div>`).join(''):'<p class="note">Nenhuma.</p>'}
+      <div class="acts2">${o.status==='Aberta'?`<button class="btn" data-act="osConcluir" data-id="${esc(id)}">Concluir OS</button>`:''}
+      <button class="btn ghost" data-act="osEditar" data-id="${esc(id)}">Editar</button><button class="btn ghost" data-act="rcFromOS" data-id="${esc(id)}">Requisitar compra</button></div>`;};
+    sh.refresh();});
+  return s;}
+async function osConcluir(id){const o=allOS().find(x=>x._id===id);if(!o||!needWrite())return;
+  const hm=new Date();const hFim=o.hFim||pad(hm.getHours())+':'+pad(hm.getMinutes());let horas=o.horas;
+  if(o.hIni&&!o.hFim){const[a,b]=o.hIni.split(':').map(Number),[c,d]=hFim.split(':').map(Number);let m=(c*60+d)-(a*60+b);if(m<0)m+=1440;horas=Math.round(m/6)/10;}
+  if(!await ask(`Concluir a OS de ${o.equip}? ${o.hIni&&!o.hFim?`Fim às ${hFim} (${nf(horas,1)} h de parada).`:''}`,'Concluir'))return;
+  const pend=(o.tarefas||[]).filter(t=>!t.ok).length;if(pend&&!await ask(`${pend} tarefa(s) do plano não foram marcadas. Concluir mesmo assim?`,'Concluir'))return;
+  if(await w(()=>S.db.collection('manutencao').doc(id).update({status:'Concluída',hFim,horas,concluidaPor:S.uid||null,concluidaEm:nowIso()}),'✔ OS concluída'))await planDone(id,todayStr(),o.planoId);}
+
+/* ---------- ATIVOS ---------- */
+function ativoDetail(id){
+  sheet('Ativo','',(body,sh)=>{let hist=null;
+    const load=async()=>{try{const q=await S.db.collection('manutencao').where('ativoId','==',id).get();hist=q.docs.map(d=>({...d.data(),_id:d.id})).sort((a,b)=>b.data.localeCompare(a.data));}catch(e){hist=[];}sh.refresh&&sh.refresh();};
+    sh.refresh=()=>{const a=ativoById(id);if(!a){body.innerHTML=empty('Ativo não encontrado.');return;}
+      const pcs=S.pecas.filter(p=>(p.ativos||[]).includes(id));const st=stockMap();
+      const H=hist||[],fal=H.filter(o=>o.natureza!=='Preventiva').length,hrs=H.reduce((s,o)=>s+(+o.horas||0),0),cus=H.reduce((s,o)=>s+(+o.custoPecas||0),0);
+      body.innerHTML=`<div class="lt" style="margin-bottom:8px"><b style="font-size:18px"><span class="tag">${esc(a.tag)}</span> ${esc(a.nome)}</b>${a.status==='Inativo'?stBadge('inativo','#8a948f'):''}</div>
+      <div class="kv"><span>Categoria</span><b>${esc(a.categoria||'—')}</b><span>Local / área</span><b>${esc(a.local||'—')}</b><span>Fabricante / modelo</span><b>${esc([a.fabricante,a.modelo].filter(Boolean).join(' · ')||'—')}</b><span>Nº de série</span><b>${esc(a.serie||'—')}</b><span>Ano</span><b>${esc(a.ano||'—')}</b><span>Criticidade</span><b><b class="crit c${esc(a.criticidade||'B')}">${esc(a.criticidade||'B')}</b></b></div>
+      ${a.obs?`<p class="note">${esc(a.obs)}</p>`:''}
+      <div class="mt" style="margin:12px 0"><div><small>OS</small><b>${hist?H.length:'…'}</b></div><div><small>FALHAS</small><b>${hist?fal:'…'}</b></div><div><small>HORAS PARADO</small><b>${hist?nf(hrs,1):'…'}</b></div><div><small>CUSTO PEÇAS</small><b style="font-size:17px">${hist?brl(cus):'…'}</b></div></div>
+      ${(()=>{const h=horAtual(a);return`<div class="kv" style="margin-top:8px"><span>Horímetro atual</span><b>${h!=null?nf(h,1)+' h':'sem leitura'} <span class="note">(${esc(HOR_FONTE[a.horFonte||'manual'].split(' (')[0].toLowerCase())})</span></b></div>`;})()}
+      <div class="acts2"><button class="btn" data-act="osParaAtivo" data-id="${esc(id)}">+ Abrir OS</button><button class="btn ghost" data-act="horLeitura" data-id="${esc(id)}">Registrar horímetro</button><button class="btn ghost" data-act="rcParaAtivo" data-id="${esc(id)}">Requisitar compra</button>${canAtivos()?`<button class="btn ghost" data-act="ativoEditar" data-id="${esc(id)}">Editar</button>`:''}</div>
+      <h4 class="h4">Planos de manutenção</h4>${(()=>{const pl=S.planos.filter(p=>p.ativoId===id);return pl.length?pl.map(p=>{const s=planStatus(p);return`<div class="li" data-open="plano|${esc(p._id)}"><div class="lt"><b>${esc(p.nome)}</b>${stBadge(s.st,s.col)}</div><div class="ls">${planInterval(p)} · ${planWhen(p,s)}</div></div>`;}).join(''):'<p class="note">Nenhum plano para este ativo.</p>';})()}
+      <h4 class="h4">Rotinas de inspeção</h4>${(()=>{const ro=S.rotinas.filter(r=>r.ativoId===id);return ro.length?ro.map(r=>{const s=rotStatus(r);return`<div class="li" data-open="rotina|${esc(r._id)}"><div class="lt"><b>${esc(r.nome)}</b>${stBadge(s.st,s.col)}</div><div class="ls">${FREQ[r.freq||'diaria'][0]} · ${esc(s.txt||'')}</div></div>`;}).join(''):'<p class="note">Nenhuma rotina para este ativo.</p>';})()}
+      <h4 class="h4">Peças aplicáveis</h4>${pcs.length?pcs.map(p=>`<div class="li" data-open="peca|${esc(p._id)}"><div class="lt"><b><span class="tag">${esc(p.codigo)}</span> ${esc(p.descricao)}</b><span class="qty">${nq(st[p._id]||0)} <small>${esc(p.unidade||'')}</small></span></div></div>`).join(''):'<p class="note">Nenhuma peça vinculada. Vincule no cadastro da peça.</p>'}
+      <h4 class="h4">Histórico de manutenção</h4>${!hist?'<p class="note">Carregando…</p>':H.length?H.slice(0,40).map(o=>`<div class="li" data-open="os|${esc(o._id)}"><div class="lt"><b>${dShort(o.data)} · ${esc(o.area)} ${o.natureza==='Preventiva'?'preventiva':'corretiva'}</b>${o.status==='Aberta'?stBadge('em aberto','var(--orange)'):''}</div><div class="ls">${nf(o.horas,1)} h · ${esc(o.desc)}</div></div>`).join(''):'<p class="note">Nenhuma OS registrada para este ativo.</p>'}`;};
+    sh.refresh();load();});}
+function ativoForm(id){
+  const a=id?ativoById(id):{criticidade:'B',status:'Ativo',categoria:'Britagem'};if(!a)return;
+  const sel=(n,opts,v)=>`<select class="inp" name="${n}">${opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  sheet(id?'Editar ativo':'Novo ativo',`<form class="f" id="fAtivo">
+    <div class="row2"><div><label class="fl">Tag / código *</label><input class="inp" name="tag" required value="${esc(a.tag||'')}" placeholder="BR-01"></div><div><label class="fl">Criticidade</label>${sel('criticidade',['A','B','C'],a.criticidade)}</div></div>
+    <div><label class="fl">Nome *</label><input class="inp" name="nome" required value="${esc(a.nome||'')}" placeholder="Britador de mandíbulas"></div>
+    <div class="row2"><div><label class="fl">Categoria</label>${sel('categoria',CAT_ATIVO,a.categoria)}</div><div><label class="fl">Local / área</label><input class="inp" name="local" value="${esc(a.local||'')}" placeholder="Britagem primária"></div></div>
+    <div class="row2"><div><label class="fl">Fabricante</label><input class="inp" name="fabricante" value="${esc(a.fabricante||'')}"></div><div><label class="fl">Modelo</label><input class="inp" name="modelo" value="${esc(a.modelo||'')}"></div></div>
+    <div class="row2"><div><label class="fl">Nº de série</label><input class="inp" name="serie" value="${esc(a.serie||'')}"></div><div><label class="fl">Ano</label><input class="inp" name="ano" inputmode="numeric" value="${esc(a.ano||'')}"></div></div>
+    <div><label class="fl">Horímetro vem de</label><select class="inp" name="horFonte" style="font-size:16px">${Object.entries(HOR_FONTE).map(([k,l])=>`<option value="${k}" ${k===(a.horFonte||'manual')?'selected':''}>${l}</option>`).join('')}</select></div>
+    <div><label class="fl">Situação</label>${sel('status',['Ativo','Inativo'],a.status)}</div>
+    <div><label class="fl">Observações</label><textarea class="inp" name="obs">${esc(a.obs||'')}</textarea></div>
+    <button class="btn" type="submit">Salvar ativo</button></form>`,(body,sh)=>{
+    $('#fAtivo',body).onsubmit=async e=>{e.preventDefault();if(!needWrite())return;const f=e.target;
+      const d={tag:f.tag.value.trim().toUpperCase(),nome:f.nome.value.trim(),criticidade:f.criticidade.value,categoria:f.categoria.value,local:f.local.value.trim(),fabricante:f.fabricante.value.trim(),modelo:f.modelo.value.trim(),serie:f.serie.value.trim(),ano:f.ano.value.trim(),status:f.status.value,obs:f.obs.value.trim(),horFonte:f.horFonte.value,hor:fin(a.hor)?a.hor:null,horData:a.horData||null,por:a.por||S.uid||null,em:nowIso()};
+      if(!d.tag||!d.nome)return toast('Informe tag e nome.',true);
+      if(S.ativos.some(x=>x._id!==id&&String(x.tag).toUpperCase()===d.tag))return toast('Já existe um ativo com a tag '+d.tag+'.',true);
+      busy(f,true);const nid=id||rid();if(await w(()=>S.db.collection('ativos').doc(nid).set(d),'✔ Ativo salvo')){sh.close();ativoDetail(nid);}busy(f,false);};});}
+
+/* ---------- ESTOQUE ---------- */
+function pecaDetail(id){
+  sheet('Peça','',(body,sh)=>{sh.refresh=()=>{const p=pecaById(id);if(!p){body.innerHTML=empty('Peça não encontrada.');return;}
+    const st=stockMap(),s=st[id]||0,movs=S.movs.filter(m=>m.pecaId===id).sort((a,b)=>((b.data||'')+(b.em||'')).localeCompare((a.data||'')+(a.em||'')));
+    loadNames(movs.slice(0,40).map(m=>m.por));const isLow=p.estoqueMin>0&&s<=p.estoqueMin;
+    const aps=(p.ativos||[]).map(ativoById).filter(Boolean);
+    body.innerHTML=`<div class="lt" style="margin-bottom:8px"><b style="font-size:18px"><span class="tag">${esc(p.codigo)}</span> ${esc(p.descricao)}</b>${p.inativa?stBadge('inativa','#8a948f'):''}</div>
+    <div class="mt" style="margin-bottom:12px"><div><small>SALDO</small><b class="${s<=0?'down':isLow?'warn':''}">${nq(s)} ${esc(p.unidade||'')}</b></div><div><small>MÍN. / MÁX.</small><b>${nq(p.estoqueMin||0)} / ${p.estoqueMax?nq(p.estoqueMax):'—'}</b></div><div><small>VALOR</small><b style="font-size:17px">${brl(Math.max(0,s)*(p.custoUnit||0))}</b></div></div>
+    <div class="kv"><span>Categoria</span><b>${esc(p.categoria||'—')}</b><span>Localização</span><b>${esc(p.localizacao||'—')}</b><span>Custo unitário</span><b>${p.custoUnit?brl(p.custoUnit):'—'}</b><span>Fornecedor</span><b>${esc(p.fornecedor||'—')}</b><span>Aplicação</span><b>${aps.length?aps.map(a=>esc(a.tag)).join(', '):'—'}</b></div>
+    ${canStock()?`<div class="acts3"><button class="btn" data-act="mov" data-t="entrada" data-id="${esc(id)}">Entrada</button><button class="btn" style="background:var(--orange)" data-act="mov" data-t="saida" data-id="${esc(id)}">Saída</button><button class="btn ghost" data-act="mov" data-t="ajuste" data-id="${esc(id)}">Inventário</button></div>`:'<p class="note">Entradas e saídas avulsas são feitas pelo almoxarife. Saídas para OS são lançadas na própria OS.</p>'}
+    <div class="acts2"><button class="btn ghost" data-act="rcPeca" data-id="${esc(id)}">Requisitar compra</button>${canStock()?`<button class="btn ghost" data-act="pecaEditar" data-id="${esc(id)}">Editar cadastro</button>`:''}</div>
+    <h4 class="h4">Movimentações</h4>${movs.length?`<table class="t"><tr><th class="l">Data</th><th class="l">Tipo</th><th>Qtd</th><th class="l">Origem</th></tr>${movs.slice(0,60).map(m=>{const sg=m.tipo==='saida'?-1:1,q=(+m.qtd||0)*sg;
+      const tl={inicial:'Saldo inicial',entrada:'Entrada',saida:'Saída',ajuste:'Inventário'}[m.tipo]||m.tipo;const orig=m.ref==='OS'?'OS · '+esc((ativoById(m.ativoId)||{}).tag||''):m.ref==='RC'?'Compra '+esc(m.refNum||''):esc(m.obs||'');
+      return`<tr><td class="l">${m.data?dShort(m.data):''}</td><td class="l">${tl}</td><td class="${q<0?'neg':'pos'}">${q>0?'+':''}${nq(q)}</td><td class="l" style="white-space:normal">${orig}${who(m.por)?' <span class="note">· '+esc(who(m.por))+'</span>':''}</td></tr>`;}).join('')}</table>`:'<p class="note">Sem movimentações.</p>'}`;};
+    sh.refresh();});}
+function pecaForm(id){
+  const p=id?pecaById(id):{unidade:'un',categoria:'Mecânica',ativos:[]};if(!p)return;
+  const sel=(n,opts,v)=>`<select class="inp" name="${n}">${opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  const aps=new Set(p.ativos||[]);
+  sheet(id?'Editar peça':'Nova peça',`<form class="f" id="fPeca">
+    <div class="row2"><div><label class="fl">Código *</label><input class="inp" name="codigo" required value="${esc(p.codigo||'')}" placeholder="PC-0001"></div><div><label class="fl">Unidade</label>${sel('unidade',UNID,p.unidade)}</div></div>
+    <div><label class="fl">Descrição *</label><input class="inp" name="descricao" required value="${esc(p.descricao||'')}" placeholder="Mandíbula fixa"></div>
+    <div class="row2"><div><label class="fl">Categoria</label>${sel('categoria',CAT_PECA,p.categoria)}</div><div><label class="fl">Localização</label><input class="inp" name="localizacao" value="${esc(p.localizacao||'')}" placeholder="Prateleira A3"></div></div>
+    <div class="row3"><div><label class="fl">Estoque mín.</label><input class="inp" name="estoqueMin" inputmode="decimal" value="${p.estoqueMin!=null?nq(p.estoqueMin):''}"></div><div><label class="fl">Estoque máx.</label><input class="inp" name="estoqueMax" inputmode="decimal" value="${p.estoqueMax?nq(p.estoqueMax):''}"></div><div><label class="fl">Custo unit. (R$)</label><input class="inp" name="custoUnit" inputmode="decimal" value="${p.custoUnit?nf(p.custoUnit,2):''}"></div></div>
+    ${id?'':`<div><label class="fl">Saldo inicial (contagem atual)</label><input class="inp" name="saldo" inputmode="decimal" placeholder="0"></div>`}
+    <div><label class="fl">Fornecedor habitual</label><input class="inp" name="fornecedor" value="${esc(p.fornecedor||'')}"></div>
+    <div><label class="fl">Aplicação (ativos)</label><div class="chips" id="pApl">${[...S.ativos].sort(byTag).map(a=>`<button type="button" class="chip sm ${aps.has(a._id)?'on':''}" data-v="${esc(a._id)}">${esc(a.tag)}</button>`).join('')||'<span class="note">Cadastre ativos para vincular.</span>'}</div></div>
+    ${id?`<label class="ck"><input type="checkbox" name="inativa" ${p.inativa?'checked':''}> Peça inativa (não aparece para novas OS)</label>`:''}
+    <button class="btn" type="submit">Salvar peça</button></form>`,(body,sh)=>{
+    $('#pApl',body).onclick=e=>{const c=e.target.closest('.chip');if(c)c.classList.toggle('on');};
+    $('#fPeca',body).onsubmit=async e=>{e.preventDefault();if(!needWrite())return;const f=e.target;
+      const d={codigo:f.codigo.value.trim().toUpperCase(),descricao:f.descricao.value.trim(),unidade:f.unidade.value,categoria:f.categoria.value,localizacao:f.localizacao.value.trim(),
+        estoqueMin:num(f.estoqueMin.value)||0,estoqueMax:num(f.estoqueMax.value)||null,custoUnit:num(f.custoUnit.value)||0,fornecedor:f.fornecedor.value.trim(),
+        ativos:$$('#pApl .chip.on',body).map(c=>c.dataset.v),inativa:!!(f.inativa&&f.inativa.checked),por:p.por||S.uid||null,em:nowIso()};
+      if(!d.codigo||!d.descricao)return toast('Informe código e descrição.',true);
+      if(S.pecas.some(x=>x._id!==id&&String(x.codigo).toUpperCase()===d.codigo))return toast('Já existe uma peça com o código '+d.codigo+'.',true);
+      busy(f,true);const nid=id||rid();
+      const ok=await w(()=>S.db.collection('pecas').doc(nid).set(d));
+      if(ok&&!id){const s0=num(f.saldo.value);if(s0&&s0>0)await w(()=>S.db.collection('movimentos').doc('ini_'+nid).set({pecaId:nid,tipo:'inicial',qtd:s0,data:todayStr(),custoUnit:d.custoUnit,ref:'MANUAL',obs:'Saldo inicial',por:S.uid||null,em:nowIso()}));}
+      busy(f,false);if(ok){toast('✔ Peça salva');sh.close();pecaDetail(nid);}};});}
+function movForm(id,tipo){
+  const p=pecaById(id);if(!p)return;const s=stockMap()[id]||0;
+  const T={entrada:'Entrada no estoque',saida:'Saída do estoque',ajuste:'Inventário (contagem física)'}[tipo];
+  sheet(T,`<p class="note" style="margin-top:0"><b>${esc(p.codigo)} · ${esc(p.descricao)}</b><br>Saldo atual: ${nq(s)} ${esc(p.unidade||'')}</p><form class="f" id="fMov">
+    <div class="row2"><div><label class="fl">${tipo==='ajuste'?'Quantidade contada':'Quantidade'}</label><div class="step"><button type="button" data-d="-1">−</button><input class="inp" name="qtd" inputmode="decimal" required><button type="button" data-d="1">+</button></div></div>
+    <div><label class="fl">Data</label><input class="inp" type="date" name="data" value="${todayStr()}"></div></div>
+    ${tipo==='entrada'?`<div><label class="fl">Custo unitário (R$)</label><input class="inp" name="custo" inputmode="decimal" value="${p.custoUnit?nf(p.custoUnit,2):''}"></div>`:''}
+    ${tipo==='saida'?`<div><label class="fl">Aplicada no ativo</label><select class="inp" name="ativo">${optAtivos('',true)}</select><p class="note">Para peças usadas em uma OS, lance pela própria OS.</p></div>`:''}
+    <div><label class="fl">${tipo==='entrada'?'Nota fiscal / origem':tipo==='ajuste'?'Motivo da diferença *':'Motivo / destino'}</label><input class="inp" name="obs" ${tipo==='ajuste'?'required':''} style="font-size:16px"></div>
+    <button class="btn" type="submit">Registrar</button></form>`,(body,sh)=>{
+    $('#fMov',body).onsubmit=async e=>{e.preventDefault();if(!needWrite())return;const f=e.target;let q=num(f.qtd.value);
+      if(q==null||q<0||(tipo!=='ajuste'&&q===0))return toast('Informe a quantidade.',true);
+      if(tipo==='saida'&&q>s&&!await ask(`Saída de ${nq(q)} é maior que o saldo (${nq(s)}). Registrar mesmo assim?`))return;
+      if(tipo==='ajuste'){q=q-s;if(Math.abs(q)<1e-9)return toast('A contagem é igual ao saldo: nada a ajustar.');}
+      const custo=tipo==='entrada'?num(f.custo.value):null;
+      const d={pecaId:id,tipo,qtd:q,data:f.data.value||todayStr(),custoUnit:custo??(p.custoUnit||0),ativoId:f.ativo?f.ativo.value||null:null,ref:'MANUAL',obs:f.obs.value.trim(),por:S.uid||null,em:nowIso()};
+      busy(f,true);const ok=await w(()=>S.db.collection('movimentos').doc(rid()).set(d),'✔ Movimentação registrada');
+      if(ok&&tipo==='entrada'&&custo&&custo!==p.custoUnit)await w(()=>S.db.collection('pecas').doc(id).update({custoUnit:custo}));
+      busy(f,false);if(ok){sh.close();pecaDetail(id);}};});}
+
+/* ---------- REQUISIÇÕES DE COMPRA ---------- */
+function rcForm(pre){
+  pre=pre||{};const editing=pre._id?pre:null;const st=stockMap();
+  let itens=(pre.itens||[]).map(i=>({...i}));if(!itens.length)itens=[{pecaId:'',descricao:'',unidade:'un',qtd:1,valorUnit:0}];
+  const osOpts=`<option value="">— nenhuma —</option>`+S.osAbertas.map(o=>`<option value="${esc(o._id)}" ${o._id===pre.osId?'selected':''}>${dShort(o.data)} · ${esc(o.equip)}</option>`).join('');
+  sheet(editing?'Revisar '+editing.numero:'Nova requisição de compra',`<form class="f" id="fRC">
+    <div><label class="fl">Urgência</label><div class="chips" data-radio="urg">${['Normal','Urgente','Emergencial'].map(u=>`<button type="button" class="chip sm ${u===(pre.urgencia||'Normal')?'on':''}" data-v="${u}">${u}</button>`).join('')}</div></div>
+    <div class="row2"><div><label class="fl">Ativo</label><select class="inp" name="ativo">${optAtivos(pre.ativoId||'',true)}</select></div><div><label class="fl">OS vinculada</label><select class="inp" name="os">${osOpts}</select></div></div>
+    <div><label class="fl">Itens</label><div id="rcItens" class="rcitens"></div><button type="button" class="btn ghost sm" id="rcAdd">+ Adicionar item</button></div>
+    <div class="calc"><div><small>Valor estimado</small><b id="rcTot">—</b></div><div><small>Aprovação</small><b id="rcAlc" style="font-size:16px">—</b></div></div>
+    <div><label class="fl">Justificativa *</label><textarea class="inp" name="just" required placeholder="Por que precisa comprar? Ex.: estoque abaixo do mínimo, peça quebrada na OS…">${esc(pre.justificativa||'')}</textarea></div>
+    <button class="btn" type="submit">${editing?'Reenviar para aprovação':'Enviar para aprovação'}</button></form>`,(body,sh)=>{
+    const box=$('#rcItens',body);
+    const draw=()=>{box.innerHTML=itens.map((it,i)=>`<div class="rci" data-i="${i}"><div class="rci-h"><b>Item ${i+1}</b>${itens.length>1?`<button type="button" class="rm" data-rm="${i}">✕</button>`:''}</div>
+      <select class="inp" data-k="pecaId">${optPecas(it.pecaId,st).replace('— escolha a peça —','— item avulso (sem cadastro) —')}</select>
+      <input class="inp" data-k="descricao" placeholder="Descrição do item" value="${esc(it.descricao||'')}" ${it.pecaId?'readonly':''} style="font-size:16px">
+      <div class="row3"><div><label class="fl">Qtd</label><input class="inp" data-k="qtd" inputmode="decimal" value="${nq(it.qtd)}"></div><div><label class="fl">Unid.</label><select class="inp" data-k="unidade" ${it.pecaId?'disabled':''}>${UNID.map(u=>`<option ${u===it.unidade?'selected':''}>${u}</option>`).join('')}</select></div><div><label class="fl">R$ unit. est.</label><input class="inp" data-k="valorUnit" inputmode="decimal" value="${it.valorUnit?nf(it.valorUnit,2):''}"></div></div></div>`).join('');tot();};
+    const tot=()=>{const t=itens.reduce((a,i)=>a+(+i.qtd||0)*(+i.valorUnit||0),0);$('#rcTot',body).textContent=brl(t);const alc=S.cfg.alcada||5000;$('#rcAlc',body).textContent=t>alc?'Supervisor + gerente':'Supervisor';};
+    box.addEventListener('input',e=>{const r=e.target.closest('.rci');if(!r)return;const i=+r.dataset.i,k=e.target.dataset.k;if(k==='qtd'||k==='valorUnit')itens[i][k]=num(e.target.value)||0;else if(k)itens[i][k]=e.target.value;tot();});
+    box.addEventListener('change',e=>{const r=e.target.closest('.rci');if(!r||e.target.dataset.k!=='pecaId')return;const i=+r.dataset.i,p=pecaById(e.target.value);
+      itens[i].pecaId=e.target.value;if(p){itens[i].descricao=p.codigo+' · '+p.descricao;itens[i].unidade=p.unidade||'un';if(!itens[i].valorUnit)itens[i].valorUnit=p.custoUnit||0;}else{itens[i].descricao='';}draw();});
+    box.addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(b){itens.splice(+b.dataset.rm,1);draw();}});
+    $('#rcAdd',body).onclick=()=>{itens.push({pecaId:'',descricao:'',unidade:'un',qtd:1,valorUnit:0});draw();};
+    $('[data-radio="urg"]',body).onclick=e=>{const c=e.target.closest('.chip');if(c)$$('.chip',c.parentElement).forEach(x=>x.classList.toggle('on',x===c));};
+    draw();
+    $('#fRC',body).onsubmit=async e=>{e.preventDefault();if(!needWrite())return;const f=e.target;
+      const it=itens.map(i=>({pecaId:i.pecaId||null,descricao:String(i.descricao||'').trim(),unidade:i.unidade||'un',qtd:+i.qtd||0,valorUnit:+i.valorUnit||0,recebido:+i.recebido||0})).filter(i=>i.descricao||i.pecaId);
+      if(!it.length)return toast('Adicione pelo menos um item.',true);if(it.some(i=>!(i.qtd>0)))return toast('Informe a quantidade de todos os itens.',true);
+      if(it.some(i=>!i.descricao))return toast('Descreva os itens avulsos.',true);
+      const just=f.just.value.trim();if(!just)return toast('Escreva a justificativa.',true);
+      if(it.some(i=>!(i.valorUnit>0))&&!await ask('Há itens sem valor estimado. A alçada será calculada só com os valores informados. Enviar assim?','Enviar'))return;
+      const a=ativoById(f.ativo.value);const urg=$('[data-radio="urg"] .chip.on',body).dataset.v;
+      const base={urgencia:urg,ativoId:a?a._id:null,ativoNome:a?ativoLabel(a):'',osId:f.os.value||null,justificativa:just,itens:it,valorEst:rcTotal({itens:it}),status:'Em aprovação',em:nowIso()};
+      busy(f,true);let ok,id;
+      if(editing){id=editing._id;ok=await w(()=>S.db.collection('requisicoes').doc(id).set({...(({_id,...x})=>x)(editing),...base,historico:[...(editing.historico||[]),{acao:'Revisada e reenviada',por:S.uid||null,em:nowIso()}]}),'✔ Requisição reenviada');}
+      else{const d=new Date();id=rid();const numero='RC-'+String(d.getFullYear()).slice(2)+pad(d.getMonth()+1)+pad(d.getDate())+'-'+Math.random().toString(36).slice(2,5).toUpperCase();
+        ok=await w(()=>S.db.collection('requisicoes').doc(id).set({numero,data:todayStr(),por:S.uid||null,...base,historico:[{acao:'Criada e enviada para aprovação',por:S.uid||null,em:nowIso()}]}),'✔ Requisição '+numero+' enviada');}
+      busy(f,false);if(ok){sh.close();rcDetail(id);}};});}
+function rcDetail(id){
+  sheet('Requisição de compra','',(body,sh)=>{sh.refresh=()=>{const r=S.reqs.find(x=>x._id===id);if(!r){body.innerHTML=empty('Requisição não encontrada.');return;}
+    const H=r.historico||[];loadNames([r.por,...H.map(h=>h.por)]);const alc=S.cfg.alcada||5000,tot=rcTotal(r),mine=r.por===S.uid;
+    const final=r.status==='Pedido emitido'||r.status.startsWith('Recebida');
+    const acts=[];
+    if(r.status==='Em aprovação'&&has('supervisor')){if(mine&&!S.isOwner)acts.push('<p class="note">Você não pode aprovar a própria requisição.</p>');else acts.push(`<button class="btn" data-act="rcAprovar" data-id="${esc(id)}">Aprovar${tot>alc&&!has('gerente')?' (nível 1)':''}</button>`,`<button class="btn ghost" data-act="rcDevolver" data-id="${esc(id)}">Devolver p/ revisão</button>`,`<button class="btn danger" data-act="rcReprovar" data-id="${esc(id)}">Reprovar</button>`);}
+    if(r.status==='Aprovação gerência'&&has('gerente')){if(mine&&!S.isOwner)acts.push('<p class="note">Você não pode aprovar a própria requisição.</p>');else acts.push(`<button class="btn" data-act="rcAprovar" data-id="${esc(id)}">Aprovar (gerência)</button>`,`<button class="btn ghost" data-act="rcDevolver" data-id="${esc(id)}">Devolver p/ revisão</button>`,`<button class="btn danger" data-act="rcReprovar" data-id="${esc(id)}">Reprovar</button>`);}
+    if(r.status==='Aprovada'&&has('compras'))acts.push(`<button class="btn" data-act="rcPedido" data-id="${esc(id)}">Registrar pedido ao fornecedor</button>`);
+    if((r.status==='Pedido emitido'||r.status==='Recebida parcial')&&(has('almoxarife')||has('compras')))acts.push(`<button class="btn" data-act="rcReceber" data-id="${esc(id)}">Registrar recebimento</button>`);
+    if(r.status==='Em revisão'&&(mine||has('gerente')))acts.push(`<button class="btn" data-act="rcRevisar" data-id="${esc(id)}">Revisar e reenviar</button>`);
+    if(['Em aprovação','Aprovação gerência','Em revisão','Aprovada'].includes(r.status)&&(mine||has('gerente')))acts.push(`<button class="btn ghost" data-act="rcCancelar" data-id="${esc(id)}">Cancelar requisição</button>`);
+    const wait={'Em aprovação':'Aguardando aprovação do supervisor','Aprovação gerência':'Aguardando aprovação da gerência (valor acima de '+brl(alc)+')','Aprovada':'Aguardando Compras emitir o pedido','Pedido emitido':'Aguardando entrega do fornecedor','Recebida parcial':'Parte dos itens recebida','Em revisão':'Devolvida ao solicitante para ajustes'}[r.status];
+    body.innerHTML=`<div class="lt" style="margin-bottom:6px"><b style="font-size:19px">${esc(r.numero)} ${r.urgencia&&r.urgencia!=='Normal'?`<span class="urg">${esc(r.urgencia)}</span>`:''}</b>${stBadge(r.status)}</div>
+    ${wait?`<p class="note" style="margin:0 0 10px">${wait}</p>`:''}
+    ${rcFlow(r)}
+    <div class="kv"><span>Solicitante</span><b>${esc(who(r.por)||'—')} · ${dShort(r.data)}</b><span>Ativo</span><b>${esc(r.ativoNome||'—')}</b><span>OS</span><b>${r.osId?`<a href="#" data-open="os|${esc(r.osId)}">ver OS</a>`:'—'}</b>${r.fornecedor?`<span>Fornecedor</span><b>${esc(r.fornecedor)}</b>`:''}${r.pedido?`<span>Nº do pedido</span><b>${esc(r.pedido)}</b>`:''}${r.previsao?`<span>Previsão de entrega</span><b>${dShort(r.previsao)}</b>`:''}</div>
+    <p style="margin:10px 0"><b>Justificativa:</b> ${esc(r.justificativa)}</p>
+    <table class="t"><tr><th class="l">Item</th><th>Qtd</th><th>R$ unit.</th><th>Total</th>${final?'<th>Receb.</th>':''}</tr>
+    ${(r.itens||[]).map(i=>`<tr><td class="l" style="white-space:normal">${esc(i.descricao)}${i.pecaId?'':' <span class="note">(avulso)</span>'}</td><td>${nq(i.qtd)} ${esc(i.unidade)}</td><td>${brl(i.valorUnit)}</td><td>${brl(i.qtd*i.valorUnit)}</td>${final?`<td class="${(i.recebido||0)>=i.qtd?'pos':''}">${nq(i.recebido||0)}</td>`:''}</tr>`).join('')}
+    <tr class="tot"><td>Total ${r.valorFinal!=null?'do pedido':'estimado'}</td><td></td><td></td><td>${brl(tot)}</td>${final?'<td></td>':''}</tr></table>
+    <div class="acts2" style="margin-top:12px">${acts.join('')}</div>
+    <h4 class="h4">Histórico</h4><div class="tl">${H.map(h=>`<div><b>${esc(h.acao)}</b><span>${esc(who(h.por)||'—')} · ${new Date(h.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>${h.obs?`<p>${esc(h.obs)}</p>`:''}</div>`).join('')}</div>`;};
+    sh.refresh();});}
+function rcFlow(r){const steps=['Solicitada','Aprovada','Pedido','Recebida'];
+  const idx={'Em aprovação':0,'Aprovação gerência':0,'Em revisão':0,'Aprovada':1,'Pedido emitido':2,'Recebida parcial':2,'Recebida':3}[r.status];
+  if(idx==null)return'';return`<div class="flow">${steps.map((s,i)=>`<div class="${i<=idx?'on':''}"><i>${i<idx||r.status==='Recebida'?'✓':i+1}</i><span>${s}</span></div>`).join('')}</div>`;}
+async function rcUpdate(r,fields,acao,obs,msg){
+  const h=[...(r.historico||[]),{acao,por:S.uid||null,em:nowIso(),...(obs?{obs}:{})}];
+  return w(()=>S.db.collection('requisicoes').doc(r._id).update({...fields,historico:h}),msg);}
+async function rcAction(act,id){
+  const r=S.reqs.find(x=>x._id===id);if(!r||!needWrite())return;const alc=S.cfg.alcada||5000,tot=rcTotal(r);
+  if(act==='rcAprovar'){
+    const lvl2=r.status==='Aprovação gerência';
+    if(!lvl2&&tot>alc&&!has('gerente')){if(!await ask(`Aprovar ${r.numero}? Como o valor (${brl(tot)}) passa da alçada de ${brl(alc)}, ela segue para a gerência.`,'Aprovar'))return;
+      return rcUpdate(r,{status:'Aprovação gerência'},'Aprovada pelo supervisor (nível 1)',null,'✔ Aprovada — enviada à gerência');}
+    const ob=await askText(`Aprovar ${r.numero} (${brl(tot)})? Comentário opcional:`,'Ex.: comprar com o fornecedor X','Aprovar',false);if(ob===null)return;
+    return rcUpdate(r,{status:'Aprovada',aprovadaPor:S.uid||null,aprovadaEm:nowIso()},lvl2?'Aprovada pela gerência':'Aprovada',ob,'✔ Requisição aprovada');}
+  if(act==='rcReprovar'){const ob=await askText(`Reprovar ${r.numero}? Informe o motivo:`,'Motivo da reprovação','Reprovar',true,true);if(ob===null)return;return rcUpdate(r,{status:'Reprovada'},'Reprovada',ob,'Requisição reprovada');}
+  if(act==='rcDevolver'){const ob=await askText('O que o solicitante precisa ajustar?','Ex.: rever quantidade, cotar outro item…','Devolver');if(ob===null)return;return rcUpdate(r,{status:'Em revisão'},'Devolvida para revisão',ob,'Requisição devolvida');}
+  if(act==='rcCancelar'){const ob=await askText(`Cancelar ${r.numero}? Informe o motivo:`,'Motivo','Cancelar requisição',true,true);if(ob===null)return;return rcUpdate(r,{status:'Cancelada'},'Cancelada',ob,'Requisição cancelada');}
+  if(act==='rcRevisar'){S.sheet&&S.sheet.close();return rcForm(r);}
+  if(act==='rcPedido')return rcPedidoForm(r);
+  if(act==='rcReceber')return rcReceberForm(r);}
+function rcPedidoForm(r){
+  sheet('Pedido · '+r.numero,`<form class="f" id="fPed">
+    <div><label class="fl">Fornecedor *</label><input class="inp" name="forn" required style="font-size:16px"></div>
+    <div class="row2"><div><label class="fl">Nº do pedido</label><input class="inp" name="ped" style="font-size:16px"></div><div><label class="fl">Previsão de entrega</label><input class="inp" type="date" name="prev"></div></div>
+    <div><label class="fl">Valor unitário negociado</label>${(r.itens||[]).map((i,k)=>`<div class="prow"><span style="font-size:14px">${esc(i.descricao)} <span class="note">(${nq(i.qtd)} ${esc(i.unidade)})</span></span><input class="inp" data-vu="${k}" inputmode="decimal" value="${i.valorUnit?nf(i.valorUnit,2):''}" style="height:44px"></div>`).join('')}</div>
+    <div class="calc"><div><small>Total do pedido</small><b id="pedTot">—</b></div></div>
+    <button class="btn" type="submit">Registrar pedido</button></form>`,(body,sh)=>{
+    const f=$('#fPed',body);const t=()=>{let s=0;$$('[data-vu]',f).forEach(x=>s+=(num(x.value)||0)*(r.itens[+x.dataset.vu].qtd||0));$('#pedTot',body).textContent=brl(s);return s;};
+    f.addEventListener('input',t);t();
+    f.onsubmit=async e=>{e.preventDefault();if(!needWrite())return;const forn=f.forn.value.trim();if(!forn)return toast('Informe o fornecedor.',true);
+      const itens=r.itens.map((i,k)=>({...i,valorUnit:num($(`[data-vu="${k}"]`,f).value)||0}));const total=rcTotal({itens});
+      const alc=S.cfg.alcada||5000;let extra='';
+      if(r.valorEst&&total>r.valorEst*1.1)extra=` O valor ficou ${pf(total/r.valorEst-1,0)} acima do estimado.`;
+      if(extra&&!await ask('Registrar o pedido?'+extra,'Registrar'))return;
+      busy(f,true);const ok=await rcUpdate(r,{status:'Pedido emitido',fornecedor:forn,pedido:f.ped.value.trim(),previsao:f.prev.value||null,itens,valorFinal:total},'Pedido emitido a '+forn,(f.ped.value.trim()?'Pedido '+f.ped.value.trim()+' · ':'')+brl(total),'✔ Pedido registrado');
+      busy(f,false);if(ok){sh.close();rcDetail(r._id);}};});}
+function rcReceberForm(r){
+  const pend=(r.itens||[]).map((i,k)=>({...i,k,falta:Math.max(0,(i.qtd||0)-(i.recebido||0))}));
+  sheet('Recebimento · '+r.numero,`<form class="f" id="fRec"><p class="note" style="margin:0">Informe o que chegou agora. Itens com cadastro entram automaticamente no estoque.</p>
+    ${pend.map(i=>`<div class="prow"><span style="font-size:14px">${esc(i.descricao)}<br><span class="note">pedido ${nq(i.qtd)} · já recebido ${nq(i.recebido||0)}${i.pecaId?'':' · avulso (não entra no estoque)'}</span></span><input class="inp" data-rq="${i.k}" inputmode="decimal" value="${i.falta?nq(i.falta):'0'}" style="height:44px"></div>`).join('')}
+    <div class="row2"><div><label class="fl">Data</label><input class="inp" type="date" name="data" value="${todayStr()}"></div><div><label class="fl">Nota fiscal</label><input class="inp" name="nf" style="font-size:16px"></div></div>
+    <button class="btn" type="submit">Confirmar recebimento</button></form>`,(body,sh)=>{
+    const f=$('#fRec',body);f.onsubmit=async e=>{e.preventDefault();if(!needWrite())return;
+      const got=pend.map(i=>({...i,q:num($(`[data-rq="${i.k}"]`,f).value)||0}));if(!got.some(i=>i.q>0))return toast('Informe pelo menos uma quantidade recebida.',true);
+      if(got.some(i=>i.q>i.falta+1e-9)&&!await ask('Há item recebido acima do pedido. Confirmar?'))return;
+      busy(f,true);const data=f.data.value||todayStr(),nfis=f.nf.value.trim();
+      for(const i of got){if(!(i.q>0)||!i.pecaId)continue;
+        const ok=await w(()=>S.db.collection('movimentos').doc(safeId('rc_'+r._id+'_'+i.k+'_'+rid())).set({pecaId:i.pecaId,tipo:'entrada',qtd:i.q,data,custoUnit:i.valorUnit||0,ref:'RC',refId:r._id,refNum:r.numero,obs:nfis?'NF '+nfis:'',por:S.uid||null,em:nowIso()}));
+        if(!ok){busy(f,false);return;}
+        const p=pecaById(i.pecaId);if(p&&i.valorUnit&&p.custoUnit!==i.valorUnit)await w(()=>S.db.collection('pecas').doc(i.pecaId).update({custoUnit:i.valorUnit}));}
+      const itens=r.itens.map((it,k)=>{const g=got.find(x=>x.k===k);return{...it,recebido:(it.recebido||0)+(g?g.q:0)};});
+      const done=itens.every(it=>(it.recebido||0)>=it.qtd-1e-9);
+      const ok=await rcUpdate(r,{itens,status:done?'Recebida':'Recebida parcial',...(done?{recebidaEm:nowIso()}:{})},done?'Recebida (completa)':'Recebimento parcial',(nfis?'NF '+nfis+' · ':'')+got.filter(i=>i.q>0).map(i=>nq(i.q)+'× '+i.descricao).join(', '),done?'✔ Recebimento concluído':'✔ Recebimento parcial registrado');
+      busy(f,false);if(ok){sh.close();rcDetail(r._id);}};});}
+
+/* ---------- OS form: ativos + peças ---------- */
+function fillAtivoSelect(){
+  const sel=$('#fmAtivo');if(!sel)return;const cur=sel.value;
+  if(S.ativos.length)sel.innerHTML=optAtivos(cur,false);
+  else sel.innerHTML=S.cfg.equipamentos.map(e=>`<option value="eq:${esc(e)}">${esc(e)}</option>`).join('');
+  if(cur&&[...sel.options].some(o=>o.value===cur))sel.value=cur;}
+function osPecaRow(pecaId,qtd){const st=stockMap();return`<div class="prow2"><select class="inp" data-pp>${optPecas(pecaId,st)}</select><div class="step"><button type="button" data-d="-1">−</button><input class="inp" data-pq inputmode="decimal" value="${qtd?nq(qtd):'1'}"><button type="button" data-d="1">+</button></div><button type="button" class="rm" data-rmrow>✕</button></div>`;}
+function osPecasCusto(){let c=0;$$('#fmPecas .prow2').forEach(r=>{const p=pecaById($('[data-pp]',r).value);c+=(num($('[data-pq]',r).value)||0)*((p&&p.custoUnit)||0);});
+  const o=$('[data-o="custo"]',$('#fm'));if(o)o.textContent=c?'Custo das peças: '+brl(c):'';return c;}
+function collectOSPecas(){const m={};$$('#fmPecas .prow2').forEach(r=>{const id=$('[data-pp]',r).value,q=num($('[data-pq]',r).value)||0;if(id&&q>0)m[id]=(m[id]||0)+q;});
+  return Object.entries(m).map(([pecaId,qtd])=>({pecaId,qtd,custoUnit:(pecaById(pecaId)||{}).custoUnit||0}));}
+async function syncOSMovs(osId,body,oldPecas){
+  const newIds=new Set(body.pecas.map(p=>p.pecaId));
+  for(const p of oldPecas||[])if(!newIds.has(p.pecaId))await withRetry(()=>S.db.collection('movimentos').doc(safeId('os_'+osId+'_'+p.pecaId)).delete());
+  for(const p of body.pecas){const old=(oldPecas||[]).find(x=>x.pecaId===p.pecaId);if(old&&old.qtd===p.qtd&&S.movs.some(m=>m.refId===osId&&m.pecaId===p.pecaId&&m.data===body.data))continue;
+    await withRetry(()=>S.db.collection('movimentos').doc(safeId('os_'+osId+'_'+p.pecaId)).set({pecaId:p.pecaId,tipo:'saida',qtd:p.qtd,data:body.data,custoUnit:p.custoUnit,ativoId:body.ativoId||null,ref:'OS',refId:osId,obs:body.equip,por:S.uid||null,em:nowIso()}));}}
+
+/* ---------- AJUSTES: equipe ---------- */
+function renderTeam(){
+  if(window.IBIUNA&&window.IBIUNA.renderUsers)return window.IBIUNA.renderUsers();
+  const box=$('#teamList');if(!box)return;const U=S.papeis.users||{};const ids=uniq([...Object.keys(U),...S.pessoas.map(p=>p.uid).filter(Boolean)]);
+  loadNames(ids);const ed=has('gerente');
+  $('#teamSearch').classList.toggle('hidden',!(ed&&S.user&&S.user.search));
+  box.innerHTML=(ids.length?ids.map(id=>{const r=(U[id]||{}).roles||[];return`<div class="tm"><div><b>${esc(id===S.uid?(S.names[id]||'Você')+' (você)':S.names[id]||'Usuário')}</b>${id===S.uid&&S.isOwner?' <span class="note">· dono, acesso total</span>':''}</div>
+    <div class="chips">${ROLES.map(([k,l,dsc])=>`<button type="button" class="chip sm ${r.includes(k)?'on':''}" ${ed?'':'disabled'} data-role="${k}" data-uid="${esc(id)}" title="${esc(dsc)}">${l}</button>`).join('')}</div></div>`;}).join(''):'<p class="note">As pessoas aparecem aqui depois que abrem o app pela primeira vez.</p>')+
+    `<p class="note">${ROLES.map(([,l,d])=>`<b>${l}:</b> ${d}`).join(' · ')}. Todos podem lançar produção, abrir OS e criar requisições.</p>`;}
+async function toggleRole(uid,role){if(!has('gerente')||!needWrite()||S.savingRoles)return;
+  const U=JSON.parse(JSON.stringify(S.papeis.users||{}));const r=new Set((U[uid]||{}).roles||[]);r.has(role)?r.delete(role):r.add(role);U[uid]={roles:[...r]};
+  S.savingRoles=true;S.papeis={...S.papeis,users:U};renderTeam();await w(()=>S.db.doc('cfg/papeis').set({users:U}),'✔ Papéis atualizados');S.savingRoles=false;}
+
+/* ---------- events for module ---------- */
+function bindMnt(){
+  document.addEventListener('click',async e=>{
+    const op=e.target.closest('[data-open]'),ac=e.target.closest('[data-act]');if(op&&!(ac&&op.contains(ac))){e.preventDefault();const[k,id]=op.dataset.open.split('|');({os:osDetail,ativo:ativoDetail,peca:pecaDetail,rc:rcDetail,plano:planoDetail,rotina:rotinaDetail,insp:inspDetail})[k](id);return;}
+    const go=e.target.closest('[data-go]');if(go){S.mntTab=go.dataset.go;setView('mnt');return;}
+    const m=e.target.closest('#mntSeg button');if(m){S.mntTab=m.dataset.m;render();return;}
+    const fl=e.target.closest('[data-flt]');if(fl){S.flt[fl.dataset.flt]=fl.dataset.v;render();return;}
+    const rl=e.target.closest('[data-role]');if(rl){toggleRole(rl.dataset.uid,rl.dataset.role);return;}
+    const rr=e.target.closest('[data-rmrow]');if(rr){rr.parentElement.remove();osPecasCusto();return;}
+    const a=e.target.closest('[data-act]');if(!a)return;const id=a.dataset.id,act=a.dataset.act;
+    if(act==='novaOS'||act==='osParaAtivo'){S.sheet&&S.sheet.close();setView('lancar');setForm('mnt');resetForm('#fm');if(id){$('#fmAtivo').value=id;}return;}
+    if(act==='osEditar'){S.sheet&&S.sheet.close();startEdit('manutencao',id);return;}
+    if(act==='osConcluir')return osConcluir(id);
+    if(act==='novoPlano')return planoForm();if(act==='planoEditar')return planoForm(id);if(act==='planoGerar')return planoGerar(id);if(act==='planoExec')return planoExecForm(id);
+    if(act==='novaRotina')return rotinaForm();if(act==='rotinaEditar')return rotinaForm(id);if(act==='inspExec')return inspExec(id);
+    if(act==='task'){const[o,k]=id.split('|');return osToggleTask(o,+k);}
+    if(act==='horLeitura'){const a=ativoById(id);const v=await askText(`Leitura atual do horímetro de ${a.tag}:`,'Ex.: 12480,5','Salvar');if(v===null)return;const n=num(v);if(n==null)return toast('Valor inválido.',true);
+      const cur=horAtual(a);if(cur!=null&&n<cur&&!await ask(`A leitura (${nf(n,1)}) é menor que a atual (${nf(cur,1)}). Salvar mesmo assim?`))return;
+      return w(()=>S.db.collection('ativos').doc(id).update({hor:n,horData:todayStr()}),'✔ Horímetro atualizado');}
+    if(act==='novoAtivo')return ativoForm();
+    if(act==='ativoEditar')return ativoForm(id);
+    if(act==='novaPeca')return pecaForm();
+    if(act==='pecaEditar')return pecaForm(id);
+    if(act==='mov')return movForm(id,a.dataset.t);
+    if(act==='novaRC')return rcForm();
+    if(act==='rcParaAtivo')return rcForm({ativoId:id});
+    if(act==='rcFromOS'){const o=allOS().find(x=>x._id===id);return rcForm({osId:id,ativoId:o&&o.ativoId,justificativa:o?'Para a OS de '+o.equip+': '+o.desc:''});}
+    if(act==='rcPeca'){const p=pecaById(id),s=stockMap()[id]||0;const q=Math.max(1,(p.estoqueMax||(p.estoqueMin||0)*2)-s);
+      return rcForm({itens:[{pecaId:id,descricao:p.codigo+' · '+p.descricao,unidade:p.unidade||'un',qtd:Math.ceil(q),valorUnit:p.custoUnit||0}],justificativa:s<=(p.estoqueMin||0)?'Reposição de estoque: saldo '+nq(s)+', mínimo '+nq(p.estoqueMin||0)+'.':''});}
+    if(act==='rcLow'){const st=stockMap();const low=lowItems(st);
+      return rcForm({itens:low.map(p=>({pecaId:p._id,descricao:p.codigo+' · '+p.descricao,unidade:p.unidade||'un',qtd:Math.max(1,Math.ceil((p.estoqueMax||p.estoqueMin*2)-(st[p._id]||0))),valorUnit:p.custoUnit||0})),justificativa:'Reposição de estoque: itens no mínimo ou abaixo dele.'});}
+    if(act.startsWith('rc'))return rcAction(act,id);
+  });
+  document.addEventListener('input',e=>{const q=e.target.closest('[data-q]');if(q){S.q[q.dataset.q]=q.value;render();}if(e.target.closest('#fmPecas'))osPecasCusto();});
+  document.addEventListener('change',e=>{if(e.target.matches('#fmPecas [data-pp]'))osPecasCusto();});
+  $('#fmAddPeca').onclick=()=>{if(!S.pecas.length)return toast('Nenhuma peça cadastrada no estoque ainda.',true);$('#fmPecas').insertAdjacentHTML('beforeend',osPecaRow('',1));osPecasCusto();};
+  $('#fAlc').addEventListener('submit',async e=>{e.preventDefault();if(!needWrite())return;const v=num(e.target.alcada.value);if(!(v>=0))return toast('Informe o valor.',true);
+    busy(e.target,true);await w(()=>S.db.doc('cfg/geral').set({...S.cfgRaw,alcada:v}),'✔ Alçada salva');busy(e.target,false);});
+  let sT;$('#teamSearch input').addEventListener('input',e=>{clearTimeout(sT);const q=e.target.value;sT=setTimeout(async()=>{const box=$('#teamHits');if(!q.trim()){box.innerHTML='';return;}
+    try{const hits=await S.user.search(q);const U=S.papeis.users||{};box.innerHTML=(hits||[]).slice(0,8).map(h=>`<div class="tm"><b>${esc(h.name||'Usuário')}</b>${U[h.id]?'<span class="note">já na lista</span>':`<button class="btn ghost sm" data-addp="${esc(h.id)}">Adicionar</button>`}</div>`).join('')||'<p class="note">Ninguém encontrado.</p>';
+      (hits||[]).forEach(h=>{if(h.name)S.names[h.id]=h.name;});}catch(err){box.innerHTML='';}},300);});
+  $('#teamHits').addEventListener('click',async e=>{const b=e.target.closest('[data-addp]');if(!b||!needWrite())return;const U=JSON.parse(JSON.stringify(S.papeis.users||{}));U[b.dataset.addp]={roles:[]};
+    S.papeis={users:U};$('#teamHits').innerHTML='';$('#teamSearch input').value='';renderTeam();await w(()=>S.db.doc('cfg/papeis').set({users:U}),'✔ Pessoa adicionada — escolha os papéis');});
+}
+function subscribeMnt(){
+  const db=S.db;const sub=(ref,fn)=>ref.onSnapshot(fn,()=>{});
+  const rd=(k,s)=>{if(!s.metadata.fromCache)S.ready[k]=true;scheduleAutoGen();};
+  sub(db.collection('ativos'),s=>{S.ativos=s.docs.map(d=>({...d.data(),_id:d.id}));rd('ativos',s);fillAtivoSelect();render();});
+  sub(db.collection('planos'),s=>{S.planos=s.docs.map(d=>({...d.data(),_id:d.id}));rd('planos',s);render();});
+  sub(db.collection('rotinas'),s=>{S.rotinas=s.docs.map(d=>({...d.data(),_id:d.id}));render();});
+  sub(db.collection('inspecoes').where('data','>=',addDays(todayStr(),-60)),s=>{S.insps=s.docs.map(d=>({...d.data(),_id:d.id}));render();});
+  sub(db.collection('britagem').orderBy('data','desc').limit(3),s=>{S.britLast=s.docs.map(d=>d.data());scheduleAutoGen();render();});
+  sub(db.collection('viagens').orderBy('data','desc').limit(80),s=>{S.viagLast=s.docs.map(d=>d.data());scheduleAutoGen();render();});
+  sub(db.collection('pecas'),s=>{S.pecas=s.docs.map(d=>({...d.data(),_id:d.id}));render();});
+  sub(db.collection('movimentos'),s=>{S.movs=s.docs.map(d=>({...d.data(),_id:d.id}));render();});
+  sub(db.collection('requisicoes'),s=>{S.reqs=s.docs.map(d=>({...d.data(),_id:d.id}));render();});
+  sub(db.collection('manutencao').where('status','==','Aberta'),s=>{S.osAbertas=s.docs.map(d=>({...d.data(),_id:d.id}));rd('osAbertas',s);render();});
+  sub(db.doc('cfg/papeis'),s=>{if(!S.savingRoles)S.papeis=s.exists?s.data():{};render();});
+  sub(db.collection('pessoas'),s=>{S.pessoas=s.docs.map(d=>d.data());render();});
+  (async()=>{if(S.canWrite===false||!S.uid)return;try{const ref=db.collection('pessoas').doc(safeId(S.uid));const g=await ref.get();if(!g.exists||g.data().visto!==todayStr())await ref.set({uid:S.uid,visto:todayStr()});}catch(e){}})();
+}
+
+/* ================= PLANOS PREVENTIVOS · ROTINAS DE INSPEÇÃO ================= */
+const FREQ={diaria:['Diária',1],semanal:['Semanal',7],quinzenal:['Quinzenal',15],mensal:['Mensal',30]};
+const AREAS_PLANO=['Mecânica','Elétrica','Lubrificação','Inspeção'];
+const HOR_FONTE={manual:'Leitura manual',britador:'Horímetro do britador (lançamentos de britagem)',frota:'Horímetro do caminhão (lançamentos de viagens)'};
+const dayMs=864e5;
+const daysBetween=(a,b)=>Math.round((Date.parse(b+'T12:00:00')-Date.parse(a+'T12:00:00'))/dayMs);
+const addDays=(d,n)=>{const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());};
+const lines=s=>String(s||'').split('\n').map(x=>x.trim()).filter(Boolean);
+
+function horAtual(a){if(!a)return null;let h=fin(a.hor)?a.hor:null;let d=null;
+  if(a.horFonte==='britador')for(const b of S.britLast)if(fin(b.horFim)&&(d==null||b.horFim>d))d=b.horFim;
+  if(a.horFonte==='frota')for(const v of S.viagLast)if(v.frota===a.tag&&fin(v.horFim)&&(d==null||v.horFim>d))d=v.horFim;
+  if(d!=null&&(h==null||d>h))h=d;return h;}
+
+function planStatus(p){
+  const a=ativoById(p.ativoId),open=S.osAbertas.find(o=>o.planoId===p._id),u=p.ultima||{};let rem=null,next=null,h=null;
+  if(p.tipo==='horas'){h=horAtual(a);if(fin(u.hor)){next=u.hor+p.intervalo;if(h!=null)rem=next-h;}}
+  else if(u.data){next=addDays(u.data,p.intervalo);rem=daysBetween(todayStr(),next);}
+  const ant=fin(p.antecedencia)?p.antecedencia:(p.tipo==='horas'?Math.round(p.intervalo*0.1):Math.min(7,Math.round(p.intervalo*0.15)));
+  let st,col;
+  if(p.inativo){st='Inativo';col='#8a948f';}
+  else if(open){st='OS aberta';col='var(--blue)';}
+  else if(next==null){st='Sem última execução';col='#8a948f';}
+  else if(rem==null){st='Sem leitura do horímetro';col='#8a948f';}
+  else if(rem<0){st='Vencido';col='var(--red)';}
+  else if(rem<=ant){st='Próximo';col='#c98d00';}
+  else{st='Em dia';col='var(--g600)';}
+  return{st,col,rem,next,open,ant,a,h};}
+function planWhen(p,s){if(s.next==null)return p.tipo==='horas'?'informe a última execução (horímetro)':'informe a data da última execução';
+  if(p.tipo==='horas'){const n='próxima no horímetro '+nf(s.next);if(s.rem==null)return n+' · sem leitura atual';return n+' · '+(s.rem<0?`vencido há ${nf(-s.rem)} h`:`faltam ${nf(s.rem)} h`);}
+  return'próxima em '+dShort(s.next)+' · '+(s.rem<0?`vencido há ${-s.rem} dia(s)`:s.rem===0?'vence hoje':`faltam ${s.rem} dia(s)`);}
+const planInterval=p=>p.tipo==='horas'?`a cada ${nf(p.intervalo)} h`:`a cada ${p.intervalo} dia(s)`;
+const ORD={'Vencido':0,'Próximo':1,'OS aberta':2,'Sem leitura do horímetro':3,'Sem última execução':4,'Em dia':5,'Inativo':6};
+
+function rotStatus(r){
+  const ex=S.insps.filter(i=>i.rotinaId===r._id).sort((a,b)=>(b.data+(b.em||'')).localeCompare(a.data+(a.em||'')));const last=ex[0];const t=todayStr();
+  if(r.inativo)return{st:'Inativa',col:'#8a948f',last};
+  if(!last)return{st:'Pendente',col:'#c98d00',last,txt:'nunca executada'};
+  const next=addDays(last.data,FREQ[r.freq||'diaria'][1]),d=daysBetween(t,next);
+  if(last.data===t)return{st:'Feita hoje',col:'var(--g600)',last,txt:'feita hoje'+(who(last.por)?' por '+who(last.por):'')};
+  if(d>0)return{st:'Em dia',col:'var(--g600)',last,txt:'próxima em '+dShort(next)};
+  if(d===0)return{st:'Pendente',col:'#c98d00',last,txt:'para hoje'};
+  return{st:'Atrasada',col:'var(--red)',last,txt:`atrasada ${-d} dia(s) · última ${dShort(last.data)}`};}
+const RORD={'Atrasada':0,'Pendente':1,'Feita hoje':2,'Em dia':3,'Inativa':4};
+const rotPending=()=>S.rotinas.filter(r=>{const s=rotStatus(r).st;return s==='Pendente'||s==='Atrasada';});
+const plansDue=()=>S.planos.filter(p=>planStatus(p).st==='Vencido');
+
+/* ---------- auto OS ---------- */
+let agT;function scheduleAutoGen(){clearTimeout(agT);agT=setTimeout(autoGen,1500);}
+function planKey(p,s){return safeId(`prev_${p._id}_${p.tipo==='horas'?Math.round(s.next):s.next}`);}
+function osFromPlan(p,s,auto){const a=s.a;return{data:todayStr(),ativoId:p.ativoId||null,equip:a?ativoLabel(a):'(ativo removido)',area:p.area==='Elétrica'?'Elétrica':'Mecânica',natureza:'Preventiva',paraBritagem:false,
+  hIni:null,hFim:null,horas:0,desc:`Preventiva: ${p.nome}`+(s.next!=null?` (${p.tipo==='horas'?'horímetro '+nf(s.next):'vence '+dShort(s.next)})`:''),status:'Aberta',pecas:[],custoPecas:0,
+  planoId:p._id,tarefas:(p.tarefas||[]).map(t=>({t,ok:false})),duracaoEst:p.duracao||null,auto:!!auto,por:auto?null:(S.uid||null),em:nowIso()};}
+async function autoGen(){
+  if(!S.db||S.canWrite===false||!S.ready.planos||!S.ready.osAbertas||!S.ready.ativos||S.agRunning)return;S.agRunning=true;let n=0;
+  try{for(const p of S.planos){if(p.inativo||p.autoOS===false)continue;const s=planStatus(p);if(s.open||!(s.st==='Vencido'||s.st==='Próximo'))continue;
+    const ref=S.db.collection('manutencao').doc(planKey(p,s));const g=await ref.get();if(g.exists)continue;await ref.set(osFromPlan(p,s,true));n++;}}
+  catch(e){}S.agRunning=false;if(n)toast(`${n} OS preventiva(s) gerada(s) pelos planos`);}
+async function planDone(osId,date,planoId){
+  const p=S.planos.find(x=>x._id===planoId);if(!p)return;
+  let h=horAtual(ativoById(p.ativoId));if(p.tipo==='horas'&&h==null)h=fin((p.ultima||{}).hor)?p.ultima.hor+p.intervalo:null;
+  await w(()=>S.db.collection('planos').doc(p._id).update({ultima:{data:date||todayStr(),hor:h,osId}}));}
+
+/* ---------- lists ---------- */
+function listPlanos(){
+  const f=S.flt.pl;let arr=S.planos.map(p=>({p,s:planStatus(p)}));
+  if(f==='due')arr=arr.filter(x=>x.s.st==='Vencido'||x.s.st==='Próximo'||x.s.st==='OS aberta');
+  if(f==='setup')arr=arr.filter(x=>x.s.st.startsWith('Sem'));
+  arr.sort((a,b)=>(ORD[a.s.st]-ORD[b.s.st])||byTag(a.s.a||{},b.s.a||{}));
+  if(!S.planos.length)return empty('Nenhum plano de manutenção cadastrado.');if(!arr.length)return empty(f==='due'?'Nenhuma preventiva vencida ou próxima. 👍':'Nada neste filtro.');
+  return arr.map(({p,s})=>`<div class="li" data-open="plano|${esc(p._id)}"><div class="lt"><b>${s.a?`<span class="tag">${esc(s.a.tag)}</span> `:''}${esc(p.nome)}</b>${stBadge(s.st,s.col)}</div>
+    <div class="ls">${esc(p.area)} · ${planInterval(p)}${p.autoOS===false?'':' · OS automática'}</div><div class="ls">${planWhen(p,s)}</div></div>`).join('');}
+function listInsp(){
+  const f=S.flt.ins;
+  if(f==='hist'){const arr=[...S.insps].sort((a,b)=>(b.data+(b.em||'')).localeCompare(a.data+(a.em||'')));loadNames(arr.map(i=>i.por));
+    if(!arr.length)return empty('Nenhuma inspeção registrada nos últimos 60 dias.');
+    return arr.slice(0,80).map(i=>{const r=S.rotinas.find(x=>x._id===i.rotinaId);return`<div class="li" data-open="insp|${esc(i._id)}"><div class="lt"><b>${esc(r?r.nome:i.rotinaNome||'Rotina')}</b>${i.nok?stBadge(i.nok+' NOK','var(--red)'):stBadge('tudo OK','var(--g600)')}</div>
+      <div class="ls">${dLabel(i.data)}${who(i.por)?' · '+esc(who(i.por)):''}${i.osId?' · OS aberta':''}</div></div>`;}).join('');}
+  let arr=S.rotinas.map(r=>({r,s:rotStatus(r)}));if(f==='pend')arr=arr.filter(x=>x.s.st==='Pendente'||x.s.st==='Atrasada');
+  arr.sort((a,b)=>(RORD[a.s.st]-RORD[b.s.st])||byTag(ativoById(a.r.ativoId)||{},ativoById(b.r.ativoId)||{}));
+  if(!S.rotinas.length)return empty('Nenhuma rotina de inspeção cadastrada.');if(!arr.length)return empty('Todas as inspeções em dia. 👍');
+  return arr.map(({r,s})=>{const a=ativoById(r.ativoId);const can=s.st!=='Inativa';return`<div class="li insp" data-open="rotina|${esc(r._id)}"><div class="lt"><b>${a?`<span class="tag">${esc(a.tag)}</span> `:''}${esc(r.nome)}</b>${stBadge(s.st,s.col)}</div>
+    <div class="ls">${FREQ[r.freq||'diaria'][0]} · ${(r.itens||[]).length} itens${r.local?' · '+esc(r.local):''} · ${esc(s.txt||'')}</div>
+    ${can&&(s.st==='Pendente'||s.st==='Atrasada')?`<button class="btn sm" data-act="inspExec" data-id="${esc(r._id)}" style="margin-top:8px;width:100%">Executar inspeção</button>`:''}</div>`;}).join('');}
+
+/* ---------- plano detail/form ---------- */
+function planoDetail(id){
+  sheet('Plano de manutenção','',(body,sh)=>{let hist=null;
+    const load=async()=>{try{const q=await S.db.collection('manutencao').where('planoId','==',id).get();hist=q.docs.map(d=>({...d.data(),_id:d.id})).sort((a,b)=>(b.data+(b.em||'')).localeCompare(a.data+(a.em||'')));}catch(e){hist=[];}sh.refresh&&sh.refresh();};
+    sh.refresh=()=>{const p=S.planos.find(x=>x._id===id);if(!p){body.innerHTML=empty('Plano não encontrado.');return;}const s=planStatus(p),u=p.ultima||{};
+      body.innerHTML=`<div class="lt" style="margin-bottom:6px"><b style="font-size:18px">${esc(p.nome)}</b>${stBadge(s.st,s.col)}</div><p class="note" style="margin:0 0 10px">${planWhen(p,s)}</p>
+      <div class="kv"><span>Ativo</span><b>${s.a?`<a href="#" data-open="ativo|${esc(s.a._id)}">${esc(ativoLabel(s.a))}</a>`:'—'}</b><span>Área</span><b>${esc(p.area)}</b><span>Periodicidade</span><b>${planInterval(p)}</b>
+      ${p.tipo==='horas'?`<span>Horímetro atual</span><b>${s.h!=null?nf(s.h,1)+' h':'sem leitura'}</b>`:''}<span>Última execução</span><b>${u.data?dShort(u.data):'—'}${fin(u.hor)?' · '+nf(u.hor)+' h':''}</b><span>Duração estimada</span><b>${p.duracao?nf(p.duracao,1)+' h':'—'}</b><span>OS automática</span><b>${p.autoOS===false?'Não':`Sim, ${p.tipo==='horas'?nf(s.ant)+' h':s.ant+' dia(s)'} antes`}</b></div>
+      ${p.obs?`<p class="note">${esc(p.obs)}</p>`:''}
+      <h4 class="h4">Tarefas</h4>${(p.tarefas||[]).length?`<ol class="tasks">${p.tarefas.map(t=>`<li>${esc(t)}</li>`).join('')}</ol>`:'<p class="note">Sem tarefas cadastradas.</p>'}
+      ${(p.pecas||[]).length?`<h4 class="h4">Peças previstas</h4>${p.pecas.map(x=>{const pc=pecaById(x.pecaId),sd=stockMap()[x.pecaId]||0;return`<div class="ls">• ${nq(x.qtd)} × ${esc(pc?pc.codigo+' · '+pc.descricao:'(peça removida)')} <span class="${sd<x.qtd?'down':''}">(saldo ${nq(sd)})</span></div>`;}).join('')}`:''}
+      <div class="acts2">${s.open?`<button class="btn" data-open="os|${esc(s.open._id)}">Ver OS aberta</button>`:(p.inativo?'':`<button class="btn" data-act="planoGerar" data-id="${esc(id)}">Gerar OS agora</button>`)}
+      ${canAtivos()?`<button class="btn ghost" data-act="planoExec" data-id="${esc(id)}">Registrar execução</button><button class="btn ghost" data-act="planoEditar" data-id="${esc(id)}">Editar</button>`:''}</div>
+      <h4 class="h4">Histórico</h4>${!hist?'<p class="note">Carregando…</p>':hist.length?hist.slice(0,30).map(o=>`<div class="li" data-open="os|${esc(o._id)}"><div class="lt"><b>${dShort(o.data)} · ${esc(o.desc)}</b>${o.status==='Aberta'?stBadge('em aberto','var(--orange)'):stBadge('concluída','var(--g600)')}</div></div>`).join(''):'<p class="note">Nenhuma OS gerada por este plano ainda.</p>'}`;};
+    sh.refresh();load();});}
+async function planoGerar(id){const p=S.planos.find(x=>x._id===id);if(!p||!needWrite())return;const s=planStatus(p);
+  if(s.open)return osDetail(s.open._id);
+  const key=s.next!=null?planKey(p,s):safeId('prev_'+p._id+'_m'+rid());const ref=S.db.collection('manutencao').doc(key);
+  try{const g=await ref.get();if(g.exists&&g.data().status==='Aberta')return osDetail(key);if(g.exists){const k2=safeId('prev_'+p._id+'_m'+rid());await withRetry(()=>S.db.collection('manutencao').doc(k2).set(osFromPlan(p,s,false)));toast('✔ OS preventiva gerada');return;}
+    await withRetry(()=>ref.set(osFromPlan(p,s,false)));toast('✔ OS preventiva gerada');}catch(e){toast(dbErr(e),true);}}
+function planoExecForm(id){const p=S.planos.find(x=>x._id===id);if(!p)return;const h=horAtual(ativoById(p.ativoId));
+  sheet('Registrar execução',`<p class="note" style="margin-top:0">Use quando a preventiva <b>${esc(p.nome)}</b> foi feita sem OS no app, ou para acertar o ponto de partida do plano.</p><form class="f" id="fPx">
+    <div class="row2"><div><label class="fl">Data</label><input class="inp" type="date" name="data" value="${todayStr()}"></div><div><label class="fl">Horímetro</label><input class="inp" name="hor" inputmode="decimal" value="${h!=null?nf(h,1):''}" placeholder="${p.tipo==='horas'?'obrigatório':'opcional'}"></div></div>
+    <button class="btn" type="submit">Salvar execução</button></form>`,(body,sh)=>{$('#fPx',body).onsubmit=async e=>{e.preventDefault();if(!needWrite())return;const f=e.target;const hor=num(f.hor.value);
+      if(p.tipo==='horas'&&hor==null)return toast('Informe o horímetro.',true);busy(f,true);
+      if(await w(()=>S.db.collection('planos').doc(id).update({ultima:{data:f.data.value||todayStr(),hor:hor??null,osId:null}}),'✔ Execução registrada')){sh.close();planoDetail(id);}busy(f,false);};});}
+function planoForm(id){
+  const p=id?S.planos.find(x=>x._id===id):{tipo:'horas',area:'Mecânica',autoOS:true,tarefas:[],pecas:[]};if(!p)return;const st=stockMap();
+  const u=p.ultima||{};
+  sheet(id?'Editar plano':'Novo plano de manutenção',`<form class="f" id="fPl">
+    <div><label class="fl">Nome do plano *</label><input class="inp" name="nome" required value="${esc(p.nome||'')}" placeholder="Lubrificação dos mancais" style="font-size:17px"></div>
+    ${id?`<div><label class="fl">Ativo</label><select class="inp" name="ativo">${optAtivos(p.ativoId,false)}</select></div>`:`<div><label class="fl">Ativo(s) * <span class="note" style="text-transform:none">— marque vários para criar o mesmo plano em cada um</span></label><div class="chips" id="plAt">${[...S.ativos].filter(a=>a.status!=='Inativo').sort(byTag).map(a=>`<button type="button" class="chip sm" data-v="${esc(a._id)}">${esc(a.tag)}</button>`).join('')}</div></div>`}
+    <div><label class="fl">Área</label><div class="chips" data-radio="parea">${AREAS_PLANO.map(a=>`<button type="button" class="chip sm ${a===p.area?'on':''}" data-v="${a}">${a}</button>`).join('')}</div></div>
+    <div><label class="fl">Periodicidade</label><div class="chips" data-radio="ptipo"><button type="button" class="chip sm ${p.tipo==='horas'?'on':''}" data-v="horas">Por horímetro (h)</button><button type="button" class="chip sm ${p.tipo==='dias'?'on':''}" data-v="dias">Por calendário (dias)</button></div></div>
+    <div class="row3"><div><label class="fl" data-lb="int">A cada (${p.tipo==='horas'?'h':'dias'}) *</label><input class="inp" name="intervalo" inputmode="numeric" required value="${p.intervalo||''}"></div>
+      <div><label class="fl" data-lb="ant">Avisar antes (${p.tipo==='horas'?'h':'dias'})</label><input class="inp" name="ant" inputmode="numeric" value="${fin(p.antecedencia)?p.antecedencia:''}" placeholder="auto"></div>
+      <div><label class="fl">Duração (h)</label><input class="inp" name="duracao" inputmode="decimal" value="${p.duracao?nf(p.duracao,1):''}"></div></div>
+    <div class="row2"><div><label class="fl">Última execução</label><input class="inp" type="date" name="udata" value="${esc(u.data||'')}"></div><div><label class="fl">Horímetro na última</label><input class="inp" name="uhor" inputmode="decimal" value="${fin(u.hor)?nf(u.hor,1):''}" placeholder="em branco = atual"></div></div>
+    <div><label class="fl">Tarefas (uma por linha)</label><textarea class="inp" name="tarefas" style="height:130px" placeholder="Verificar nível de óleo&#10;Lubrificar mancais com graxa EP2&#10;Reapertar parafusos da base">${esc((p.tarefas||[]).join('\n'))}</textarea></div>
+    <div><label class="fl">Peças previstas</label><div id="plPecas">${(p.pecas||[]).map(x=>osPecaRow(x.pecaId,x.qtd)).join('')}</div><button type="button" class="btn ghost sm" id="plAddPeca">+ Adicionar peça</button></div>
+    <label class="ck"><input type="checkbox" name="auto" ${p.autoOS===false?'':'checked'}> Gerar OS automaticamente quando estiver perto de vencer</label>
+    ${id?`<label class="ck"><input type="checkbox" name="inativo" ${p.inativo?'checked':''}> Plano inativo</label>`:''}
+    <div><label class="fl">Observações / referência do manual</label><textarea class="inp" name="obs">${esc(p.obs||'')}</textarea></div>
+    <button class="btn" type="submit">Salvar plano</button></form>`,(body,sh)=>{
+    const f=$('#fPl',body);
+    body.addEventListener('click',e=>{const c=e.target.closest('#plAt .chip');if(c)c.classList.toggle('on');
+      const t=e.target.closest('[data-radio=ptipo] .chip');if(t){const u=t.dataset.v==='horas'?'h':'dias';$('[data-lb=int]',body).textContent=`A cada (${u}) *`;$('[data-lb=ant]',body).textContent=`Avisar antes (${u})`;}});
+    $('#plAddPeca',body).onclick=()=>{if(!S.pecas.length)return toast('Nenhuma peça cadastrada.',true);$('#plPecas',body).insertAdjacentHTML('beforeend',osPecaRow('',1));};
+    f.onsubmit=async e=>{e.preventDefault();if(!needWrite())return;
+      const tipo=$('[data-radio=ptipo] .chip.on',body).dataset.v,intervalo=num(f.intervalo.value);
+      if(!f.nome.value.trim())return toast('Dê um nome ao plano.',true);if(!(intervalo>0))return toast('Informe o intervalo.',true);
+      const ids=id?[f.ativo.value]:$$('#plAt .chip.on',body).map(c=>c.dataset.v);if(!ids.length||!ids[0])return toast('Escolha pelo menos um ativo.',true);
+      const pm={};$$('#plPecas .prow2',body).forEach(r=>{const pid=$('[data-pp]',r).value,q=num($('[data-pq]',r).value)||0;if(pid&&q>0)pm[pid]=(pm[pid]||0)+q;});
+      const base={nome:f.nome.value.trim(),area:$('[data-radio=parea] .chip.on',body).dataset.v,tipo,intervalo,antecedencia:num(f.ant.value),duracao:num(f.duracao.value),tarefas:lines(f.tarefas.value),
+        pecas:Object.entries(pm).map(([pecaId,qtd])=>({pecaId,qtd})),autoOS:f.auto.checked,inativo:!!(f.inativo&&f.inativo.checked),obs:f.obs.value.trim(),em:nowIso()};
+      const ud=f.udata.value,uh=num(f.uhor.value);
+      busy(f,true);let last=null;
+      for(const aid of ids){let hor=uh;if(ud&&hor==null&&tipo==='horas')hor=horAtual(ativoById(aid));
+        const ultima=ud||hor!=null?{data:ud||todayStr(),hor:hor??null,osId:(p.ultima||{}).osId||null}:(id?p.ultima||null:null);
+        const nid=id||rid();const d={...(id?(({_id,...x})=>x)(p):{por:S.uid||null}),...base,ativoId:aid,ultima};
+        if(!await w(()=>S.db.collection('planos').doc(nid).set(d))){busy(f,false);return;}last=nid;}
+      busy(f,false);toast(ids.length>1?`✔ ${ids.length} planos criados`:'✔ Plano salvo');sh.close();if(ids.length===1)planoDetail(last);};});}
+
+/* ---------- rotina detail/form/exec ---------- */
+function rotinaDetail(id){
+  sheet('Rotina de inspeção','',(body,sh)=>{let hist=null;
+    const load=async()=>{try{const q=await S.db.collection('inspecoes').where('rotinaId','==',id).get();hist=q.docs.map(d=>({...d.data(),_id:d.id})).sort((a,b)=>(b.data+(b.em||'')).localeCompare(a.data+(a.em||'')));loadNames(hist.map(h=>h.por));}catch(e){hist=[];}sh.refresh&&sh.refresh();};
+    sh.refresh=()=>{const r=S.rotinas.find(x=>x._id===id);if(!r){body.innerHTML=empty('Rotina não encontrada.');return;}const s=rotStatus(r),a=ativoById(r.ativoId);
+      const H=hist||[],conf=H.length?H.filter(i=>!i.nok).length/H.length:null;
+      body.innerHTML=`<div class="lt" style="margin-bottom:6px"><b style="font-size:18px">${esc(r.nome)}</b>${stBadge(s.st,s.col)}</div>
+      <div class="kv"><span>Ativo</span><b>${a?`<a href="#" data-open="ativo|${esc(a._id)}">${esc(ativoLabel(a))}</a>`:'—'}</b><span>Local</span><b>${esc(r.local||'—')}</b><span>Frequência</span><b>${FREQ[r.freq||'diaria'][0]}</b><span>Situação</span><b>${esc(s.txt||s.st)}</b>${hist?`<span>Conformidade</span><b>${conf==null?'—':pf(conf,0)+' sem NOK ('+H.length+' execuções)'}</b>`:''}</div>
+      <div class="acts2">${r.inativo?'':`<button class="btn" data-act="inspExec" data-id="${esc(id)}">Executar inspeção</button>`}${canAtivos()?`<button class="btn ghost" data-act="rotinaEditar" data-id="${esc(id)}">Editar</button>`:''}</div>
+      <h4 class="h4">Itens do checklist</h4><ol class="tasks">${(r.itens||[]).map(i=>`<li>${esc(i.t)}${i.tipo==='num'?` <span class="note">— medir (${esc(i.un||'')}${fin(i.min)?' mín '+nf(i.min,1):''}${fin(i.max)?' máx '+nf(i.max,1):''})</span>`:''}</li>`).join('')}</ol>
+      <h4 class="h4">Execuções</h4>${!hist?'<p class="note">Carregando…</p>':H.length?H.slice(0,30).map(i=>`<div class="li" data-open="insp|${esc(i._id)}"><div class="lt"><b>${dLabel(i.data)}</b>${i.nok?stBadge(i.nok+' NOK','var(--red)'):stBadge('OK','var(--g600)')}</div><div class="ls">${esc(who(i.por)||'')}${i.osId?' · gerou OS':''}</div></div>`).join(''):'<p class="note">Ainda não executada.</p>'}`;};
+    sh.refresh();load();});}
+function rotinaForm(id){
+  const r=id?S.rotinas.find(x=>x._id===id):{freq:'diaria',itens:[{t:'',tipo:'ok'}]};if(!r)return;let itens=(r.itens||[]).map(i=>({...i}));if(!itens.length)itens=[{t:'',tipo:'ok'}];
+  sheet(id?'Editar rotina':'Nova rotina de inspeção',`<form class="f" id="fRo">
+    <div><label class="fl">Nome *</label><input class="inp" name="nome" required value="${esc(r.nome||'')}" placeholder="Inspeção diária do britador" style="font-size:17px"></div>
+    ${id?`<div><label class="fl">Ativo</label><select class="inp" name="ativo">${optAtivos(r.ativoId||'',true)}</select></div>`:`<div><label class="fl">Ativo(s) <span class="note" style="text-transform:none">— marque vários para criar uma rotina para cada um</span></label><div class="chips" id="roAt">${[...S.ativos].filter(a=>a.status!=='Inativo').sort(byTag).map(a=>`<button type="button" class="chip sm" data-v="${esc(a._id)}">${esc(a.tag)}</button>`).join('')}</div></div>`}
+    <div class="row2"><div><label class="fl">Frequência</label><select class="inp" name="freq">${Object.entries(FREQ).map(([k,[l]])=>`<option value="${k}" ${k===r.freq?'selected':''}>${l}</option>`).join('')}</select></div><div><label class="fl">Local / área</label><input class="inp" name="local" value="${esc(r.local||'')}"></div></div>
+    <div><label class="fl">Itens do checklist</label><div id="roItens" class="rcitens"></div><button type="button" class="btn ghost sm" id="roAdd">+ Adicionar item</button></div>
+    ${id?`<label class="ck"><input type="checkbox" name="inativo" ${r.inativo?'checked':''}> Rotina inativa</label>`:''}
+    <button class="btn" type="submit">Salvar rotina</button></form>`,(body,sh)=>{
+    const box=$('#roItens',body);
+    const draw=()=>{box.innerHTML=itens.map((it,i)=>`<div class="rci" data-i="${i}"><div class="rci-h"><b>Item ${i+1}</b><span style="display:flex;gap:4px">${i?`<button type="button" class="rm" data-up="${i}" style="color:var(--g700)">↑</button>`:''}${itens.length>1?`<button type="button" class="rm" data-rm="${i}">✕</button>`:''}</span></div>
+      <input class="inp" data-k="t" placeholder="O que verificar? Ex.: vazamento de óleo" value="${esc(it.t||'')}" style="font-size:16px">
+      <div class="chips"><button type="button" class="chip sm ${it.tipo!=='num'?'on':''}" data-ty="ok">OK / NOK</button><button type="button" class="chip sm ${it.tipo==='num'?'on':''}" data-ty="num">Medição</button></div>
+      ${it.tipo==='num'?`<div class="row3"><div><label class="fl">Unidade</label><input class="inp" data-k="un" value="${esc(it.un||'')}" placeholder="°C"></div><div><label class="fl">Mínimo</label><input class="inp" data-k="min" inputmode="decimal" value="${fin(it.min)?nf(it.min,1):''}"></div><div><label class="fl">Máximo</label><input class="inp" data-k="max" inputmode="decimal" value="${fin(it.max)?nf(it.max,1):''}"></div></div>`:''}</div>`).join('');};
+    box.addEventListener('input',e=>{const rw=e.target.closest('.rci');if(!rw)return;const i=+rw.dataset.i,k=e.target.dataset.k;if(!k)return;itens[i][k]=(k==='min'||k==='max')?num(e.target.value):e.target.value;});
+    box.addEventListener('click',e=>{const rw=e.target.closest('.rci');if(!rw)return;const i=+rw.dataset.i;
+      if(e.target.closest('[data-rm]')){itens.splice(i,1);draw();}else if(e.target.closest('[data-up]')){[itens[i-1],itens[i]]=[itens[i],itens[i-1]];draw();}
+      else{const ty=e.target.closest('[data-ty]');if(ty){itens[i].tipo=ty.dataset.ty;draw();}}});
+    $('#roAdd',body).onclick=()=>{itens.push({t:'',tipo:'ok'});draw();setTimeout(()=>{const l=$$('#roItens [data-k=t]',body).pop();l&&l.focus();},30);};
+    body.addEventListener('click',e=>{const c=e.target.closest('#roAt .chip');if(c)c.classList.toggle('on');});
+    draw();
+    $('#fRo',body).onsubmit=async e=>{e.preventDefault();if(!needWrite())return;const f=e.target;
+      const it=itens.map(i=>i.tipo==='num'?{t:String(i.t||'').trim(),tipo:'num',un:String(i.un||'').trim(),min:fin(i.min)?i.min:null,max:fin(i.max)?i.max:null}:{t:String(i.t||'').trim(),tipo:'ok'}).filter(i=>i.t);
+      if(!f.nome.value.trim())return toast('Dê um nome à rotina.',true);if(!it.length)return toast('Adicione pelo menos um item.',true);
+      const ids=id?[f.ativo.value||null]:($$('#roAt .chip.on',body).map(c=>c.dataset.v));const list=ids.length?ids:[null];
+      busy(f,true);let last=null;
+      for(const aid of list){const a=ativoById(aid);const nid=id||rid();
+        const nome=!id&&list.length>1&&a?f.nome.value.trim()+' — '+a.tag:f.nome.value.trim();
+        const d={...(id?(({_id,...x})=>x)(r):{por:S.uid||null}),nome,ativoId:aid||null,freq:f.freq.value,local:f.local.value.trim(),itens:it,inativo:!!(f.inativo&&f.inativo.checked),em:nowIso()};
+        if(!await w(()=>S.db.collection('rotinas').doc(nid).set(d))){busy(f,false);return;}last=nid;}
+      busy(f,false);toast(list.length>1?`✔ ${list.length} rotinas criadas`:'✔ Rotina salva');sh.close();if(list.length===1)rotinaDetail(last);};});}
+function inspExec(id){
+  const r=S.rotinas.find(x=>x._id===id);if(!r)return;const a=ativoById(r.ativoId);
+  const res=(r.itens||[]).map(i=>({t:i.t,tipo:i.tipo||'ok',un:i.un||'',min:i.min,max:i.max,r:null,v:null,obs:''}));
+  sheet('Inspeção',`<p style="margin:0 0 4px"><b>${esc(r.nome)}</b></p><p class="note" style="margin:0 0 12px">${a?esc(ativoLabel(a))+' · ':''}${dLabel(todayStr())}</p>
+    <div id="ixItens"></div>
+    <div class="row2" style="margin-top:12px"><div><label class="fl">Data</label><input class="inp" type="date" id="ixData" value="${todayStr()}"></div><div><label class="fl">Turno</label><select class="inp" id="ixTurno"><option>1</option><option>2</option><option>3</option></select></div></div>
+    <div style="margin-top:12px"><label class="fl">Observações gerais</label><textarea class="inp" id="ixObs"></textarea></div>
+    <div id="ixOS" class="hidden" style="margin-top:12px"><label class="ck"><input type="checkbox" id="ixOSck" checked> Abrir OS corretiva para os itens NOK</label>
+      <label class="ck" style="margin-top:8px"><input type="checkbox" id="ixPara"> O equipamento está parado</label></div>
+    <div class="sticky"><div id="ixProg" class="note"></div><button class="btn" id="ixSave">Concluir inspeção</button></div>`,(body,sh)=>{
+    const box=$('#ixItens',body);
+    const judge=i=>{if(i.tipo!=='num')return i.r;if(i.v==null)return i.r==='NA'?'NA':null;const out=(fin(i.min)&&i.v<i.min)||(fin(i.max)&&i.v>i.max);return out?'NOK':'OK';};
+    const draw=()=>{box.innerHTML=res.map((i,k)=>{const j=judge(i);return`<div class="ix ${j==='NOK'?'nok':j==='OK'?'ok':''}" data-k="${k}"><div class="ixt">${k+1}. ${esc(i.t)}</div>
+      ${i.tipo==='num'?`<div class="ixnum"><input class="inp" data-v inputmode="decimal" placeholder="valor" value="${i.v!=null?nf(i.v,1):''}"><span>${esc(i.un)}${fin(i.min)||fin(i.max)?` <span class="note">(${fin(i.min)?'mín '+nf(i.min,1):''}${fin(i.min)&&fin(i.max)?' · ':''}${fin(i.max)?'máx '+nf(i.max,1):''})</span>`:''}</span>${j?`<b class="${j==='NOK'?'down':'up'}">${j}</b>`:''}</div>`
+       :`<div class="ixb">${['OK','NOK','NA'].map(o=>`<button type="button" data-r="${o}" class="${i.r===o?'on '+o:''}">${o==='NA'?'N/A':o}</button>`).join('')}</div>`}
+      ${j==='NOK'?`<input class="inp" data-obs placeholder="O que foi encontrado?" value="${esc(i.obs)}" style="font-size:16px;margin-top:6px">`:''}</div>`;}).join('');prog();};
+    const prog=()=>{const done=res.filter(i=>judge(i)).length,nok=res.filter(i=>judge(i)==='NOK').length;$('#ixProg',body).textContent=`${done}/${res.length} itens respondidos${nok?` · ${nok} NOK`:''}`;$('#ixOS',body).classList.toggle('hidden',!nok);};
+    box.addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(!b)return;const k=+b.closest('.ix').dataset.k;res[k].r=b.dataset.r;draw();});
+    box.addEventListener('input',e=>{const el=e.target.closest('.ix');if(!el)return;const k=+el.dataset.k;if(e.target.matches('[data-obs]'))res[k].obs=e.target.value;});
+    box.addEventListener('change',e=>{if(!e.target.matches('[data-v]'))return;const k=+e.target.closest('.ix').dataset.k;res[k].v=num(e.target.value);draw();});
+    draw();
+    $('#ixSave',body).onclick=async()=>{if(!needWrite())return;$$('[data-v]',box).forEach(x=>{const k=+x.closest('.ix').dataset.k;res[k].v=num(x.value);});
+      const out=res.map(i=>({t:i.t,tipo:i.tipo,r:judge(i),v:i.v,un:i.un||null,obs:(i.obs||'').trim()}));const miss=out.filter(i=>!i.r).length;
+      if(miss&&!await ask(`${miss} item(ns) sem resposta. Concluir mesmo assim?`,'Concluir'))return;
+      const noks=out.filter(i=>i.r==='NOK');const openOS=noks.length&&$('#ixOSck',body).checked;const data=$('#ixData',body).value||todayStr();
+      const btn=$('#ixSave',body);btn.disabled=true;btn.textContent='Salvando…';let osId=null;
+      if(openOS){osId=`${data}_${rid()}`;const desc=`Inspeção "${r.nome}": `+noks.map(i=>i.t+(i.tipo==='num'&&i.v!=null?` (${nf(i.v,1)} ${i.un||''})`:'')+(i.obs?' — '+i.obs:'')).join('; ');
+        const ok=await w(()=>S.db.collection('manutencao').doc(osId).set({data,ativoId:a?a._id:null,equip:a?ativoLabel(a):(r.local||r.nome),area:'Mecânica',natureza:'Corretiva',paraBritagem:$('#ixPara',body).checked,hIni:null,hFim:null,horas:0,desc,status:'Aberta',pecas:[],custoPecas:0,inspecaoRotinaId:r._id,por:S.uid||null,em:nowIso()}));
+        if(!ok){btn.disabled=false;btn.textContent='Concluir inspeção';return;}}
+      const ok=await w(()=>S.db.collection('inspecoes').doc(rid()).set({rotinaId:r._id,rotinaNome:r.nome,ativoId:r.ativoId||null,data,turno:+$('#ixTurno',body).value,itens:out,nok:noks.length,osId,obs:$('#ixObs',body).value.trim(),por:S.uid||null,em:nowIso()}),
+        noks.length?`✔ Inspeção salva · ${noks.length} NOK${openOS?' · OS aberta':''}`:'✔ Inspeção salva · tudo OK');
+      if(ok)sh.close();else{btn.disabled=false;btn.textContent='Concluir inspeção';}};});}
+function inspDetail(id){const i=S.insps.find(x=>x._id===id);if(!i)return toast('Inspeção fora do período carregado.',true);loadNames([i.por]);
+  sheet('Inspeção realizada',`<p style="margin:0"><b>${esc(i.rotinaNome||'')}</b></p><p class="note" style="margin:2px 0 10px">${dLabel(i.data)} · turno ${i.turno||1}${who(i.por)?' · '+esc(who(i.por)):''}</p>
+    ${(i.itens||[]).map(x=>`<div class="ix ${x.r==='NOK'?'nok':x.r==='OK'?'ok':''}"><div class="lt"><span>${esc(x.t)}</span><b class="${x.r==='NOK'?'down':x.r==='OK'?'up':''}">${x.tipo==='num'&&x.v!=null?nf(x.v,1)+' '+esc(x.un||'')+' · ':''}${x.r||'—'}</b></div>${x.obs?`<div class="ls">${esc(x.obs)}</div>`:''}</div>`).join('')}
+    ${i.obs?`<p><b>Observações:</b> ${esc(i.obs)}</p>`:''}${i.osId?`<button class="btn ghost" data-open="os|${esc(i.osId)}" style="margin-top:10px">Ver OS gerada</button>`:''}`);}
+async function osToggleTask(osId,k){const o=allOS().find(x=>x._id===osId);if(!o||!needWrite())return;const t=(o.tarefas||[]).map((x,i)=>i===k?{...x,ok:!x.ok}:x);
+  await w(()=>S.db.collection('manutencao').doc(osId).update({tarefas:t}));}
+
+/* ---------- init ---------- */
+(async function init(){
+  bind();bindMnt();$('#mLabel').textContent=monthLabel(S.month);
+  for(const id of ['#fv','#fb','#fm']){$(id).data.value=todayStr();}
+  applyCfg();render();
+  const use=n=>window.claude&&typeof window.claude.use==='function'?window.claude.use(n).catch(()=>null):Promise.resolve(null);
+  const t=setTimeout(()=>{if(!S.db&&!window.IBIUNA)banner('Conectando ao banco de dados… Se demorar, confira a internet e se você está logado no claude.ai.');},10000);
+  const [db,user,downloads]=await Promise.all([use('db'),use('user'),use('downloads')]);
+  clearTimeout(t);S.db=db;S.user=user;S.downloads=downloads;
+  if(!db){banner('Banco de dados indisponível nesta visualização. Recarregue a página e entre com sua matrícula.',true);render();return;}
+  if(user){try{S.uid=await user.id();}catch(e){}try{S.isOwner=!!(await user.isOwner());S.isAdmin=!!(await user.canEdit())||S.isOwner;}catch(e){}
+    try{const c=await user.can('data.write');S.canWrite=c===null||c===undefined?null:!!c;}catch(e){}}
+  applyPerms();
+  S.subs0=db.doc('cfg/geral').onSnapshot(s=>{S.cfgRaw=s.exists?s.data():{};S.cfg={...DEFAULT_CFG,...S.cfgRaw};applyCfg();render();},()=>{});
+  subscribeMonth();subscribeMnt();prefillBrit();
+})();
+</script>
+</body>
+</html>
