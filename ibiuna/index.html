@@ -799,9 +799,9 @@ function resetForm(id){const f=$(id);f.reset();f.data.value=todayStr();$$('[data
   if(id==='#fv'){f.dataset.frota='';f.peso.value=nf(S.cfg.pesoPadrao,1);}
   if(id==='#fb'){f._extra=[];$$('[data-par]',f).forEach(i=>i.value='');setRadio(f,'linha',f.dataset.linha||'primaria');fbLinhaUI();}
   if(id==='#fm'){S.fotosNovas={abertura:[],fechamento:[]};S.fotosAtuais={abertura:[],fechamento:[]};setTimeout(()=>typeof renderPickers==='function'&&renderPickers(),0);$('#fmPecas').innerHTML='';delete f.horas.dataset.manual;osPecasCusto();setRadio(f,'area','Mecânica');setRadio(f,'natureza','Corretiva');setRadio(f,'para','sim');setRadio(f,'linha','primaria');fmLinhaUI();setRadio(f,'status','Concluída');}
-  S.edit=null;applyCfg();}
+  S.edit=null;applyCfg();if(id==='#fm')fmLinhaDoAtivo();}
 function fmLinhaUI(){const f=$('#fm');$('#fmLinhaBox').classList.toggle('hidden',getRadio(f,'para')!=='sim');}
-function fmLinhaDoAtivo(){const f=$('#fm'),a=ativoById(f.ativo.value),l=ativoLinha(a);if(l)setRadio(f,'linha',l);}
+function fmLinhaDoAtivo(){const f=$('#fm'),a=ativoById(f.ativo.value);if(!a)return;const l=ativoLinha(a);setRadio(f,'para',l?'sim':'nao');if(l)setRadio(f,'linha',l);fmLinhaUI();}
 function fbLinhaUI(){const f=$('#fb'),l=getRadio(f,'linha')||'primaria';f.dataset.linha=l;
   $('#fbTitulo').textContent=(l==='rebritagem'?'Rebritagem':'Britagem primária')+' · horímetro e paradas';$('#fbProdRb').classList.toggle('hidden',l!=='rebritagem');
   if(!S.edit)f.horasProg.value=nf(cfgLinha(l).horasDia,1);}
