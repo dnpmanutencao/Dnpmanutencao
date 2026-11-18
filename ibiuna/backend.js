@@ -1,27 +1,34 @@
-/* Pedreira Ibiúna · camada de servidor (Supabase): login por matrícula, banco de dados e usuários.
-   Expõe window.claude.use('db' | 'user' | 'downloads') com a mesma interface que o app já usa. */
+/* Pedreira Ibiúna · camada de servidor (Google Planilhas + Apps Script): login por matrícula,
+   banco de dados e usuários. Expõe window.claude.use('db' | 'user' | 'downloads') com a mesma
+   interface que o app já usa. */
 (function(){
 'use strict';
 var CFG=window.IBIUNA_CONFIG||{};
 var IB=window.IBIUNA={standalone:true};
-var configurado=CFG.SUPABASE_URL&&CFG.SUPABASE_URL.indexOf('SEU-PROJETO')<0&&CFG.SUPABASE_ANON_KEY&&CFG.SUPABASE_ANON_KEY.indexOf('COLE-AQUI')<0;
-var sb=null, me=null, perfis=[], perfisFns=new Set();
+var API=CFG.API_URL||'';
+var configurado=/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(API);
+var TK='ibiuna-token';
+var tokenAtual=null; try{tokenAtual=localStorage.getItem(TK);}catch(e){}
+var me=null, perfis=[], perfisFns=new Set();
 var readyResolve, ready=new Promise(function(r){readyResolve=r;});
 
 /* ---------------- utilidades ---------------- */
 function h(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function normMat(m){return String(m||'').trim().toLowerCase().replace(/\s+/g,'');}
-function emailDe(m){return normMat(m)+'@'+(CFG.DOMINIO_LOGIN||'usuarios.pedreiraibiuna.com.br');}
 function matValida(m){return /^[a-z0-9._-]{1,40}$/.test(normMat(m));}
-function mapErr(e){
-  if(!e)return{code:'unavailable',message:'Erro desconhecido'};
-  var msg=e.message||String(e),c=e.code||'';
-  if(c==='42501'||c==='P0001'||c==='23505'||c==='23514'||/row-level security/i.test(msg))
-    return{code:'permission',message:c==='23505'?'Já existe um registro com esse identificador.':/row-level security/i.test(msg)?'Sem permissão para esta ação.':msg};
-  if(c==='P0002')return{code:'invalid_argument',message:msg};
-  if(c==='PGRST301'||/JWT/i.test(msg))return{code:'revoked',message:'Sessão expirada. Entre novamente.'};
-  return{code:'unavailable',message:msg};
+function guardaToken(t){tokenAtual=t;try{t?localStorage.setItem(TK,t):localStorage.removeItem(TK);}catch(e){}}
+function erroApp(codigo,msg){var c=codigo==='permissao'?'permission':codigo==='sessao'?'revoked':codigo==='naoencontrado'?'permission':codigo==='login'?'login':codigo==='erro'?'permission':'unavailable';return{code:c,message:msg};}
+async function api(a,dados){
+  var body=Object.assign({a:a,t:tokenAtual},dados||{}),r,j;
+  for(var tent=0;tent<2;tent++){
+    try{r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),redirect:'follow'});
+      j=await r.json();break;}
+    catch(e){if(tent===1)throw erroApp('rede','Sem conexão com o servidor. Confira a internet e tente de novo.');await new Promise(function(ok){setTimeout(ok,800);});}
+  }
+  if(!j.ok){var er=erroApp(j.codigo,j.erro);if(er.code==='revoked'&&me){guardaToken(null);setTimeout(function(){telaLogin(j.erro);},0);}throw er;}
+  return j.r;
 }
+IB.api=api;
 var ROLE_LBL={manutencao:'Manutenção',almoxarife:'Almoxarife',compras:'Compras',supervisor:'Supervisor',gerente:'Gerente'};
 
 /* ---------------- tela de acesso ---------------- */
@@ -39,7 +46,7 @@ function tela(html,bind){auth.style.display='flex';auth.innerHTML='<div class="a
 function erro(t){var e=auth.querySelector('.err');if(e)e.textContent=t||'';}
 function carregando(b,on,txt){if(!b)return;b.disabled=on;if(on){b.dataset.t=b.textContent;b.textContent=txt||'Aguarde…';}else if(b.dataset.t)b.textContent=b.dataset.t;}
 
-function telaConfig(){tela('<h2>Falta configurar</h2><p>Preencha o endereço e a chave do Supabase no arquivo <b>config.js</b> (veja o LEIAME.md). Depois recarregue esta página.</p>');}
+function telaConfig(){tela('<h2>Falta configurar</h2><p>Cole o endereço do servidor (Apps Script) no arquivo <b>config.js</b> — veja o LEIAME.md. Depois recarregue esta página.</p>');}
 function telaLogin(msg){
   tela('<h2>Entrar</h2><p>Use sua matrícula e senha.</p><form id="fLogin"><div><label class="fl">Matrícula</label><input class="inp" name="m" autocomplete="username" autocapitalize="none" required></div>'+
     '<div><label class="fl">Senha</label><input class="inp" name="s" type="password" autocomplete="current-password" required></div><div class="err">'+h(msg||'')+'</div><button class="btn" type="submit">Entrar</button></form>'+
@@ -47,10 +54,8 @@ function telaLogin(msg){
     var f=el.querySelector('#fLogin');f.m.focus();
     f.onsubmit=async function(e){e.preventDefault();erro('');if(!matValida(f.m.value))return erro('Matrícula inválida.');
       var b=f.querySelector('button');carregando(b,true,'Entrando…');
-      var r=await sb.auth.signInWithPassword({email:emailDe(f.m.value),password:f.s.value});
-      carregando(b,false);
-      if(r.error){return erro(/invalid login/i.test(r.error.message)?'Matrícula ou senha incorretas.':/fetch|network/i.test(r.error.message)?'Sem conexão com o servidor. Confira a internet.':r.error.message);}
-      aposLogin();};});}
+      try{var r=await api('login',{matricula:normMat(f.m.value),senha:f.s.value});guardaToken(r.token);me=r.perfil;carregando(b,false);aposLogin();}
+      catch(x){carregando(b,false);erro(x.message);}};});}
 function telaPrimeiroAcesso(){
   tela('<h2>Primeiro acesso</h2><p>Ainda não há usuários. Crie o <b>administrador</b> do sistema — ele cadastra os demais.</p><form id="fBoot">'+
     '<div><label class="fl">Nome</label><input class="inp" name="n" required></div><div><label class="fl">Matrícula</label><input class="inp" name="m" autocapitalize="none" required></div>'+
@@ -61,75 +66,47 @@ function telaPrimeiroAcesso(){
       if(!matValida(f.m.value))return erro('Matrícula: use só letras, números, ponto, hífen ou sublinhado.');
       if(f.s.value.length<6)return erro('A senha precisa ter pelo menos 6 caracteres.');if(f.s.value!==f.s2.value)return erro('As senhas não conferem.');
       var b=f.querySelector('button');carregando(b,true,'Criando…');
-      var r=await sb.auth.signUp({email:emailDe(f.m.value),password:f.s.value});
-      if(r.error){carregando(b,false);return erro(r.error.message);}
-      if(!r.data.session){carregando(b,false);return erro('O Supabase está pedindo confirmação de e-mail. Desligue "Confirm email" em Authentication → Sign In / Providers → Email e tente de novo.');}
-      var x=await sb.rpc('criar_primeiro_admin',{p_matricula:normMat(f.m.value),p_nome:f.n.value.trim()});
-      carregando(b,false);if(x.error)return erro(x.error.message);aposLogin();};});}
+      try{var r=await api('primeiroAdmin',{matricula:normMat(f.m.value),nome:f.n.value.trim(),senha:f.s.value});guardaToken(r.token);me=r.perfil;carregando(b,false);aposLogin();}
+      catch(x){carregando(b,false);erro(x.message);}};});}
 function telaTrocarSenha(obrigatorio,onDone){
-  var box=obrigatorio?null:document.createElement('div');
-  var html='<h2>'+(obrigatorio?'Crie sua senha':'Trocar senha')+'</h2><p>'+(obrigatorio?'Sua senha atual é provisória. Escolha uma senha pessoal para continuar.':'Escolha a nova senha.')+'</p><form id="fPw">'+
+  tela('<h2>'+(obrigatorio?'Crie sua senha':'Trocar senha')+'</h2><p>'+(obrigatorio?'Sua senha atual é provisória. Escolha uma senha pessoal para continuar.':'Escolha a nova senha.')+'</p><form id="fPw">'+
     '<div><label class="fl">Nova senha (mín. 6)</label><input class="inp" name="s" type="password" autocomplete="new-password" required></div><div><label class="fl">Repita a nova senha</label><input class="inp" name="s2" type="password" autocomplete="new-password" required></div>'+
-    '<div class="err"></div><button class="btn" type="submit">Salvar senha</button>'+(obrigatorio?'<button type="button" class="lk" id="pwSair">Sair</button>':'')+'</form>';
-  tela(html,function(el){var f=el.querySelector('#fPw');var sair=el.querySelector('#pwSair');if(sair)sair.onclick=sairConta;
+    '<div class="err"></div><button class="btn" type="submit">Salvar senha</button><button type="button" class="lk" id="pwX">'+(obrigatorio?'Sair':'Cancelar')+'</button></form>',function(el){
+    var f=el.querySelector('#fPw');el.querySelector('#pwX').onclick=obrigatorio?sairConta:function(){auth.style.display='none';};
     f.onsubmit=async function(e){e.preventDefault();erro('');if(f.s.value.length<6)return erro('A senha precisa ter pelo menos 6 caracteres.');if(f.s.value!==f.s2.value)return erro('As senhas não conferem.');
-      var b=f.querySelector('button');carregando(b,true,'Salvando…');var r=await sb.auth.updateUser({password:f.s.value});
-      if(r.error){carregando(b,false);return erro(/different from the old/i.test(r.error.message)?'A nova senha precisa ser diferente da atual.':r.error.message);}
-      await sb.rpc('senha_trocada');carregando(b,false);if(me)me.trocar_senha=false;onDone&&onDone();};});
-  if(!obrigatorio){var x=document.createElement('button');x.className='lk';x.textContent='Cancelar';x.onclick=function(){auth.style.display='none';};auth.querySelector('form').appendChild(x);}
-}
-function telaSemAcesso(t){tela('<h2>Sem acesso</h2><p>'+h(t)+'</p><button class="btn" id="saiB">Sair</button>',function(el){el.querySelector('#saiB').onclick=sairConta;});}
-async function sairConta(){try{await sb.auth.signOut();}catch(e){}location.reload();}
+      var b=f.querySelector('button');carregando(b,true,'Salvando…');
+      try{var r=await api('trocarSenha',{nova:f.s.value});guardaToken(r.token);me=Object.assign(me||{},r.perfil);carregando(b,false);onDone&&onDone();}
+      catch(x){carregando(b,false);erro(x.message);}};});}
+function sairConta(){guardaToken(null);location.reload();}
 IB.sair=sairConta;
 
 /* ---------------- fluxo de entrada ---------------- */
 async function iniciar(){
-  if(!configurado||!window.supabase){return telaConfig();}
-  sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,storageKey:'ibiuna-auth'}});
-  IB.sb=sb;
+  if(!configurado)return telaConfig();
   tela('<p>Conectando…</p>');
-  var s=await sb.auth.getSession();
-  if(s.data&&s.data.session)return aposLogin();
-  var r=await sb.rpc('ha_usuarios');
-  if(r.error)return tela('<h2>Sem conexão</h2><p>Não foi possível falar com o servidor ('+h(r.error.message)+'). Confira a internet e o config.js, e recarregue.</p>');
-  if(r.data===false)return telaPrimeiroAcesso();
+  if(tokenAtual){try{me=await api('eu');return aposLogin();}catch(e){guardaToken(null);if(e.code==='unavailable')return tela('<h2>Sem conexão</h2><p>'+h(e.message)+'</p><button class="btn" onclick="location.reload()">Tentar de novo</button>');}}
+  try{var ha=await api('haUsuarios');}catch(e){return tela('<h2>Sem conexão</h2><p>Não foi possível falar com o servidor ('+h(e.message)+'). Confira a internet e o config.js.</p><button class="btn" onclick="location.reload()">Tentar de novo</button>');}
+  if(ha===false)return telaPrimeiroAcesso();
   telaLogin();
 }
-async function aposLogin(){
-  var u=(await sb.auth.getUser()).data.user;if(!u)return telaLogin();
-  var r=await sb.from('perfis').select('*').eq('id',u.id).maybeSingle();
-  if(r.error)return telaSemAcesso('Erro ao carregar seu cadastro: '+r.error.message);
-  if(!r.data)return telaSemAcesso('Sua conta não está cadastrada no sistema. Fale com o administrador.');
-  if(!r.data.ativo)return telaSemAcesso('Sua conta está desativada. Fale com o administrador.');
-  me=r.data;
-  if(me.trocar_senha)return telaTrocarSenha(true,entrar);
-  entrar();
-}
+function aposLogin(){if(me.trocar_senha)return telaTrocarSenha(true,entrar);entrar();}
+var entrou=false;
 async function entrar(){
-  auth.style.display='none';
-  await carregarPerfis();
-  sb.channel('perfis').on('postgres_changes',{event:'*',schema:'public',table:'perfis'},function(){carregarPerfis();}).subscribe();
-  setInterval(carregarPerfis,60000);
-  sb.auth.onAuthStateChange(function(ev){if(ev==='SIGNED_OUT')location.reload();});
-  montarCabecalho();
-  readyResolve(true);
+  auth.style.display='none';if(entrou)return;entrou=true;
+  await carregarPerfis();setInterval(carregarPerfis,90000);
+  montarCabecalho();readyResolve(true);
 }
 async function carregarPerfis(){
-  var r=await sb.from('perfis').select('id,matricula,nome,papeis,admin,ativo,trocar_senha').order('nome');
-  if(r.error)return;perfis=r.data||[];
-  var eu=perfis.find(function(p){return p.id===me.id;});
-  if(!eu||!eu.ativo){alert0('Sua conta foi desativada.');return sairConta();}
-  me=Object.assign(me,eu);
+  try{perfis=await api('usuarios');}catch(e){return;}
+  var eu=perfis.find(function(p){return p.id===me.id;});if(eu)me=Object.assign(me,eu);
   perfisFns.forEach(function(f){try{f();}catch(e){}});
   if(typeof render==='function')render();
 }
-function alert0(t){try{if(typeof toast==='function')toast(t,true);}catch(e){}}
 
 /* ---------------- cabeçalho / minha conta ---------------- */
 function iniciais(n){return String(n||'?').split(/\s+/).filter(Boolean).slice(0,2).map(function(p){return p[0];}).join('').toUpperCase();}
 function montarCabecalho(){var hd=document.querySelector('header');if(!hd||document.getElementById('userBtn'))return;
-  var b=document.createElement('button');b.id='userBtn';b.title='Minha conta';b.textContent=iniciais(me.nome);hd.appendChild(b);
-  b.onclick=minhaConta;}
+  var b=document.createElement('button');b.id='userBtn';b.title='Minha conta';b.textContent=iniciais(me.nome);hd.appendChild(b);b.onclick=minhaConta;}
 function minhaConta(){
   var pap=me.admin?'Administrador':'';pap+=(me.papeis||[]).map(function(p){return(pap?', ':'')+ROLE_LBL[p];}).join('');
   sheet('Minha conta','<div class="kv"><span>Nome</span><b>'+h(me.nome)+'</b><span>Matrícula</span><b>'+h(me.matricula)+'</b><span>Papéis</span><b>'+h(pap||'Operação (lançamentos)')+'</b></div>'+
@@ -149,25 +126,27 @@ IB.renderUsers=function(){
       '<div>'+(p.admin?'<span class="st" style="background:#0f4f2b">admin</span> ':'')+(p.ativo?'':'<span class="st" style="background:#8a948f">inativo</span>')+'</div></div>'+
       '<div class="chips">'+Object.keys(ROLE_LBL).map(function(k){return'<button type="button" class="chip sm '+((p.papeis||[]).indexOf(k)>=0?'on':'')+'" '+(adm?'data-urole="'+k+'" data-uid="'+h(p.id)+'"':'disabled')+'>'+ROLE_LBL[k]+'</button>';}).join('')+'</div>'+
       (adm?'<div class="ua"><button class="btn ghost sm" data-upw="'+h(p.id)+'">Redefinir senha</button>'+(self?'':'<button class="btn ghost sm" data-uativo="'+h(p.id)+'">'+(p.ativo?'Desativar':'Reativar')+'</button><button class="btn ghost sm" data-uadm="'+h(p.id)+'">'+(p.admin?'Tirar admin':'Tornar admin')+'</button>')+'</div>':'')+'</div>';}).join('');
-  html+='<p class="note">Administrador e Gerente têm acesso a tudo. Todos podem lançar produção, abrir OS, fazer inspeções e criar requisições. As permissões são conferidas no servidor.</p>';
+  html+='<p class="note">Administrador e Gerente têm acesso a tudo. Todos podem lançar produção, abrir OS, fazer inspeções e criar requisições. As permissões são conferidas no servidor. Os usuários ficam na aba <b>Usuarios</b> da planilha (as senhas ficam embaralhadas).</p>';
   box.innerHTML=html;
   if(!adm)return;
   box.querySelector('#uNovo').onclick=novoUsuario;
   box.onclick=async function(e){
-    var r=e.target.closest('[data-urole]');if(r){var p=perfis.find(function(x){return x.id===r.dataset.uid;});var set=new Set(p.papeis||[]);set.has(r.dataset.urole)?set.delete(r.dataset.urole):set.add(r.dataset.urole);
-      r.disabled=true;var x=await sb.from('perfis').update({papeis:Array.from(set)}).eq('id',p.id);if(x.error)toast(x.error.message,true);else toast('✔ Papéis atualizados');await carregarPerfis();return;}
-    var pw=e.target.closest('[data-upw]');if(pw){var p2=perfis.find(function(x){return x.id===pw.dataset.upw;});
-      var sug=String(Math.floor(100000+Math.random()*900000));
-      var v=await askText('Nova senha provisória para '+p2.nome+' (mín. 6). A pessoa vai criar a própria senha no próximo acesso. Sugestão: '+sug,'',"Redefinir",false);if(v===null)return;v=v||sug;
-      if(v.length<6)return toast('A senha precisa ter pelo menos 6 caracteres.',true);
-      var y=await sb.rpc('admin_definir_senha',{p_user:p2.id,p_senha:v});if(y.error)return toast(y.error.message,true);
-      await carregarPerfis();return sheet('Senha redefinida','<p>Passe para <b>'+h(p2.nome)+'</b>:</p><div class="kv"><span>Matrícula</span><b>'+h(p2.matricula)+'</b><span>Senha provisória</span><b style="font-size:22px;letter-spacing:.08em">'+h(v)+'</b></div>');}
-    var at=e.target.closest('[data-uativo]');if(at){var p3=perfis.find(function(x){return x.id===at.dataset.uativo;});
-      if(p3.ativo&&!await ask('Desativar '+p3.nome+'? A pessoa perde o acesso imediatamente (os lançamentos dela continuam).','Desativar',true))return;
-      var z=await sb.from('perfis').update({ativo:!p3.ativo}).eq('id',p3.id);if(z.error)toast(z.error.message,true);else toast(p3.ativo?'Usuário desativado':'Usuário reativado');await carregarPerfis();return;}
-    var ad=e.target.closest('[data-uadm]');if(ad){var p4=perfis.find(function(x){return x.id===ad.dataset.uadm;});
-      if(!await ask((p4.admin?'Tirar o acesso de administrador de ':'Tornar administrador: ')+p4.nome+'?',p4.admin?'Tirar':'Tornar admin'))return;
-      var q=await sb.from('perfis').update({admin:!p4.admin}).eq('id',p4.id);if(q.error)toast(q.error.message,true);await carregarPerfis();}
+    var achar=function(id){return perfis.find(function(x){return x.id===id;});};
+    try{
+      var r=e.target.closest('[data-urole]');if(r){var p=achar(r.dataset.uid),set=new Set(p.papeis||[]);set.has(r.dataset.urole)?set.delete(r.dataset.urole):set.add(r.dataset.urole);
+        r.disabled=true;await api('atualizarUsuario',{id:p.id,papeis:Array.from(set)});toast('✔ Papéis atualizados');return await carregarPerfis();}
+      var pw=e.target.closest('[data-upw]');if(pw){var p2=achar(pw.dataset.upw),sug=String(Math.floor(100000+Math.random()*900000));
+        var v=await askText('Nova senha provisória para '+p2.nome+' (mín. 6). A pessoa cria a própria senha no próximo acesso. Deixe em branco para usar '+sug+'.','',"Redefinir",false);if(v===null)return;v=v||sug;
+        if(v.length<6)return toast('A senha precisa ter pelo menos 6 caracteres.',true);
+        await api('definirSenha',{id:p2.id,senha:v});await carregarPerfis();
+        return sheet('Senha redefinida','<p>Passe para <b>'+h(p2.nome)+'</b>:</p><div class="kv"><span>Matrícula</span><b>'+h(p2.matricula)+'</b><span>Senha provisória</span><b style="font-size:22px;letter-spacing:.08em">'+h(v)+'</b></div>');}
+      var at=e.target.closest('[data-uativo]');if(at){var p3=achar(at.dataset.uativo);
+        if(p3.ativo&&!await ask('Desativar '+p3.nome+'? A pessoa perde o acesso imediatamente (os lançamentos dela continuam).','Desativar',true))return;
+        await api('atualizarUsuario',{id:p3.id,ativo:!p3.ativo});toast(p3.ativo?'Usuário desativado':'Usuário reativado');return await carregarPerfis();}
+      var ad=e.target.closest('[data-uadm]');if(ad){var p4=achar(ad.dataset.uadm);
+        if(!await ask((p4.admin?'Tirar o acesso de administrador de ':'Tornar administrador: ')+p4.nome+'?',p4.admin?'Tirar':'Tornar admin'))return;
+        await api('atualizarUsuario',{id:p4.id,admin:!p4.admin});return await carregarPerfis();}
+    }catch(err){toast(err.message,true);carregarPerfis();}
   };
 };
 function novoUsuario(){
@@ -183,32 +162,35 @@ function novoUsuario(){
       if(!n)return toast('Informe o nome.',true);if(!matValida(m))return toast('Matrícula: use só letras, números, ponto, hífen ou sublinhado.',true);
       if(s.length<6)return toast('A senha precisa ter pelo menos 6 caracteres.',true);
       if(perfis.some(function(p){return p.matricula===m;}))return toast('Essa matrícula já está cadastrada.',true);
-      var b=f.querySelector('button[type=submit]');busy(f,true);
-      try{
-        var tmp=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'ibiuna-tmp'}});
-        var r=await tmp.auth.signUp({email:emailDe(m),password:s});
-        if(r.error)throw new Error(/registered|exists/i.test(r.error.message)?'Já existe uma conta com essa matrícula no Supabase (Authentication → Users). Apague-a lá ou use outra matrícula.':r.error.message);
-        var uid=r.data.user&&r.data.user.id;if(!uid||(r.data.user.identities&&r.data.user.identities.length===0))throw new Error('Já existe uma conta com essa matrícula no Supabase.');
-        var v=await sb.rpc('admin_vincular_usuario',{p_user:uid,p_matricula:m,p_nome:n,p_papeis:Array.from(body.querySelectorAll('#nuPap .chip.on')).map(function(c){return c.dataset.v;}),p_admin:f.adm.checked});
-        if(v.error)throw new Error(v.error.message);
+      busy(f,true);
+      try{await api('criarUsuario',{matricula:m,nome:n,senha:s,admin:f.adm.checked,papeis:Array.from(body.querySelectorAll('#nuPap .chip.on')).map(function(c){return c.dataset.v;})});
         await carregarPerfis();sh.close();
         sheet('Usuário cadastrado','<p>Passe para <b>'+h(n)+'</b>. No primeiro acesso, o sistema pede para criar uma senha pessoal.</p><div class="kv"><span>Endereço</span><b>'+h(location.href.split('#')[0])+'</b><span>Matrícula</span><b>'+h(m)+'</b><span>Senha provisória</span><b style="font-size:22px;letter-spacing:.08em">'+h(s)+'</b></div>');
       }catch(err){toast(err.message,true);}finally{busy(f,false);}};});}
 
 /* ---------------- banco de dados (mesma interface do app) ---------------- */
-var chans={};
-function ouvir(col,fn){var c=chans[col];
-  if(!c){c=chans[col]={fns:new Set()};
-    c.ch=sb.channel('docs-'+col).on('postgres_changes',{event:'*',schema:'public',table:'docs',filter:'col=eq.'+col},function(){c.fns.forEach(function(f){f();});}).subscribe();}
-  c.fns.add(fn);return function(){c.fns.delete(fn);};}
-function avisar(col){var c=chans[col];if(c)c.fns.forEach(function(f){f();});}
+// Todas as telas abertas são atualizadas juntas, num único pedido ao servidor a cada 30 s.
+var ouvintes=new Map(), seq=0, pollT=null, pollRodando=false, pollDeNovo=false, POLL_MS=30000;
+function agendar(ms){clearTimeout(pollT);pollT=setTimeout(poll,ms==null?POLL_MS:ms);}
+async function poll(){
+  if(pollRodando){pollDeNovo=true;return;}
+  var lst=Array.from(ouvintes.values()).filter(function(o){return !o.virtual;});
+  if(!lst.length){agendar();return;}
+  pollRodando=true;
+  try{var r=await api('multi',{qs:lst.map(function(o){return Object.assign({k:o.k},o.spec);})});
+    lst.forEach(function(o){if(ouvintes.has(o.k)&&r.hasOwnProperty(o.k)){var v=r[o.k],s=JSON.stringify(v);if(s!==o.ult){o.ult=s;o.entrega(v);}}});}
+  catch(e){if(e.code==='revoked')lst.forEach(function(o){o.err&&o.err(e);});}
+  pollRodando=false;if(pollDeNovo){pollDeNovo=false;agendar(200);}else agendar();
+}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')agendar(100);});
 function snapDoc(id,data){return{id:id,exists:data!=null,data:function(){return data==null?undefined:data;},metadata:{fromCache:false,hasPendingWrites:false}};}
 function snapQ(rows){var docs=rows.map(function(r){return snapDoc(r.id,r.data);});return{docs:docs,size:docs.length,empty:!docs.length,metadata:{fromCache:false,hasPendingWrites:false},docChanges:function(){return[];}};}
-function cmp(a,b){if(a==null&&b==null)return 0;if(a==null)return 1;if(b==null)return -1;if(typeof a==='number'&&typeof b==='number')return a-b;return String(a).localeCompare(String(b));}
-
-// coleções "virtuais" vindas da tabela de usuários
 function virtualRows(col){if(col==='pessoas')return perfis.filter(function(p){return p.ativo;}).map(function(p){return{id:p.id,data:{uid:p.id,visto:''}};});return null;}
 function virtualDoc(col,id){if(col==='cfg'&&id==='papeis'){var u={};perfis.forEach(function(p){if(p.ativo)u[p.id]={roles:p.papeis||[]};});return{users:u};}return undefined;}
+function registrar(spec,entrega,err,virtual){var k='q'+(++seq);ouvintes.set(k,{k:k,spec:spec,entrega:entrega,err:err,virtual:virtual,ult:null});
+  if(virtual){var f=function(){entrega(virtual());};perfisFns.add(f);f();return function(){ouvintes.delete(k);perfisFns.delete(f);};}
+  agendar(60);return function(){ouvintes.delete(k);};}
+function aposGravar(){agendar(250);}
 
 function Q(col,f,o,l){this.col=col;this.f=f||[];this.o=o||null;this.l=l||null;}
 Q.prototype.where=function(field,op,v){return new Q(this.col,this.f.concat([[field,op,v]]),this.o,this.l);};
@@ -216,52 +198,22 @@ Q.prototype.orderBy=function(field,dir){return new Q(this.col,this.f,[field,dir|
 Q.prototype.limit=function(n){return new Q(this.col,this.f,this.o,n);};
 Q.prototype.doc=function(id){return new D(this.col,id||(Date.now().toString(36)+Math.random().toString(36).slice(2,8)));};
 Q.prototype.add=async function(data){var d=this.doc();await d.set(data);return d;};
-Q.prototype._run=async function(){
-  var v=virtualRows(this.col);if(v)return v;
-  var self=this,out=[],from=0,PAGE=1000,lim=this.l||Infinity;
-  for(;;){var b=sb.from('docs').select('id,data').eq('col',self.col);
-    self.f.forEach(function(x){var k='data->>'+x[0],v=x[2];var sv=v==null?null:String(v);
-      switch(x[1]){case'==':case'eq':b=v==null?b.is(k,null):b.eq(k,sv);break;case'!=':case'ne':b=b.neq(k,sv);break;case'<':case'lt':b=b.lt(k,sv);break;case'<=':case'lte':b=b.lte(k,sv);break;
-        case'>':case'gt':b=b.gt(k,sv);break;case'>=':case'gte':b=b.gte(k,sv);break;case'in':b=b.in(k,(v||[]).map(String));break;case'not-in':b=b.not(k,'in','('+(v||[]).map(String).join(',')+')');break;}});
-    if(self.o)b=b.order('data->>'+self.o[0],{ascending:self.o[1]!=='desc',nullsFirst:false});
-    b=b.order('id');
-    var n=Math.min(PAGE,lim-out.length),r=await b.range(from,from+n-1);
-    if(r.error)throw mapErr(r.error);
-    out=out.concat(r.data||[]);if((r.data||[]).length<n||out.length>=lim)break;from+=n;}
-  if(self.o){var k=self.o[0],ds=self.o[1]==='desc'?-1:1;out.sort(function(a,b){return cmp(a.data[k],b.data[k])*ds;});}
-  return out;};
-Q.prototype.get=async function(){return snapQ(await this._run());};
-Q.prototype.onSnapshot=function(next,err){var self=this,vivo=true,t=null,rodando=false,denovo=false;
-  async function run(){if(!vivo)return;if(rodando){denovo=true;return;}rodando=true;
-    try{var rows=await self._run();if(vivo)next(snapQ(rows));}catch(e){if(vivo&&e.code==='revoked'){vivo=false;err&&err(e);}}
-    rodando=false;if(denovo){denovo=false;run();}}
-  function deb(){clearTimeout(t);t=setTimeout(run,300);}
-  run();var un=self.col==='pessoas'?(perfisFns.add(deb),function(){perfisFns.delete(deb);}):ouvir(self.col,deb);
-  var iv=setInterval(run,45000);function vis(){if(document.visibilityState==='visible')deb();}document.addEventListener('visibilitychange',vis);
-  return function(){vivo=false;un();clearInterval(iv);document.removeEventListener('visibilitychange',vis);};};
+Q.prototype._spec=function(){return{col:this.col,f:this.f,o:this.o,l:this.l};};
+Q.prototype.get=async function(){var v=virtualRows(this.col);if(v)return snapQ(v);var r=await api('multi',{qs:[Object.assign({k:'x'},this._spec())]});return snapQ(r.x||[]);};
+Q.prototype.onSnapshot=function(next,err){var self=this;
+  return registrar(this._spec(),function(rows){next(snapQ(rows||[]));},err,virtualRows(this.col)?function(){return virtualRows(self.col);}:null);};
 
-function D(col,id){this.col=col;this.id=id;this.path=col+'/'+id;}
+function D(col,id){this.col=col;this.id=String(id);this.path=col+'/'+id;}
 D.prototype.collection=function(){throw new TypeError('Subcoleções não são suportadas.');};
-D.prototype._get=async function(){var v=virtualDoc(this.col,this.id);if(v!==undefined)return v;
-  var r=await sb.from('docs').select('data').eq('col',this.col).eq('id',this.id).maybeSingle();if(r.error)throw mapErr(r.error);return r.data?r.data.data:null;};
-D.prototype.get=async function(){return snapDoc(this.id,await this._get());};
-D.prototype.set=async function(data){if(virtualDoc(this.col,this.id)!==undefined||this.col==='pessoas')return;
-  var body=JSON.parse(JSON.stringify(data));
-  var u=await sb.from('docs').update({data:body}).eq('col',this.col).eq('id',this.id).select('id');
-  if(u.error)throw mapErr(u.error);
-  if(!u.data||!u.data.length){var i=await sb.from('docs').insert({col:this.col,id:this.id,data:body});if(i.error)throw mapErr(i.error);}
-  avisar(this.col);};
-D.prototype.update=async function(patch){if(virtualDoc(this.col,this.id)!==undefined)return;
-  var r=await sb.rpc('doc_merge',{p_col:this.col,p_id:this.id,p_patch:JSON.parse(JSON.stringify(patch))});if(r.error)throw mapErr(r.error);avisar(this.col);};
-D.prototype.delete=async function(){if(virtualDoc(this.col,this.id)!==undefined||this.col==='pessoas')return;
-  var r=await sb.from('docs').delete().eq('col',this.col).eq('id',this.id);if(r.error)throw mapErr(r.error);avisar(this.col);};
+D.prototype.get=async function(){var v=virtualDoc(this.col,this.id);if(v!==undefined)return snapDoc(this.id,v);if(this.col==='pessoas')return snapDoc(this.id,null);
+  var r=await api('multi',{qs:[{k:'x',col:this.col,id:this.id}]});return snapDoc(this.id,r.x);};
+D.prototype.set=async function(data){if(virtualDoc(this.col,this.id)!==undefined||this.col==='pessoas')return;await api('set',{col:this.col,id:this.id,data:JSON.parse(JSON.stringify(data))});aposGravar();};
+D.prototype.update=async function(patch){if(virtualDoc(this.col,this.id)!==undefined||this.col==='pessoas')return;await api('merge',{col:this.col,id:this.id,data:JSON.parse(JSON.stringify(patch))});aposGravar();};
+D.prototype.delete=async function(){if(virtualDoc(this.col,this.id)!==undefined||this.col==='pessoas')return;await api('del',{col:this.col,id:this.id});aposGravar();};
 D.prototype.acquire=async function(){return{acquired:true};};
-D.prototype.onSnapshot=function(next,err){var self=this,vivo=true,t=null;
-  async function run(){try{var d=await self._get();if(vivo)next(snapDoc(self.id,d));}catch(e){if(vivo&&e.code==='revoked'){vivo=false;err&&err(e);}}}
-  function deb(){clearTimeout(t);t=setTimeout(run,300);}
-  run();var un=(self.col==='cfg'&&self.id==='papeis')?(perfisFns.add(deb),function(){perfisFns.delete(deb);}):ouvir(self.col,deb);
-  var iv=setInterval(run,60000);
-  return function(){vivo=false;un();clearInterval(iv);};};
+D.prototype.onSnapshot=function(next,err){var self=this,v=virtualDoc(this.col,this.id);
+  if(v!==undefined)return registrar(null,function(d){next(snapDoc(self.id,d));},err,function(){return virtualDoc(self.col,self.id);});
+  return registrar({col:this.col,id:this.id},function(d){next(snapDoc(self.id,d));},err,null);};
 
 var dbApi={doc:function(p){var s=String(p).split('/');if(s.length!==2)throw new TypeError('Caminho inválido: '+p);return new D(s[0],s[1]);},
   collection:function(p){if(String(p).indexOf('/')>=0)throw new TypeError('Coleção inválida: '+p);return new Q(p);}};
