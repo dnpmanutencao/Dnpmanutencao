@@ -24,7 +24,7 @@ function fCarregar(forcar) {
 
 // ---------- cálculo do saldo dia a dia ----------
 // converte o registro da aba FluxoCaixa para o formato usado nas telas
-function fMapear(o) { return { id: o.id, tipo: o.tipo, valorTotal: +o.valor || 0, descricao: o.descricao, categoria: o.categoria, projetoId: o.projetoId, nomeProjeto: o.nomeObra, fornecedorCliente: o.fornecedorCliente, formaPagamento: o.formaPagamento, dataVencimento: o.dataVencimento, dataBaixa: o.dataPagamento, status: o.status === 'Pago' ? 'Baixado' : o.status === 'Previsto' ? 'Previsto' : 'Aberto', origemTipo: o.origemTipo, origemId: o.origemId, comprovanteUrl: o.comprovanteUrl, dataLancamento: String(o.criadoEm || '').slice(0, 10) }; }
+function fMapear(o) { return { id: o.id, tipo: o.tipo, valorTotal: +o.valor || 0, descricao: o.descricao, categoria: o.categoria, projetoId: o.projetoId, nomeProjeto: o.nomeObra, fornecedorCliente: o.fornecedorCliente, formaPagamento: o.formaPagamento, dataVencimento: o.dataVencimento, dataBaixa: o.dataPagamento, status: o.status === 'Pago' ? 'Baixado' : o.status === 'Previsto' ? 'Previsto' : 'Aberto', origemTipo: o.origemTipo, origemId: o.origemId, comprovanteUrl: o.comprovanteUrl, dadosPagamento: o.dadosPagamento || null, dataLancamento: String(o.criadoEm || '').slice(0, 10) }; }
 // (antigo) modo manual: só lançamentos feitos a partir da data de início; automáticos (folha, medição, custos fixos) só quando liberados
 function fAplicar(l) {
   var s = F.saldo || {}, ini = s.inicio || '', lin = +s.linhaInicio || 0;
@@ -67,11 +67,11 @@ function fTotDia(d) { var e = 0, s = 0; fDoDia(d).forEach(function (l) { if (fEn
 function fTela() {
   var main = document.querySelector('main'); if (main) main.style.maxWidth = '1180px';
   if (!F.lanc) { $('tela').innerHTML = gVoltar('auto') + '<div class="card muted">Carregando o financeiro...</div>'; fCarregar(); return; }
-  var abas = [['cal', '📅 Calendário'], ['aprov', '📥 Aprovações' + (F.nAprov ? ' (' + F.nAprov + ')' : '')], ['pend', '⚠️ Pendências'], ['rel', '📊 Relatórios']];
+  var abas = [['cal', '📅 Calendário'], ['aprov', '📥 Aprovações' + (F.nAprov ? ' (' + F.nAprov + ')' : '')], ['pagar', '🧾 Contas a pagar'], ['pend', '⚠️ Pendências'], ['rel', '📊 Relatórios']];
   var h = '<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap"><button class="btn sec" style="width:auto;padding:8px 12px;font-size:13px" onclick="gIr(\'auto\')">←</button>' +
     abas.map(function (a) { return '<button class="btn ' + (F.aba === a[0] ? '' : 'sec') + '" style="width:auto;padding:8px 12px;font-size:13px" onclick="F.aba=\'' + a[0] + '\';fTela()">' + a[1] + '</button>'; }).join('') +
     '<button class="btn sec" style="width:auto;padding:8px 10px;font-size:13px;margin-left:auto" onclick="fCarregar(true)" title="Atualizar">🔄</button></div>';
-  if (F.aba === 'aprov') h += fHtmlAprov(); else if (F.aba === 'pend') h += fHtmlPend(); else if (F.aba === 'rel') h += fHtmlRel(); else h += fHtmlCal();
+  if (F.aba === 'aprov') h += fHtmlAprov(); else if (F.aba === 'pagar') h += fHtmlPagar(); else if (F.aba === 'pend') h += fHtmlPend(); else if (F.aba === 'rel') h += fHtmlRel(); else h += fHtmlCal();
   h += '<button onclick="fNovo()" style="position:fixed;right:18px;bottom:84px;width:58px;height:58px;border-radius:50%;background:var(--laranja);color:#fff;font-size:30px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:6">+</button>';
   $('tela').innerHTML = h;
   fLigar();
@@ -207,9 +207,10 @@ function fHtmlRel() {
 
 // ---------- ações ----------
 function fLigar() {
-  if ($('f-obra')) $('f-obra').onchange = function () { F.obra = this.value; fTela(); };
-  if ($('f-cat')) $('f-cat').onchange = function () { F.cat = this.value; fTela(); };
+  if ($('f-obra')) $('f-obra').onchange = function () { if (F.aba === 'pagar') fPgCap(); F.obra = this.value; fTela(); };
+  if ($('f-cat')) $('f-cat').onchange = function () { if (F.aba === 'pagar') fPgCap(); F.cat = this.value; fTela(); };
   Array.prototype.forEach.call(document.querySelectorAll('.f-ck'), function (c) { c.onchange = function () { F.sel[c.dataset.id] = c.checked ? 1 : 0; }; });
+  if (F.aba === 'pagar') fPgLigar();
 }
 function fMes(n) { var d = new Date(+F.mes.slice(0, 4), +F.mes.slice(5, 7) - 1 + n, 1); F.mes = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); F.dia = null; fTela(); }
 function fAcao(fn, args, ok) { if (!gOnline()) return; aviso('Salvando...'); return sys(fn, args).then(function () { aviso(ok || 'Feito.', 'ok'); fCarregar(true); }).catch(function (e) { aviso(e.message, 'err'); }); }
@@ -346,6 +347,150 @@ function fContarAprov() {
   sys('fxPendentesAprovacao', []).then(function (r) { F.aprov = r; F.nAprov = (r.requisicoes || []).length + (r.reembolsos || []).length; })
     .catch(function (e) { F.aprov = { requisicoes: [], reembolsos: [] }; aviso(e.message, 'err'); })
     .then(function () { F.carregandoAprov = false; if (G.view === 'tFluxo' && !F.ed) fTela(); });
+}
+
+// ---------- contas a pagar do dia + relatório de pagamento para o financeiro ----------
+var F_PG_METODOS = ['PIX', 'Boleto', 'Transferência (TED)', 'Dinheiro', 'Cartão de crédito', 'Cartão de débito', 'Débito automático'];
+function fPgEstado() { if (!F.pg) F.pg = { dia: fHoje(), venc: true, sel: {}, dd: {} }; return F.pg; }
+function fPgContas() {
+  var g = fPgEstado();
+  return F.lanc.filter(function (l) {
+    if (fEnt(l) || fBaix(l) || !l.dataVencimento || !fFiltra(l)) return false;
+    return l.dataVencimento === g.dia || (g.venc && l.dataVencimento < g.dia && l.status !== 'Previsto');
+  }).sort(function (a, b) { return a.dataVencimento.localeCompare(b.dataVencimento) || (+b.valorTotal) - (+a.valorTotal); });
+}
+// dados de pagamento: o que já foi digitado agora > o que está salvo no lançamento > o último usado com o mesmo fornecedor
+function fPgUltimoDoFornecedor(nome) {
+  if (!nome) return null; var achado = null, quando = '';
+  F.lanc.forEach(function (l) { var d = l.dadosPagamento; if (d && (d.chave || d.metodo) && l.fornecedorCliente === nome && String(l.dataVencimento) >= quando) { achado = d; quando = String(l.dataVencimento); } });
+  return achado;
+}
+function fPgDados(l) {
+  var g = fPgEstado(); if (g.dd[l.id]) return g.dd[l.id];
+  var base = l.dadosPagamento || fPgUltimoDoFornecedor(l.fornecedorCliente) || {};
+  return { metodo: base.metodo || l.formaPagamento || '', chave: base.chave || '', favorecido: base.favorecido || l.fornecedorCliente || '', documento: base.documento || '', obs: (l.dadosPagamento && l.dadosPagamento.obs) || '' };
+}
+function fPgRotuloChave(m) { m = String(m || ''); return m === 'PIX' ? 'Chave PIX' : m === 'Boleto' ? 'Linha digitável / código de barras' : /Transfer/.test(m) ? 'Banco · agência · conta' : 'Detalhes do pagamento'; }
+function fHtmlPagar() {
+  var g = fPgEstado(), c = fCalc(), lista = fPgContas(), tot = 0, sel = 0, nsel = 0;
+  lista.forEach(function (l) { tot += +l.valorTotal; if (g.sel[l.id]) { sel += +l.valorTotal; nsel++; } });
+  var saldoAntes = c.saldo(fAdd(g.dia, -1) < c.hoje ? c.hoje : fAdd(g.dia, -1));
+  var h = '<div class="card" style="padding:10px"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
+    '<button class="btn sec" style="width:auto;padding:6px 12px" onclick="fPgCap();F.pg.dia=fAdd(F.pg.dia,-1);fTela()">‹</button>' +
+    '<input type="date" id="pg-dia" value="' + g.dia + '" style="width:auto;flex:1;min-width:140px;margin:0">' +
+    '<button class="btn sec" style="width:auto;padding:6px 12px" onclick="fPgCap();F.pg.dia=fAdd(F.pg.dia,1);fTela()">›</button>' +
+    '<button class="btn sec" style="width:auto;padding:6px 10px;font-size:12px" onclick="fPgCap();F.pg.dia=fHoje();fTela()">Hoje</button></div>' +
+    '<label style="display:flex;gap:8px;align-items:center;color:var(--texto);margin:8px 0 6px;font-size:13px"><input type="checkbox" id="pg-venc" style="width:auto"' + (g.venc ? ' checked' : '') + '> Incluir as vencidas antes deste dia (sem baixa)</label>' +
+    '<div style="display:flex;gap:6px">' + fFiltrosHtml() + '</div></div>';
+  var card = function (t, v, cor, extra) { return '<div class="card" style="margin:0;padding:10px 12px"><div class="muted" style="font-size:12px">' + t + '</div><b style="font-size:18px;color:' + cor + '">' + v + '</b>' + (extra ? '<div class="muted" style="font-size:11px">' + extra + '</div>' : '') + '</div>'; };
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px">' +
+    card('A pagar (' + lista.length + ')', fBrl(tot), '#c62828', fDia(g.dia) + (g.venc ? ' + vencidas' : '')) +
+    card('Escolhidas para pagar (' + nsel + ')', fBrl(sel), '#1565c0') +
+    card('Caixa antes', fBrl(saldoAntes), saldoAntes < 0 ? '#c62828' : '#1b7f3b', 'saldo previsto') +
+    card('Caixa depois de pagar', fBrl(saldoAntes - sel), saldoAntes - sel < 0 ? '#c62828' : '#1b7f3b', 'só as escolhidas') + '</div>';
+  h += '<div class="card"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">' +
+    '<button class="btn sec" style="width:auto;padding:8px 12px;font-size:13px" onclick="fPgTodos(true)">Marcar todas</button>' +
+    '<button class="btn sec" style="width:auto;padding:8px 12px;font-size:13px" onclick="fPgTodos(false)">Desmarcar</button>' +
+    '<button class="btn sec" style="width:auto;padding:8px 12px;font-size:13px" onclick="fPgRelDia()">📄 Relatório do dia</button>' +
+    '<button class="btn lar" style="width:auto;padding:8px 12px;font-size:13px" onclick="fPgRelFinanceiro()">📤 Relatório para o financeiro (' + nsel + ')</button></div>' +
+    '<p class="muted" style="font-size:12px;margin:0 0 8px">Marque o que vai pagar e preencha a forma de pagamento e a chave PIX (ou o boleto / dados do banco). Fica salvo no lançamento e o app sugere a mesma chave da próxima vez que aparecer esse fornecedor.</p><ul class="lista">';
+  h += lista.map(function (l) {
+    var d = fPgDados(l), id = esc(l.id), on = !!g.sel[l.id], venc = l.dataVencimento < g.dia;
+    return '<li style="display:block;' + (on ? 'background:#f2f7ff;' : '') + '"><label style="display:flex;gap:10px;align-items:flex-start;color:var(--texto);margin:0;cursor:pointer"><input type="checkbox" class="pg-ck" data-id="' + id + '" style="width:22px;height:22px;margin-top:2px"' + (on ? ' checked' : '') + '>' +
+      '<div style="flex:1;min-width:0"><b>' + esc(l.descricao || '') + '</b><br><span class="muted" style="font-size:12px">' + esc([l.fornecedorCliente, l.nomeProjeto, l.categoria].filter(Boolean).join(' · ')) + '</span></div>' +
+      '<div style="text-align:right"><b style="color:#c62828">' + fBrl(l.valorTotal) + '</b><br><span style="font-size:11px;font-weight:700;color:' + (venc ? '#c62828' : l.status === 'Previsto' ? '#6a4fb3' : '#c77700') + '">' + (venc ? 'Vencida ' + fDia(l.dataVencimento) : l.status === 'Previsto' ? 'Previsto' : 'Vence ' + fDia(l.dataVencimento)) + '</span></div></label>' +
+      '<div class="pg-campos" style="display:' + (on ? 'grid' : 'none') + ';grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px;margin-top:8px" id="pg-c-' + id + '">' +
+      '<div><label style="margin:0;font-size:12px">Forma de pagamento</label><select class="pg-in" data-id="' + id + '" data-k="metodo" style="margin:0"><option value="">—</option>' + F_PG_METODOS.concat(d.metodo && F_PG_METODOS.indexOf(d.metodo) < 0 ? [d.metodo] : []).map(function (m) { return '<option' + (m === d.metodo ? ' selected' : '') + '>' + esc(m) + '</option>'; }).join('') + '</select></div>' +
+      '<div style="grid-column:span 2"><label style="margin:0;font-size:12px" id="pg-r-' + id + '">' + fPgRotuloChave(d.metodo) + '</label><input class="pg-in" data-id="' + id + '" data-k="chave" value="' + esc(d.chave) + '" style="margin:0" placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"></div>' +
+      '<div><label style="margin:0;font-size:12px">Favorecido</label><input class="pg-in" data-id="' + id + '" data-k="favorecido" value="' + esc(d.favorecido) + '" style="margin:0"></div>' +
+      '<div><label style="margin:0;font-size:12px">CPF / CNPJ do favorecido</label><input class="pg-in" data-id="' + id + '" data-k="documento" value="' + esc(d.documento) + '" style="margin:0"></div>' +
+      '<div><label style="margin:0;font-size:12px">Observação para o financeiro</label><input class="pg-in" data-id="' + id + '" data-k="obs" value="' + esc(d.obs) + '" style="margin:0"></div></div></li>';
+  }).join('') || '<li class="muted">Nenhuma conta a pagar neste dia. 🎉</li>';
+  return h + '</ul></div>';
+}
+function fPgCap() {
+  var g = fPgEstado();
+  Array.prototype.forEach.call(document.querySelectorAll('.pg-in'), function (el) {
+    var id = el.dataset.id, l = F.lanc.filter(function (x) { return String(x.id) === String(id); })[0]; if (!l) return;
+    if (!g.dd[id]) g.dd[id] = fPgDados(l);
+    g.dd[id][el.dataset.k] = el.value;
+  });
+}
+function fPgLigar() {
+  var g = fPgEstado();
+  if ($('pg-dia')) $('pg-dia').onchange = function () { if (this.value) { fPgCap(); g.dia = this.value; fTela(); } };
+  if ($('pg-venc')) $('pg-venc').onchange = function () { fPgCap(); g.venc = this.checked; fTela(); };
+  Array.prototype.forEach.call(document.querySelectorAll('.pg-ck'), function (c) { c.onchange = function () { fPgCap(); g.sel[c.dataset.id] = c.checked ? 1 : 0; fTela(); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('.pg-in'), function (el) {
+    el.onchange = function () { fPgCap(); if (el.dataset.k === 'metodo') { var r = $('pg-r-' + el.dataset.id); if (r) r.textContent = fPgRotuloChave(el.value); } };
+  });
+}
+function fPgTodos(on) { fPgCap(); var g = fPgEstado(); fPgContas().forEach(function (l) { g.sel[l.id] = on ? 1 : 0; }); fTela(); }
+function fPgEscolhidas() { var g = fPgEstado(); return fPgContas().filter(function (l) { return g.sel[l.id]; }); }
+
+// folha para imprimir / salvar em PDF / compartilhar
+function fPgFolha(titulo, corpo, texto) {
+  var css = '#f-print{position:fixed;inset:0;z-index:9999;background:#fff;color:#000;overflow:auto;padding:16px;font-family:Arial,sans-serif;font-size:12px}' +
+    '#f-print table{border-collapse:collapse;width:100%}#f-print td,#f-print th{border:1px solid #999;padding:4px 5px;text-align:left;color:#000;vertical-align:top}#f-print th{background:#eee}' +
+    '#f-print .num{text-align:right;white-space:nowrap}#f-print h2,#f-print p{margin:4px 0;color:#000}#f-print .chave{font-family:monospace;font-size:13px;word-break:break-all}' +
+    '#f-print .ass{margin-top:46px;display:flex;justify-content:space-around}#f-print .ass div{border-top:1px solid #000;width:40%;text-align:center;padding-top:4px}' +
+    '#f-print .tp-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}#f-print .tp-bar button{flex:1;min-width:120px;padding:12px;font-size:15px;border-radius:8px;border:0}' +
+    '@media print{body>*:not(#f-print){display:none!important}#f-print{position:static;overflow:visible;padding:0}#f-print .tp-bar{display:none}@page{margin:10mm}}';
+  var el = document.getElementById('f-print'); if (el) el.remove();
+  el = document.createElement('div'); el.id = 'f-print'; F.pgTexto = texto || '';
+  el.innerHTML = '<style>' + css + '</style><div class="tp-bar"><button style="background:#0B1A2E;color:#fff" onclick="window.print()">🖨️ Imprimir / PDF</button>' +
+    (texto ? '<button style="background:#25D366;color:#fff" onclick="fPgCompartilhar()">📲 Enviar (WhatsApp…)</button><button style="background:#e3f0fd;color:#0B1A2E" onclick="fPgCopiar()">📋 Copiar texto</button>' : '') +
+    '<button style="background:#ddd;color:#000" onclick="document.getElementById(\'f-print\').remove()">Fechar</button></div><h2>' + titulo + '</h2>' + corpo;
+  document.body.appendChild(el); window.scrollTo(0, 0);
+}
+function fPgCompartilhar() {
+  var t = F.pgTexto || '';
+  if (navigator.share) navigator.share({ title: 'Pagamentos', text: t }).catch(function () {});
+  else window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank');
+}
+function fPgCopiar() {
+  var t = F.pgTexto || '';
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { aviso('Texto copiado.', 'ok'); })
+    .catch(function () { var a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); aviso('Texto copiado.', 'ok'); } catch (e) {} a.remove(); });
+}
+function fPgCabecalho() { var g = fPgEstado(); return '<p>Data: <b>' + g.dia.split('-').reverse().join('/') + '</b>' + (g.venc ? ' (inclui vencidas sem baixa)' : '') + (F.obra ? ' · Obra filtrada' : '') + (F.cat ? ' · Categoria: ' + esc(F.cat) : '') + ' · Emitido em ' + new Date().toLocaleString('pt-BR').slice(0, 16) + '</p>'; }
+function fPgRelDia() {
+  fPgCap(); var g = fPgEstado(), lista = fPgContas(), tot = 0;
+  if (!lista.length) return aviso('Nenhuma conta a pagar neste dia.', 'err');
+  var linhas = lista.map(function (l) { tot += +l.valorTotal; var d = fPgDados(l); return '<tr><td>' + fDia(l.dataVencimento) + (l.dataVencimento < g.dia ? ' <b>(vencida)</b>' : '') + '</td><td>' + esc(l.descricao || '') + '</td><td>' + esc(l.fornecedorCliente || '') + '</td><td>' + esc(l.nomeProjeto || '') + '</td><td>' + esc(l.categoria || '') + '</td><td>' + esc(d.metodo || '') + '</td><td class="num">' + fBrl(l.valorTotal) + '</td><td>' + (g.sel[l.id] ? 'Sim' : '') + '</td></tr>'; }).join('');
+  fPgFolha('Contas a pagar — ' + g.dia.split('-').reverse().join('/'), fPgCabecalho() +
+    '<table><thead><tr><th>Venc.</th><th>Descrição</th><th>Fornecedor</th><th>Obra</th><th>Categoria</th><th>Forma</th><th class="num">Valor</th><th>Pagar?</th></tr></thead><tbody>' + linhas +
+    '<tr><th colspan="6">Total (' + lista.length + ' conta(s))</th><th class="num">' + fBrl(tot) + '</th><th></th></tr></tbody></table>');
+}
+function fPgRelFinanceiro() {
+  fPgCap(); var g = fPgEstado(), lista = fPgEscolhidas();
+  if (!lista.length) return aviso('Marque as contas que vão ser pagas.', 'err');
+  var faltando = lista.filter(function (l) { var d = fPgDados(l); return !d.metodo || (['PIX', 'Boleto'].indexOf(d.metodo) >= 0 || /Transfer/.test(d.metodo)) && !String(d.chave || '').trim(); });
+  if (faltando.length && !confirm(faltando.length + ' conta(s) sem forma de pagamento ou sem chave PIX / boleto / dados do banco:\n\n' + faltando.slice(0, 6).map(function (l) { return '• ' + l.descricao; }).join('\n') + '\n\nGerar o relatório mesmo assim?')) return;
+  var envio = lista.map(function (l) { var d = fPgDados(l); return { id: l.id, metodo: d.metodo, chave: d.chave, favorecido: d.favorecido, documento: d.documento, obs: d.obs }; });
+  var gerar = function () {
+    var tot = 0, txt = ['*Pagamentos a fazer — ' + g.dia.split('-').reverse().join('/') + '*', ''];
+    var linhas = lista.map(function (l, i) {
+      var d = fPgDados(l); tot += +l.valorTotal;
+      txt.push((i + 1) + ') ' + (d.favorecido || l.fornecedorCliente || l.descricao) + ' — *' + fBrl(l.valorTotal) + '*');
+      txt.push('   ' + l.descricao + (l.nomeProjeto ? ' · ' + l.nomeProjeto : '') + ' · venc. ' + fDia(l.dataVencimento));
+      txt.push('   ' + (d.metodo || 'Forma não informada') + (d.chave ? ': ' + d.chave : '') + (d.documento ? ' · Doc.: ' + d.documento : ''));
+      if (d.obs) txt.push('   Obs.: ' + d.obs);
+      txt.push('');
+      return '<tr><td>' + (i + 1) + '</td><td><b>' + esc(d.favorecido || l.fornecedorCliente || '') + '</b>' + (d.documento ? '<br>' + esc(d.documento) : '') + '</td><td>' + esc(l.descricao || '') + (l.nomeProjeto ? '<br><i>' + esc(l.nomeProjeto) + '</i>' : '') + '</td><td>' + fDia(l.dataVencimento) + '</td><td>' + esc(d.metodo || '—') + '</td><td class="chave">' + esc(d.chave || '') + '</td><td>' + esc(d.obs || '') + '</td><td class="num"><b>' + fBrl(l.valorTotal) + '</b></td><td style="width:60px"></td></tr>';
+    }).join('');
+    txt.push('*Total: ' + fBrl(tot) + '* (' + lista.length + ' pagamento(s))');
+    fPgFolha('Autorização de pagamentos — ' + g.dia.split('-').reverse().join('/'), fPgCabecalho() +
+      '<table><thead><tr><th>#</th><th>Favorecido</th><th>Referente a</th><th>Venc.</th><th>Forma</th><th>Chave PIX / boleto / conta</th><th>Obs.</th><th class="num">Valor</th><th>Pago ✔</th></tr></thead><tbody>' + linhas +
+      '<tr><th colspan="7">Total a pagar (' + lista.length + ')</th><th class="num">' + fBrl(tot) + '</th><th></th></tr></tbody></table>' +
+      '<p style="margin-top:8px">Depois de pagar, anexe o comprovante no lançamento e dê baixa no fluxo de caixa.</p><div class="ass"><div>Autorizado por</div><div>Financeiro</div></div>', txt.join('\n'));
+  };
+  if (!navigator.onLine) { aviso('Sem internet: o relatório sai, mas as chaves não foram salvas.', 'err'); return gerar(); }
+  aviso('Salvando dados de pagamento...');
+  sys('fxSalvarPagamentos', [envio]).then(function () {
+    lista.forEach(function (l) { var d = fPgDados(l); l.dadosPagamento = { metodo: d.metodo, chave: d.chave, favorecido: d.favorecido, documento: d.documento, obs: d.obs }; if (d.metodo) l.formaPagamento = d.metodo; });
+    DB.set('g_fluxo2', { lanc: F.todos, saldo: F.saldo }); aviso('Dados de pagamento salvos.', 'ok'); gerar();
+  }).catch(function (e) { aviso('Não salvou as chaves: ' + e.message, 'err'); gerar(); });
 }
 
 // estilo responsivo (computador: calendário + dia lado a lado)
