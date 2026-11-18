@@ -120,6 +120,19 @@ function tTelaFreq() {
   };
   $('t-busca').oninput = pinta; pinta();
 }
+// Origem de cada marcação no espelho: R = RDO, B = batida no app, M = manual
+var T_ORIG = { RDO: ['R', 'RDO', '#1565c0', '#e3f0fd'], App: ['B', 'Batida', '#1b7f3b', '#e6f6ec'], Manual: ['M', 'Manual', '#b35c00', '#fff1e0'] };
+var T_HORAS = ['entrada1', 'saida1', 'entrada2', 'saida2', 'entrada3', 'saida3'];
+function tOrigens(r) {
+  var m = Array.isArray(r.origemMarcacoes) ? r.origemMarcacoes : [];
+  return T_HORAS.map(function (k, j) { return r[k] ? (m[j] || r.origem || 'RDO') : ''; });
+}
+function tMarca(o) { var x = T_ORIG[o]; return x ? '<span title="' + x[1] + '" style="display:inline-block;min-width:15px;padding:0 3px;margin-left:2px;border-radius:4px;font-size:10px;font-weight:700;line-height:15px;text-align:center;color:' + x[2] + ';background:' + x[3] + '">' + x[0] + '</span>' : ''; }
+function tMarcacoes(r) {
+  var o = tOrigens(r);
+  return [0, 2, 4].map(function (j) { return r[T_HORAS[j]] ? r[T_HORAS[j]] + tMarca(o[j]) + '–' + (r[T_HORAS[j + 1]] ? r[T_HORAS[j + 1]] + tMarca(o[j + 1]) : '…') : ''; }).filter(String).join('&nbsp;&nbsp; ');
+}
+function tLegendaOrigem() { return '<p class="muted" style="font-size:12px;margin:0 0 6px">' + ['RDO', 'App', 'Manual'].map(function (o) { return tMarca(o) + ' ' + T_ORIG[o][1]; }).join(' &nbsp; ') + '</p>'; }
 function tTelaEspelho() {
   var f = T.func; if (!f) return gIr('tFreq');
   var e = tCarrega('esp_' + T.mes + f.id, 'obterEspelhoPonto', [T.mes, f.id], 'tEspelho');
@@ -130,8 +143,8 @@ function tTelaEspelho() {
   var t = e.totais || {};
   h += '<div class="card"><ul class="lista">' + Object.keys(t).filter(function (k) { return typeof t[k] !== 'object'; }).map(function (k) { return '<li><span>' + esc(mRot(k)) + '</span><b>' + esc(mVal(k, t[k])) + '</b></li>'; }).join('') + '</ul>' + tBtn('🖨️ Imprimir / PDF', 'tImprimirEspelho()', 'lar') + '</div>';
   T.dias = e.dias || [];
-  h += '<div class="card"><p class="muted" style="margin:0 0 6px">Toque num dia para corrigir</p><ul class="lista">' + T.dias.map(function (d, i) {
-    var r = d.registro || {}, bat = [1, 2, 3].map(function (n) { return r['entrada' + n] ? r['entrada' + n] + '–' + (r['saida' + n] || '…') : ''; }).filter(String).join('  ');
+  h += '<div class="card"><p class="muted" style="margin:0 0 6px">Toque num dia para corrigir</p>' + tLegendaOrigem() + '<ul class="lista">' + T.dias.map(function (d, i) {
+    var r = d.registro || {}, bat = tMarcacoes(r);
     var sit = r.situacao || (bat ? 'Trabalhado' : '');
     return '<li style="cursor:pointer;display:block" onclick="T.dia=' + i + ';gIr(\'tDia\')"><div style="display:flex;justify-content:space-between;gap:8px"><b>' + mdData(d.data) + ' <span class="muted" style="font-weight:400">' + esc(d.diaSemana || '') + '</span></b>' + (sit && sit !== 'Trabalhado' ? aBadge(sit) : '') + '</div><span class="muted" style="font-size:13px">' + (bat || '—') + (r.horasTrabalhadas ? ' · ' + esc(r.horasTrabalhadas) + ' h' : '') + (r.horasExtra50 ? ' · HE50 ' + esc(r.horasExtra50) : '') + (r.horasExtra100 ? ' · HE100 ' + esc(r.horasExtra100) : '') + (r.feriado ? ' · Feriado' : '') + (r.observacao ? ' · ' + esc(r.observacao) : '') + '</span></li>';
   }).join('') + '</ul></div>';
@@ -156,7 +169,7 @@ function tImprimirEspelho() {
   var linhas = (e.dias || []).map(function (d) {
     var r = d.registro || {};
     return '<tr><td>' + br(d.data) + '</td><td>' + esc(d.diaSemana || '') + '</td><td>' + esc(d.obras || '') + '</td><td>' + esc(r.situacao || '') + '</td>' +
-      cols.map(function (k) { return '<td>' + esc(r[k] || '') + '</td>'; }).join('') +
+      cols.map(function (k, j) { return '<td>' + esc(r[k] || '') + (r[k] ? ' <sup>' + ((T_ORIG[tOrigens(r)[j]] || [''])[0]) + '</sup>' : '') + '</td>'; }).join('') +
       '<td>' + tHHMM(r.horasNormais) + '</td><td>' + tHHMM(r.horasExtra50) + '</td><td>' + tHHMM(r.horasExtra100) + '</td><td>' + tHHMM(r.horasNoturnas) + '</td></tr>';
   }).join('');
   var css = '#t-print{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:#fff;color:#000;overflow:auto;padding:16px;font-family:Arial,sans-serif;font-size:11px}' +
@@ -174,6 +187,7 @@ function tImprimirEspelho() {
     '<p>Funcionário: <b>' + esc(f.nome || '') + '</b> · Função: ' + esc(f.funcao || '-') + ' · CPF: ' + esc(f.cpf || '-') + ' · Admissão: ' + (br(f.admissao) || '-') + '</p>' +
     '<table><thead><tr><th>Data</th><th>Dia</th><th>Obra</th><th>Situação</th><th>Ent.1</th><th>Saí.1</th><th>Ent.2</th><th>Saí.2</th><th>Ent.3</th><th>Saí.3</th><th>Normais</th><th>HE50</th><th>HE100</th><th>Not.</th></tr></thead><tbody>' + linhas +
     '<tr style="font-weight:bold"><td colspan="10">Totais: ' + (t.diasTrabalhados || 0) + ' dias trab., ' + (t.faltas || 0) + ' faltas, ' + (t.faltasJustificadas || 0) + ' justificadas</td><td>' + tHHMM(t.horasNormais) + '</td><td>' + tHHMM(t.horasExtra50) + '</td><td>' + tHHMM(t.horasExtra100) + '</td><td>' + tHHMM(t.horasNoturnas) + '</td></tr></tbody></table>' +
+    '<p style="font-size:10px;margin-top:6px">Origem das marcações: R = apontamento do RDO · B = batida no app de ponto · M = lançada ou alterada manualmente.</p>' +
     '<div class="ass"><div>Empregador</div><div>Empregado</div></div>';
   document.body.appendChild(el);
 }
@@ -182,7 +196,7 @@ function tTelaDia() {
   var d = T.dias && T.dias[T.dia]; if (!d) return gIr('tEspelho');
   var r = d.registro || {};
   $('tela').innerHTML = gVoltar('tEspelho') + tH('Corrigir dia ' + mdData(d.data), esc(T.func.nome)) + '<div class="card">' +
-    '<p class="muted">Batidas: ' + ([1, 2, 3].map(function (n) { return r['entrada' + n] ? r['entrada' + n] + '–' + (r['saida' + n] || '…') : ''; }).filter(String).join('  ') || 'nenhuma') + '</p>' +
+    '<p class="muted">Marcações: ' + (tMarcacoes(r) || 'nenhuma') + '</p>' + tLegendaOrigem() +
     '<label>Situação</label><select id="td-s">' + T.situacoes.map(function (s) { return '<option' + (s === (r.situacao || 'Trabalhado') ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select>' +
     '<label style="display:flex;gap:8px;align-items:center;color:var(--texto);margin-top:10px"><input type="checkbox" id="td-f" style="width:auto"' + (r.feriado ? ' checked' : '') + '> Feriado</label>' +
     '<label>Observação</label><textarea id="td-o" rows="2">' + esc(r.observacao || '') + '</textarea>' +
