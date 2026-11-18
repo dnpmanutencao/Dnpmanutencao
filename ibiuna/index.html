@@ -729,7 +729,7 @@ function drawParCat(T){
   const P=T.paradas,box=$('#parCatBox');box.style.height=Math.max(140,P.length*30+30)+'px';
   upsert('chParCat',{type:'bar',data:{labels:P.length?P.map(e=>e[0]):['Nenhuma parada no mês'],datasets:[{data:P.length?P.map(e=>+e[1].toFixed(1)):[0],backgroundColor:P.map((e,i)=>COLORS[i%COLORS.length]),borderRadius:4,barThickness:18}]},
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,layout:{padding:{right:46}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>nf(c.raw,1)+' h'}}},
-      scales:{x:{beginAtZero:true,grid:{color:'#eef1ef'},ticks:{callback:v=>nf(v)+' h'}},y:{grid:{display:false},ticks:{color:'#14211a',font:{weight:600}}}}},
+      scales:{x:{beginAtZero:true,grid:{color:'#eef1ef'},ticks:{maxTicksLimit:6,callback:v=>nf(v,Number.isInteger(v)?0:1)+' h'}},y:{grid:{display:false},ticks:{color:'#14211a',font:{weight:600}}}}},
     plugins:[{id:'vals',afterDatasetsDraw(ch){const{ctx}=ch,m=ch.getDatasetMeta(0);ctx.save();ctx.font='700 12px Barlow';ctx.fillStyle='#14211a';ctx.textBaseline='middle';
       m.data.forEach((b,i)=>{const v=ch.data.datasets[0].data[i];if(v>0)ctx.fillText(nf(v,1)+' h',b.x+6,b.y);});ctx.restore();}}]});}
 function upsert(id,cfg){const ch=S.charts[id];if(ch&&ch.config.type===cfg.type){ch.data=cfg.data;ch.options=cfg.options;ch.update('none');return;}if(ch)ch.destroy();S.charts[id]=new Chart(document.getElementById(id),cfg);}
@@ -1655,7 +1655,7 @@ function inspExec(id){
     <div class="ixres" id="ixRes"></div>
     <div><label class="fl">Resultado da inspeção</label><div class="chips" id="ixCls">${INSP_CLS.map(([k,l])=>`<button type="button" class="chip sm" data-cls="${k}">${l}</button>`).join('')}</div></div>
     <div style="margin-top:12px"><label class="fl">Observações gerais</label><textarea class="inp" id="ixObs"></textarea></div>
-    <div id="ixOS" class="hidden" style="margin-top:12px"><label class="ck"><input type="checkbox" id="ixOSck" checked> Abrir OS corretiva para os itens NOK</label>
+    <div id="ixOS" class="hidden" style="margin-top:12px"><label class="ck"><input type="checkbox" id="ixOSck" checked> Abrir OS corretiva para os itens NC</label>
       <label class="ck" style="margin-top:8px"><input type="checkbox" id="ixPara"> O equipamento está parado</label></div>
     <div class="sticky"><div id="ixProg" class="note"></div><button class="btn" id="ixSave">Concluir inspeção</button></div>`,(body,sh)=>{
     const box=$('#ixItens',body);
