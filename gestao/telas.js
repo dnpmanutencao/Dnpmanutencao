@@ -220,7 +220,18 @@ function tTelaFolhaFunc() {
     tBtn('📄 Contracheque PDF', "tPdf('exportarContrachequePdf',[T.d['folha_'+T.mes].itens[T.folhaIdx].id,T.mes])", 'lar') + (x.lancado ? tBtn('↩️ Reabrir (desfazer lançamento)', 'tFolhaReabrir()', 'sec') : '') + '</div>';
   h += '<div class="card"><h2 style="font-size:15px">Avulsos do mês</h2><ul class="lista">' + ((x.avulsos || []).map(function (a) { return '<li><span>' + esc(a.tipo || '') + ' · ' + esc(a.descricao || '') + '</span><span><b>' + mdBrl(a.valor) + '</b> <a href="#" onclick="tFolhaExcluirAvulso(\'' + tId(a.id) + '\');return false" style="color:var(--erro)">🗑️</a></span></li>'; }).join('') || '<li class="muted">Nenhum</li>') + '</ul>' +
     '<div class="grade" style="margin-top:8px"><div><label>Tipo</label><select id="tf-t"><option>Provento</option><option>Desconto</option></select></div><div><label>Valor (R$)</label><input type="number" step="any" inputmode="decimal" id="tf-v"></div></div><label>Descrição</label><input id="tf-d" placeholder="Ex.: Bônus, vale, desconto de EPI"><label style="display:flex;gap:8px;align-items:center;color:var(--texto);margin-top:8px"><input type="checkbox" id="tf-tr" style="width:auto"> Tributável (entra no INSS/IRRF)</label>' + tBtn('+ Adicionar avulso', 'tFolhaAvulso()') + '</div>';
-  h += '<div class="card"><h2 style="font-size:15px">Configurações do funcionário</h2><div class="grade"><div><label>Periculosidade (%)</label><input type="number" step="any" id="tf-pe" placeholder="0 ou 30"></div><div><label>Dependentes</label><input type="number" id="tf-de"></div><div><label>Diária (R$)</label><input type="number" step="any" id="tf-di"></div><div><label>Chave PIX</label><input id="tf-px"></div></div>' +
+  if (x.tipo === 'Diaria') {
+    var rf = x.referencias || {};
+    h += '<div class="card"><h2 style="font-size:15px">💲 Valor da diária deste funcionário</h2>' +
+      '<p class="muted" style="font-size:13px;margin:0 0 8px">Atual: <b>' + mdBrl(x.valorDiaria || 0) + '</b>' + (rf.diarias != null ? ' · ' + rf.diarias + ' diária(s) e ' + (rf.meias || 0) + ' meia(s) no mês' : '') + '. ' +
+      'Sem valor próprio, o sistema usa o valor-hora do cadastro (ou do RDO) × a jornada padrão.</p>' +
+      (x.lancado ? '<p class="muted" style="font-size:12px;color:var(--erro)">A folha deste funcionário já foi lançada: reabra para recalcular com o novo valor.</p>' : '') +
+      '<label>Nova diária (R$)</label><input type="number" step="0.01" min="0" inputmode="decimal" id="tf-di" value="' + (x.valorDiaria || '') + '">' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' + tBtn('Salvar diária', 'tFolhaDiaria()') + tBtn('Voltar ao valor automático', 'tFolhaDiaria(0)', 'sec') + '</div></div>';
+  }
+  h += '<div class="card"><h2 style="font-size:15px">Configurações do funcionário</h2><div class="grade">' +
+    (x.tipo === 'CLT' ? '<div><label>Periculosidade (%)</label><input type="number" step="any" id="tf-pe" placeholder="0 ou 30"></div><div><label>Dependentes</label><input type="number" id="tf-de"></div>' : '') +
+    '<div><label>Chave PIX</label><input id="tf-px" value="' + esc(x.pix || '') + '"></div></div>' +
     '<p class="muted" style="font-size:12px">Preencha só o que quiser mudar.</p>' + tBtn('Salvar configurações', 'tFolhaCfg()') + '</div>';
   $('tela').innerHTML = h;
 }
@@ -231,12 +242,17 @@ function tFolhaAvulso() {
   tFn('folhaSalvarAvulso', [{ mesAno: T.mes, funcionarioId: tFolhaAtual().id, tipo: $('tf-t').value, valor: v, descricao: $('tf-d').value, tributavel: $('tf-tr').checked }]).then(tFolhaRecalc).catch(function () {});
 }
 function tFolhaExcluirAvulso(id) { if (confirm('Excluir este avulso?')) tFn('folhaExcluirAvulso', [id]).then(tFolhaRecalc).catch(function () {}); }
+function tFolhaDiaria(valor) {
+  var x = tFolhaAtual(), v = valor === 0 ? 0 : Number(String($('tf-di').value).replace(',', '.'));
+  if (valor !== 0 && !(v > 0)) return aviso('Informe o valor da diária.', 'err');
+  if (!gOnline()) return; aviso('Salvando...');
+  sys('folhaSalvarDiaria', [x.id, v]).then(function () { aviso(v ? 'Diária de ' + x.nome + ' agora é ' + mdBrl(v) + '.' : 'Diária volta a ser calculada automaticamente.', 'ok'); tFolhaRecalc(); }).catch(function (e) { aviso(e.message, 'err'); });
+}
 function tFolhaCfg() {
-  var id = tFolhaAtual().id, ps = [];
-  if ($('tf-pe').value !== '') ps.push(['folhaSalvarPericulosidade', [id, Number($('tf-pe').value)]]);
-  if ($('tf-de').value !== '') ps.push(['folhaSalvarDependentes', [id, Number($('tf-de').value)]]);
-  if ($('tf-di').value !== '') ps.push(['folhaSalvarDiaria', [id, Number($('tf-di').value)]]);
-  if ($('tf-px').value !== '') ps.push(['folhaSalvarPix', [id, $('tf-px').value]]);
+  var id = tFolhaAtual().id, ps = [], val = function (k) { var e = $(k); return e ? e.value : ''; };
+  if (val('tf-pe') !== '') ps.push(['folhaSalvarPericulosidade', [id, Number(val('tf-pe'))]]);
+  if (val('tf-de') !== '') ps.push(['folhaSalvarDependentes', [id, Number(val('tf-de'))]]);
+  if (val('tf-px') !== '' && val('tf-px') !== (tFolhaAtual().pix || '')) ps.push(['folhaSalvarPix', [id, val('tf-px')]]);
   if (!ps.length) return aviso('Nada para salvar.', 'err');
   if (!gOnline()) return; aviso('Salvando...');
   ps.reduce(function (p, c) { return p.then(function () { return sys(c[0], c[1]); }); }, Promise.resolve()).then(function () { aviso('Configurações salvas.', 'ok'); tFolhaRecalc(); }).catch(function (e) { aviso(e.message, 'err'); });
