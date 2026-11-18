@@ -146,7 +146,7 @@ function tTelaEspelho() {
   h += '<div class="card"><p class="muted" style="margin:0 0 6px">Toque num dia para corrigir</p>' + tLegendaOrigem() + '<ul class="lista">' + T.dias.map(function (d, i) {
     var r = d.registro || {}, bat = tMarcacoes(r);
     var sit = r.situacao || (bat ? 'Trabalhado' : '');
-    return '<li style="cursor:pointer;display:block" onclick="T.dia=' + i + ';gIr(\'tDia\')"><div style="display:flex;justify-content:space-between;gap:8px"><b>' + mdData(d.data) + ' <span class="muted" style="font-weight:400">' + esc(d.diaSemana || '') + '</span></b>' + (sit && sit !== 'Trabalhado' ? aBadge(sit) : '') + '</div><span class="muted" style="font-size:13px">' + (bat || '—') + (r.horasTrabalhadas ? ' · ' + esc(r.horasTrabalhadas) + ' h' : '') + (r.horasExtra50 ? ' · HE50 ' + esc(r.horasExtra50) : '') + (r.horasExtra100 ? ' · HE100 ' + esc(r.horasExtra100) : '') + (r.feriado ? ' · Feriado' : '') + (r.observacao ? ' · ' + esc(r.observacao) : '') + '</span></li>';
+    return '<li style="cursor:pointer;display:block" onclick="T.dia=' + i + ';gIr(\'tDia\')"><div style="display:flex;justify-content:space-between;gap:8px"><b>' + mdData(d.data) + ' <span class="muted" style="font-weight:400">' + esc(d.diaSemana || '') + '</span></b>' + (sit && sit !== 'Trabalhado' ? aBadge(sit) : '') + (tDiverge(d.comparar) ? '<span style="font-size:11px;font-weight:700;color:#b35c00;background:#fff1e0;border-radius:6px;padding:1px 6px">RDO ≠ batida</span>' : '') + '</div><span class="muted" style="font-size:13px">' + (bat || '—') + (r.horasTrabalhadas ? ' · ' + esc(r.horasTrabalhadas) + ' h' : '') + (r.horasExtra50 ? ' · HE50 ' + esc(r.horasExtra50) : '') + (r.horasExtra100 ? ' · HE100 ' + esc(r.horasExtra100) : '') + (r.feriado ? ' · Feriado' : '') + (r.observacao ? ' · ' + esc(r.observacao) : '') + '</span></li>';
   }).join('') + '</ul></div>';
   $('tela').innerHTML = h;
 }
@@ -192,19 +192,51 @@ function tImprimirEspelho() {
   document.body.appendChild(el);
 }
 
+function tDiverge(c) { return !!(c && c.rdo && c.batida && c.rdo.join('|') !== c.batida.join('|')); }
+var T_ROT_HORAS = ['Entrada 1', 'Saída 1', 'Entrada 2', 'Saída 2', 'Entrada 3', 'Saída 3'];
 function tTelaDia() {
   var d = T.dias && T.dias[T.dia]; if (!d) return gIr('tEspelho');
-  var r = d.registro || {};
+  var r = d.registro || {}, c = d.comparar || {}, o = tOrigens(r);
+  var chip = function (lado, j, orig) {
+    var h = c[lado] && c[lado][j]; if (!h) return '<td style="color:#bbb;text-align:center">—</td>';
+    var x = T_ORIG[orig];
+    return '<td style="text-align:center"><button type="button" onclick="tDiaUsar(\'' + lado + '\',' + j + ')" style="width:auto;margin:0;padding:6px 8px;border-radius:6px;font-size:14px;font-weight:700;color:' + x[2] + ';background:' + x[3] + ';border:1px solid ' + x[2] + '55">' + esc(h) + '</button></td>';
+  };
+  var temCmp = c.rdo || c.batida;
+  var tabela = '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:6px 0"><thead><tr><th style="text-align:left">Marcação</th>' +
+    (temCmp ? '<th>' + tMarca('RDO') + ' RDO</th><th>' + tMarca('App') + ' Batida</th>' : '') + '<th>Fica no espelho</th></tr></thead><tbody>' +
+    T_HORAS.map(function (k, j) {
+      return '<tr style="border-top:1px solid #eee"><td style="padding:4px 0">' + T_ROT_HORAS[j] + '</td>' + (temCmp ? chip('rdo', j, 'RDO') + chip('batida', j, 'App') : '') +
+        '<td style="white-space:nowrap"><input type="time" id="td-h' + j + '" value="' + esc(r[k] || '') + '" style="width:96px;margin:0;padding:6px" oninput="tDiaMarca(' + j + ')"><span id="td-m' + j + '">' + tMarca(o[j]) + '</span></td></tr>';
+    }).join('') + '</tbody></table>';
   $('tela').innerHTML = gVoltar('tEspelho') + tH('Corrigir dia ' + mdData(d.data), esc(T.func.nome)) + '<div class="card">' +
-    '<p class="muted">Marcações: ' + (tMarcacoes(r) || 'nenhuma') + '</p>' + tLegendaOrigem() +
+    (tDiverge(c) ? '<p style="margin:0 0 6px;font-size:13px;color:#b35c00"><b>O RDO e a batida estão diferentes.</b> Toque no horário que quer manter, ou use os botões abaixo.</p>' : '') +
+    tLegendaOrigem() + tabela +
+    (c.rdo && c.batida ? '<div style="display:flex;gap:8px">' + tBtn('Manter RDO', 'tDiaUsarLado(\'rdo\')', 'sec') + tBtn('Manter batida', 'tDiaUsarLado(\'batida\')', 'sec') + '</div>' : '') +
     '<label>Situação</label><select id="td-s">' + T.situacoes.map(function (s) { return '<option' + (s === (r.situacao || 'Trabalhado') ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select>' +
     '<label style="display:flex;gap:8px;align-items:center;color:var(--texto);margin-top:10px"><input type="checkbox" id="td-f" style="width:auto"' + (r.feriado ? ' checked' : '') + '> Feriado</label>' +
     '<label>Observação</label><textarea id="td-o" rows="2">' + esc(r.observacao || '') + '</textarea>' +
     tBtn('Salvar dia', 'tDiaSalvar()', 'lar') + tBtn('↩️ Restaurar dia (desfazer correções)', 'tDiaRestaurar()', 'sec') + '</div>';
 }
+// Origem prevista enquanto edita: igual à batida = B, igual ao RDO = R, senão M (o servidor confirma ao salvar)
+function tDiaMarca(j) {
+  var d = T.dias[T.dia], c = d.comparar || {}, r = d.registro || {}, h = $('td-h' + j).value, o = '';
+  if (h) o = (c.batida && c.batida[j] === h) ? 'App' : (c.rdo && c.rdo[j] === h) ? 'RDO' : (h === r[T_HORAS[j]] ? tOrigens(r)[j] : 'Manual');
+  $('td-m' + j).innerHTML = tMarca(o);
+}
+function tDiaUsar(lado, j) {
+  var c = T.dias[T.dia].comparar || {}; if (!c[lado] || !c[lado][j]) return;
+  $('td-h' + j).value = c[lado][j]; tDiaMarca(j);
+}
+function tDiaUsarLado(lado) {
+  var c = T.dias[T.dia].comparar || {}; if (!c[lado]) return;
+  T_HORAS.forEach(function (k, j) { $('td-h' + j).value = c[lado][j] || ''; tDiaMarca(j); });
+  $('td-s').value = 'Trabalhado';
+}
 function tDiaSalvar() {
-  var d = T.dias[T.dia];
-  tFn('salvarDiaEspelho', [{ funcionarioId: T.func.id, data: aIsoData(d.data), situacao: $('td-s').value, feriado: $('td-f').checked, observacao: $('td-o').value }]).then(function () { tLimpa('esp_'); tLimpa('freq_'); gIr('tEspelho'); }).catch(function () {});
+  var d = T.dias[T.dia], dados = { funcionarioId: T.func.id, data: aIsoData(d.data), situacao: $('td-s').value, feriado: $('td-f').checked, observacao: $('td-o').value };
+  T_HORAS.forEach(function (k, j) { dados[k] = $('td-h' + j).value; });
+  tFn('salvarDiaEspelho', [dados]).then(function () { tLimpa('esp_'); tLimpa('freq_'); gIr('tEspelho'); }).catch(function () {});
 }
 function tDiaRestaurar() {
   if (!confirm('Restaurar o dia com as batidas originais?')) return;
