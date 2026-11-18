@@ -9,6 +9,7 @@ App de celular/tablet para lançar produção da britagem, viagens, paradas e ma
 - **Servidor:** Google Apps Script **"Pedreira Ibiúna - Servidor do app"** (código em `servidor/Code.gs`),
   implantado como App da Web. Ele confere login por matrícula, as permissões de cada papel e
   registra tudo na aba `Auditoria`.
+- **Fotos das OS:** pasta **"Pedreira Ibiúna · Fotos das OS"** no Drive; só aparecem para quem está logado no app.
 - **Senhas:** guardadas embaralhadas (hash com sal) na aba `Usuarios` — ninguém consegue lê-las.
 
 ## Primeiro acesso

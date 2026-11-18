@@ -251,6 +251,16 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
 .ixnum{display:grid;grid-template-columns:120px 1fr auto;gap:8px;align-items:center}.ixnum .inp{height:46px}.ixnum b{font:700 18px "Barlow Condensed"}
 .sticky{position:sticky;bottom:-40px;background:var(--bg);padding:10px 0 14px;margin-top:12px;display:grid;gap:6px;text-align:center}
 
+.fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:6px;margin-bottom:8px}
+.ft{position:relative;aspect-ratio:1/1;border-radius:9px;overflow:hidden;border:1px solid var(--line);background:#e3e9e5;padding:0;display:block}
+.ft img{width:100%;height:100%;object-fit:cover;display:block}
+.ft.erro{background:var(--red-l)}
+.ft .fx{position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.ft i{position:absolute;left:3px;bottom:3px;background:var(--g600);color:#fff;font-style:normal;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px}
+.fotobtn{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.fview{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;color:#fff;padding:10px}
+.fview img{max-width:100%;max-height:100%;object-fit:contain}
+.fvx{position:absolute;top:12px;right:12px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer}
 @media(min-width:720px){
   .kpis{grid-template-columns:repeat(3,1fr)}
   .oee{grid-column:auto/span 3}
@@ -361,7 +371,12 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
           </div>
           <div><label class="fl">Descrição do serviço / causa</label><textarea class="inp" name="desc" required placeholder="O que aconteceu e o que foi feito"></textarea></div>
           <div><label class="fl">Peças utilizadas (saem do estoque)</label><div id="fmPecas"></div><button type="button" class="btn ghost sm" id="fmAddPeca">+ Adicionar peça do estoque</button><p class="note" data-o="custo"></p></div>
+          <div class="fotoarea"><label class="fl">Fotos da abertura (o problema encontrado)</label><div id="fmFotosA"></div></div>
           <div><label class="fl">Status</label><div class="chips" data-radio="status"><button type="button" class="chip sm" data-v="Aberta">Em aberto</button><button type="button" class="chip sm on" data-v="Concluída">Concluída</button></div></div>
+          <div id="fmFech" class="f" style="gap:12px">
+            <div><label class="fl">Solução / o que foi feito</label><textarea class="inp" name="sol" placeholder="Ex.: trocada a correia, reapertados os parafusos"></textarea></div>
+            <div class="fotoarea"><label class="fl">Fotos do fechamento (serviço pronto)</label><div id="fmFotosF"></div></div>
+          </div>
           <button class="btn" type="submit">Salvar OS</button>
         </form>
       </div>
@@ -734,7 +749,7 @@ function applyCfg(){
 function resetForm(id){const f=$(id);f.reset();f.data.value=todayStr();$$('[data-editbar]',f).forEach(e=>e.classList.add('hidden'));
   if(id==='#fv'){f.dataset.frota='';f.peso.value=nf(S.cfg.pesoPadrao,1);}
   if(id==='#fb'){f._extra=[];$$('[data-par]',f).forEach(i=>i.value='');f.horasProg.value=nf(S.cfg.horasDia,1);}
-  if(id==='#fm'){$('#fmPecas').innerHTML='';delete f.horas.dataset.manual;osPecasCusto();setRadio(f,'area','Mecânica');setRadio(f,'natureza','Corretiva');setRadio(f,'para','sim');setRadio(f,'status','Concluída');}
+  if(id==='#fm'){S.fotosNovas={abertura:[],fechamento:[]};S.fotosAtuais={abertura:[],fechamento:[]};setTimeout(()=>typeof renderPickers==='function'&&renderPickers(),0);$('#fmPecas').innerHTML='';delete f.horas.dataset.manual;osPecasCusto();setRadio(f,'area','Mecânica');setRadio(f,'natureza','Corretiva');setRadio(f,'para','sim');setRadio(f,'status','Concluída');}
   S.edit=null;applyCfg();}
 function setRadio(f,name,v){$$(`[data-radio="${name}"] .chip`,f).forEach(b=>b.classList.toggle('on',b.dataset.v===v));}
 function getRadio(f,name){return $(`[data-radio="${name}"] .chip.on`,f)?.dataset.v;}
@@ -809,7 +824,7 @@ async function onSaveMnt(e){
   const horas=num(f.horas.value);const av=f.ativo.value;const at=av&&!av.startsWith('eq:')?ativoById(av):null;
   const pecas=collectOSPecas();const custoPecas=pecas.reduce((a,p)=>a+p.qtd*p.custoUnit,0);
   const body={data:f.data.value,ativoId:at?at._id:null,equip:at?ativoLabel(at):av.replace(/^eq:/,''),area:getRadio(f,'area'),natureza:getRadio(f,'natureza'),paraBritagem:getRadio(f,'para')==='sim',
-    hIni:f.hIni.value||null,hFim:f.hFim.value||null,horas:horas??0,desc:f.desc.value.trim(),status:getRadio(f,'status'),pecas,custoPecas,por:S.edit?.por||S.uid||null,em:new Date().toISOString()};
+    hIni:f.hIni.value||null,hFim:f.hFim.value||null,horas:horas??0,desc:f.desc.value.trim(),status:getRadio(f,'status'),solucao:f.sol.value.trim(),pecas,custoPecas,por:S.edit?.por||S.uid||null,em:new Date().toISOString()};
   if(!body.data)return toast('Informe a data.',true);if(!body.equip)return toast('Escolha o ativo.',true);if(!body.desc)return toast('Descreva o serviço.',true);
   if(body.status==='Concluída'&&!(horas>0)&&body.paraBritagem&&!await ask('Nenhuma hora de parada informada. Salvar mesmo assim?'))return;
   const old=S.edit&&S.edit.col==='manutencao'?(S.edit.pecas||[]):[];const st=stockMap();
@@ -819,6 +834,8 @@ async function onSaveMnt(e){
   const finishPlan=body.planoId&&body.status==='Concluída'&&S.edit&&S.edit.wasStatus==='Aberta';
   busy(f,true);
   try{const id=S.edit?S.edit.id:`${body.data}_${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
+    if(FOTO_ON()){for(const fase of ['abertura','fechamento'])if(S.fotosNovas[fase].length)await enviarFotos(id,fase,S.fotosNovas[fase],S.fotosAtuais[fase],$('button[type=submit]',f));
+      body.fotosAbertura=S.fotosAtuais.abertura;body.fotosFechamento=S.fotosAtuais.fechamento;$('button[type=submit]',f).textContent='Salvando…';}
     await withRetry(()=>S.db.collection('manutencao').doc(id).set(body));
     try{await syncOSMovs(id,body,old);}catch(err){toast('OS salva, mas a baixa das peças falhou: '+dbErr(err),true);resetForm('#fm');return;}
     if(finishPlan)await planDone(id,body.data,body.planoId);
@@ -838,6 +855,7 @@ function startEdit(col,id){
   if(col==='manutencao'){setForm('mnt');const f=$('#fm');resetForm('#fm');S.edit={col,id,por:r.por,pecas:r.pecas||[],wasStatus:r.status,extra:Object.fromEntries(['planoId','tarefas','duracaoEst','auto','inspecaoRotinaId','concluidaPor','concluidaEm'].filter(k=>r[k]!==undefined).map(k=>[k,r[k]]))};f.data.value=r.data;
     const av=r.ativoId&&ativoById(r.ativoId)?r.ativoId:'eq:'+r.equip;if(![...f.ativo.options].some(o=>o.value===av))f.ativo.insertAdjacentHTML('beforeend',`<option value="${esc(av)}">${esc(r.equip)}</option>`);f.ativo.value=av;
     $('#fmPecas').innerHTML=(r.pecas||[]).map(p=>osPecaRow(p.pecaId,p.qtd)).join('');osPecasCusto();
+    f.sol.value=r.solucao||'';S.fotosNovas={abertura:[],fechamento:[]};S.fotosAtuais={abertura:[...(r.fotosAbertura||[])],fechamento:[...(r.fotosFechamento||[])]};setTimeout(renderPickers,0);
     setRadio(f,'area',r.area);setRadio(f,'natureza',r.natureza);setRadio(f,'para',r.paraBritagem===false?'nao':'sim');setRadio(f,'status',r.status);
     f.hIni.value=r.hIni||'';f.hFim.value=r.hFim||'';f.horas.value=nf(r.horas,2);f.horas.dataset.manual='1';f.desc.value=r.desc||'';}
   const fid={viagens:'#fv',britagem:'#fb',manutencao:'#fm'}[col];$$('[data-editbar]',$(fid)).forEach(e=>e.classList.remove('hidden'));
@@ -1041,13 +1059,15 @@ function osDetail(id){
       body.innerHTML=`<div class="lt" style="margin-bottom:8px"><b style="font-size:18px">${esc(o.equip)}</b>${o.status==='Aberta'?stBadge('em aberto','var(--orange)'):stBadge('concluída','var(--g600)')}</div>
       <div class="kv"><span>Data</span><b>${dLabel(o.data)}</b><span>Tipo</span><b>${esc(o.area)} · ${esc(o.natureza)}</b><span>Horário</span><b>${esc(o.hIni||'—')} → ${esc(o.hFim||'—')} (${nf(o.horas,1)} h)</b><span>Parou a britagem</span><b>${o.paraBritagem===false?'Não':'Sim'}</b><span>Aberta por</span><b>${esc(who(o.por)||'—')}</b></div>
       <p style="margin:10px 0">${esc(o.desc)}</p>
+      ${FOTO_ON()?`<h4 class="h4">Fotos da abertura</h4>${galeria(o.fotosAbertura)}`:''}
+      ${o.status!=='Aberta'||o.solucao||(o.fotosFechamento||[]).length?`<h4 class="h4">Fechamento</h4>${o.solucao?`<p style="margin:0 0 8px">${esc(o.solucao)}</p>`:''}${FOTO_ON()?galeria(o.fotosFechamento):''}`:''}
       ${o.planoId?`<p class="note" style="margin:0 0 6px">Preventiva do plano <a href="#" data-open="plano|${esc(o.planoId)}">${esc((S.planos.find(p=>p._id===o.planoId)||{}).nome||'ver plano')}</a>${o.auto?' · gerada automaticamente':''}${o.duracaoEst?' · duração estimada '+nf(o.duracaoEst,1)+' h':''}</p>`:''}
       ${(o.tarefas||[]).length?`<h4 class="h4">Tarefas (${o.tarefas.filter(t=>t.ok).length}/${o.tarefas.length})</h4>${o.tarefas.map((t,k)=>`<button type="button" class="tk ${t.ok?'done':''}" ${o.status==='Aberta'?`data-act="task" data-id="${esc(id)}|${k}"`:'disabled'}><i>${t.ok?'✓':''}</i><span>${esc(t.t)}</span></button>`).join('')}`:''}
       ${o.planoId&&o.status==='Aberta'?(()=>{const pl=S.planos.find(p=>p._id===o.planoId);return pl&&(pl.pecas||[]).length?`<p class="note">Peças previstas: ${pl.pecas.map(x=>{const pc=pecaById(x.pecaId);return nq(x.qtd)+'× '+esc(pc?pc.codigo:'?');}).join(', ')} — lance as usadas em “Editar”.</p>`:'';})():''}
       <h4 class="h4">Peças utilizadas</h4>${(o.pecas||[]).length?`<table class="t"><tr><th class="l">Peça</th><th>Qtd</th><th>Custo</th></tr>${o.pecas.map(p=>{const pc=pecaById(p.pecaId);return`<tr><td class="l">${esc(pc?pc.codigo+' · '+pc.descricao:'(peça removida)')}</td><td>${nq(p.qtd)}</td><td>${brl(p.qtd*(p.custoUnit||0))}</td></tr>`;}).join('')}<tr class="tot"><td>Total</td><td></td><td>${brl(o.custoPecas)}</td></tr></table>`:'<p class="note">Nenhuma peça lançada.</p>'}
       <h4 class="h4">Requisições de compra</h4>${rcs.length?rcs.map(r=>`<div class="li" data-open="rc|${esc(r._id)}"><div class="lt"><b>${esc(r.numero)}</b>${stBadge(r.status)}</div></div>`).join(''):'<p class="note">Nenhuma.</p>'}
       <div class="acts2">${o.status==='Aberta'?`<button class="btn" data-act="osConcluir" data-id="${esc(id)}">Concluir OS</button>`:''}
-      <button class="btn ghost" data-act="osEditar" data-id="${esc(id)}">Editar</button><button class="btn ghost" data-act="rcFromOS" data-id="${esc(id)}">Requisitar compra</button></div>`;};
+      <button class="btn ghost" data-act="osEditar" data-id="${esc(id)}">Editar</button><button class="btn ghost" data-act="rcFromOS" data-id="${esc(id)}">Requisitar compra</button></div>`;hidratarFotos(body);};
     sh.refresh();});
   return s;}
 async function osConcluir(id){const o=allOS().find(x=>x._id===id);if(!o||!needWrite())return;
@@ -1312,7 +1332,7 @@ function bindMnt(){
     const a=e.target.closest('[data-act]');if(!a)return;const id=a.dataset.id,act=a.dataset.act;
     if(act==='novaOS'||act==='osParaAtivo'){S.sheet&&S.sheet.close();setView('lancar');setForm('mnt');resetForm('#fm');if(id){$('#fmAtivo').value=id;}return;}
     if(act==='osEditar'){S.sheet&&S.sheet.close();startEdit('manutencao',id);return;}
-    if(act==='osConcluir')return osConcluir(id);
+    if(act==='osConcluir')return FOTO_ON()?osConcluirForm(id):osConcluir(id);
     if(act==='novoPlano')return planoForm();if(act==='planoEditar')return planoForm(id);if(act==='planoGerar')return planoGerar(id);if(act==='planoExec')return planoExecForm(id);
     if(act==='novaRotina')return rotinaForm();if(act==='rotinaEditar')return rotinaForm(id);if(act==='inspExec')return inspExec(id);
     if(act==='task'){const[o,k]=id.split('|');return osToggleTask(o,+k);}
@@ -1592,9 +1612,79 @@ function inspDetail(id){const i=S.insps.find(x=>x._id===id);if(!i)return toast('
 async function osToggleTask(osId,k){const o=allOS().find(x=>x._id===osId);if(!o||!needWrite())return;const t=(o.tarefas||[]).map((x,i)=>i===k?{...x,ok:!x.ok}:x);
   await w(()=>S.db.collection('manutencao').doc(osId).update({tarefas:t}));}
 
+/* ================= FOTOS DAS OS (abertura e fechamento) ================= */
+const FOTO_ON=()=>!!(window.IBIUNA&&window.IBIUNA.api);
+const fotoCache=new Map();
+S.fotosNovas={abertura:[],fechamento:[]};S.fotosAtuais={abertura:[],fechamento:[]};
+function lerImagem(file){return new Promise((ok,err)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{ok(i);setTimeout(()=>URL.revokeObjectURL(u),1000);};i.onerror=()=>err(new Error('Não foi possível ler a imagem.'));i.src=u;});}
+function reduzir(img,max,q){const r=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*r));c.height=Math.max(1,Math.round(img.naturalHeight*r));
+  const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);return c.toDataURL('image/jpeg',q);}
+async function prepararFoto(file){const img=await lerImagem(file);const full=reduzir(img,1600,0.75),th=reduzir(img,360,0.65);fotoCache.set('tmp:'+th.length+th.slice(-20),th);return{full:full.split(',')[1],th:th.split(',')[1],preview:th};}
+async function fotoURL(id){if(fotoCache.has(id))return fotoCache.get(id);const p=window.IBIUNA.api('verFoto',{id}).then(r=>'data:'+(r.mime||'image/jpeg')+';base64,'+r.b64);fotoCache.set(id,p);try{const u=await p;fotoCache.set(id,u);return u;}catch(e){fotoCache.delete(id);throw e;}}
+function hidratarFotos(root){if(!FOTO_ON())return;$$('img[data-th]',root||document).forEach(async im=>{if(im.dataset.ok)return;im.dataset.ok='1';try{im.src=await fotoURL(im.dataset.th);}catch(e){im.alt='erro';im.closest('.ft')&&im.closest('.ft').classList.add('erro');}});}
+function galeria(lista,opts){opts=opts||{};if(!lista||!lista.length)return opts.vazio===false?'':'<p class="note" style="margin:0">Sem fotos.</p>';
+  return`<div class="fotos">${lista.map((f,i)=>`<button type="button" class="ft" data-full="${esc(f.id)}"><img data-th="${esc(f.th||f.id)}" alt="foto ${i+1}">${opts.rm?`<span class="fx" data-rmfoto="${opts.rm}|atual|${i}">✕</span>`:''}</button>`).join('')}</div>`;}
+function pickerHTML(fase){const a=S.fotosAtuais[fase],n=S.fotosNovas[fase];
+  const itens=a.map((f,i)=>`<button type="button" class="ft" data-full="${esc(f.id)}"><img data-th="${esc(f.th||f.id)}" alt=""><span class="fx" data-rmfoto="${fase}|atual|${i}">✕</span></button>`).join('')+
+    n.map((f,i)=>`<div class="ft novo"><img src="${f.preview}" alt=""><span class="fx" data-rmfoto="${fase}|nova|${i}">✕</span><i>nova</i></div>`).join('');
+  return(itens?`<div class="fotos">${itens}</div>`:'')+`<label class="btn ghost sm fotobtn">📷 ${a.length+n.length?'Adicionar mais':'Tirar ou escolher foto'}<input type="file" accept="image/*" multiple hidden data-fotofase="${fase}"></label>`;}
+function renderPickers(){if(!FOTO_ON()){$$('.fotoarea').forEach(e=>e.classList.add('hidden'));return;}
+  const a=$('#fmFotosA'),f=$('#fmFotosF');if(a){a.innerHTML=pickerHTML('abertura');hidratarFotos(a);}if(f){f.innerHTML=pickerHTML('fechamento');hidratarFotos(f);}
+  const fw=$('#fmFech');if(fw)fw.classList.toggle('hidden',getRadio($('#fm'),'status')!=='Concluída');}
+async function adicionarFotos(files,fase,alvo,depois){
+  for(const file of files){if(!/^image\//.test(file.type)&&!/\.(jpe?g|png|heic|heif|webp)$/i.test(file.name)){toast('Arquivo não é uma imagem: '+file.name,true);continue;}
+    try{alvo[fase].push(await prepararFoto(file));}catch(e){toast(e.message,true);}}
+  depois();}
+async function enviarFotos(osId,fase,novas,atuais,btn){
+  const total=novas.length;let k=0;
+  while(novas.length){k++;if(btn)btn.textContent=`Enviando foto ${k}/${total}…`;const f=novas[0];
+    const r=await withRetry(()=>window.IBIUNA.api('salvarFoto',{osId,fase,full:f.full,th:f.th}));
+    atuais.push({id:r.id,th:r.th,em:nowIso(),por:S.uid||null});fotoCache.set(r.th,f.preview);novas.shift();}
+  return atuais;}
+function verFotoGrande(id){
+  const m=document.createElement('div');m.className='fview';m.innerHTML='<div class="fvx">✕</div><p>Carregando foto…</p>';document.body.appendChild(m);
+  m.onclick=e=>{if(e.target===m||e.target.classList.contains('fvx'))m.remove();};
+  fotoURL(id).then(u=>{m.innerHTML='<div class="fvx">✕</div><img alt="foto">';$('img',m).src=u;}).catch(e=>{m.innerHTML='<div class="fvx">✕</div><p>Não foi possível abrir a foto: '+esc(e.message)+'</p>';});}
+function bindFotos(){
+  document.addEventListener('change',e=>{const inp=e.target.closest('input[data-fotofase]');if(!inp||!inp.closest('#fm'))return;const files=[...inp.files];inp.value='';adicionarFotos(files,inp.dataset.fotofase,S.fotosNovas,renderPickers);});
+  document.addEventListener('click',e=>{
+    const rm=e.target.closest('[data-rmfoto]');if(rm&&rm.closest('#fm')){e.preventDefault();e.stopPropagation();const[fase,tipo,i]=rm.dataset.rmfoto.split('|');(tipo==='nova'?S.fotosNovas:S.fotosAtuais)[fase].splice(+i,1);renderPickers();return;}
+    const fv=e.target.closest('[data-full]');if(fv&&!e.target.closest('[data-rmfoto]')){e.preventDefault();verFotoGrande(fv.dataset.full);}
+  },true);
+  $('#fm [data-radio="status"]').addEventListener('click',()=>setTimeout(renderPickers,0));
+  renderPickers();}
+
+/* concluir OS com fotos do fechamento */
+function osConcluirForm(id){
+  const o=allOS().find(x=>x._id===id);if(!o||!needWrite())return;
+  const hm=new Date(),hFim=o.hFim||pad(hm.getHours())+':'+pad(hm.getMinutes());let horas=o.horas;
+  if(o.hIni&&!o.hFim){const[a,b]=o.hIni.split(':').map(Number),[c,d]=hFim.split(':').map(Number);let m=(c*60+d)-(a*60+b);if(m<0)m+=1440;horas=Math.round(m/6)/10;}
+  const st={novas:{fechamento:[]},atuais:{fechamento:[...(o.fotosFechamento||[])]}};
+  sheet('Concluir OS',`<p class="note" style="margin-top:0"><b>${esc(o.equip)}</b><br>${esc(o.desc)}</p><form class="f" id="fConc">
+    <div class="row2"><div><label class="fl">Hora de término</label><input class="inp" type="time" name="hFim" value="${esc(hFim)}"></div><div><label class="fl">Horas de parada</label><input class="inp" name="horas" inputmode="decimal" value="${nf(horas||0,2)}"></div></div>
+    <div><label class="fl">Solução / o que foi feito *</label><textarea class="inp" name="sol" required placeholder="Ex.: trocada a correia em V, reapertados os parafusos">${esc(o.solucao||'')}</textarea></div>
+    <div class="fotoarea"><label class="fl">Fotos do fechamento</label><div id="cFotos"></div></div>
+    <button class="btn" type="submit">Concluir OS</button></form>`,(body,sh)=>{
+    const f=$('#fConc',body),box=$('#cFotos',body);
+    const draw=()=>{if(!FOTO_ON()){box.parentElement.classList.add('hidden');return;}
+      box.innerHTML=(st.atuais.fechamento.length||st.novas.fechamento.length?`<div class="fotos">${st.atuais.fechamento.map((x,i)=>`<button type="button" class="ft" data-full="${esc(x.id)}"><img data-th="${esc(x.th||x.id)}" alt=""></button>`).join('')}${st.novas.fechamento.map((x,i)=>`<div class="ft novo"><img src="${x.preview}" alt=""><span class="fx" data-crm="${i}">✕</span><i>nova</i></div>`).join('')}</div>`:'')+
+        `<label class="btn ghost sm fotobtn">📷 Tirar ou escolher foto<input type="file" accept="image/*" multiple hidden></label>`;hidratarFotos(box);
+      $('input[type=file]',box).onchange=e=>{const files=[...e.target.files];adicionarFotos(files,'fechamento',st.novas,draw);};};
+    box.addEventListener('click',e=>{const r=e.target.closest('[data-crm]');if(r){e.preventDefault();e.stopPropagation();st.novas.fechamento.splice(+r.dataset.crm,1);draw();}},true);
+    f.hFim.onchange=()=>{if(o.hIni&&f.hFim.value){const[a,b]=o.hIni.split(':').map(Number),[c,d]=f.hFim.value.split(':').map(Number);let m=(c*60+d)-(a*60+b);if(m<0)m+=1440;f.horas.value=nf(m/60,2);}};
+    draw();
+    f.onsubmit=async e=>{e.preventDefault();if(!needWrite())return;const sol=f.sol.value.trim();if(!sol)return toast('Descreva o que foi feito.',true);
+      const pend=(o.tarefas||[]).filter(t=>!t.ok).length;if(pend&&!await ask(`${pend} tarefa(s) do plano não foram marcadas. Concluir mesmo assim?`,'Concluir'))return;
+      const btn=$('button[type=submit]',f);btn.disabled=true;
+      try{if(st.novas.fechamento.length)await enviarFotos(id,'fechamento',st.novas.fechamento,st.atuais.fechamento,btn);
+        btn.textContent='Salvando…';
+        await withRetry(()=>S.db.collection('manutencao').doc(id).update({status:'Concluída',hFim:f.hFim.value||hFim,horas:num(f.horas.value)??horas??0,solucao:sol,fotosFechamento:st.atuais.fechamento,concluidaPor:S.uid||null,concluidaEm:nowIso()}));
+        await planDone(id,todayStr(),o.planoId);toast('✔ OS concluída');sh.close();osDetail(id);}
+      catch(err){toast(err&&err.code?dbErr(err):(err.message||'Erro ao concluir.'),true);btn.disabled=false;btn.textContent='Concluir OS';draw();}};});}
+
 /* ---------- init ---------- */
 (async function init(){
-  bind();bindMnt();$('#mLabel').textContent=monthLabel(S.month);
+  bind();bindMnt();bindFotos();$('#mLabel').textContent=monthLabel(S.month);
   for(const id of ['#fv','#fb','#fm']){$(id).data.value=todayStr();}
   applyCfg();render();
   const use=n=>window.claude&&typeof window.claude.use==='function'?window.claude.use(n).catch(()=>null):Promise.resolve(null);

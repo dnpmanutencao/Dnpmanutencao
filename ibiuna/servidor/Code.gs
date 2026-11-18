@@ -57,6 +57,8 @@ function rotear(q) {
     case 'atualizarUsuario': return atualizarUsuario(u, q);
     case 'definirSenha': return definirSenha(u, q);
     case 'multi': return multi(q.qs || []);
+    case 'salvarFoto': return salvarFoto(u, q);
+    case 'verFoto': return verFoto(u, q);
     case 'set': return gravar(u, q.col, q.id, 'set', q.data);
     case 'merge': return gravar(u, q.col, q.id, 'merge', q.data);
     case 'del': return gravar(u, q.col, q.id, 'del', null);
@@ -86,7 +88,8 @@ function configurar() {
   aba(ABA_AUDITORIA, ['em', 'matricula', 'colecao', 'id', 'acao', 'antes', 'depois']);
   Object.keys(COLECOES).forEach(abaColecao);
   segredo();
-  return 'Planilha pronta.';
+  pastaFotos();
+  return 'Planilha e pasta de fotos prontas.';
 }
 
 /* ---------------- usuários e senhas ---------------- */
@@ -340,6 +343,30 @@ function gravar(u, col, id, modo, data) {
     auditar(u, col, id, atual ? 'alterar' : 'criar', antes, depois);
     return true;
   } finally { lock.releaseLock(); }
+}
+/* ---------------- fotos (pasta no Drive do dono do script) ---------------- */
+function pastaFotos() {
+  var p = PropertiesService.getScriptProperties(), id = p.getProperty('PASTA_FOTOS'), f = null;
+  if (id) { try { f = DriveApp.getFolderById(id); if (f.isTrashed()) f = null; } catch (e) { f = null; } }
+  if (!f) { f = DriveApp.createFolder('Pedreira Ibiúna · Fotos das OS'); p.setProperty('PASTA_FOTOS', f.getId()); }
+  return f;
+}
+function salvarFoto(u, q) {
+  var fase = q.fase === 'fechamento' ? 'fechamento' : 'abertura';
+  if (!q.full || String(q.full).length > 6000000) falha('Foto inválida ou grande demais.');
+  if (q.th && String(q.th).length > 400000) falha('Miniatura grande demais.');
+  var pasta = pastaFotos(), base = 'OS ' + String(q.osId || '').slice(0, 60) + ' · ' + fase + ' · ' + u.matricula + ' · ' + Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd HH-mm-ss');
+  var full = pasta.createFile(Utilities.newBlob(Utilities.base64Decode(q.full), 'image/jpeg', base + '.jpg'));
+  var th = q.th ? pasta.createFile(Utilities.newBlob(Utilities.base64Decode(q.th), 'image/jpeg', base + ' (miniatura).jpg')) : null;
+  auditar(u, 'fotos', full.getId(), 'enviar foto (' + fase + ')', null, { osId: q.osId, fase: fase });
+  return { id: full.getId(), th: th ? th.getId() : full.getId() };
+}
+function verFoto(u, q) {
+  var f; try { f = DriveApp.getFileById(String(q.id || '')); } catch (e) { falha('Foto não encontrada.', 'naoencontrado'); }
+  var pasta = pastaFotos().getId(), ok = false, it = f.getParents();
+  while (it.hasNext()) if (it.next().getId() === pasta) { ok = true; break; }
+  if (!ok) negar('Esta foto não pertence ao app.');
+  return { mime: f.getMimeType(), b64: Utilities.base64Encode(f.getBlob().getBytes()) };
 }
 function auditar(u, col, id, acao, antes, depois) {
   var corta = function (o) { if (o == null) return ''; var s = JSON.stringify(o); return s.length > 20000 ? s.slice(0, 20000) + '…' : s; };
