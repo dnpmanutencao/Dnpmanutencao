@@ -41,7 +41,7 @@ var css='#auth{position:fixed;inset:0;z-index:100;background:linear-gradient(160
  '.urow{padding:12px 0;border-bottom:1px solid #edf1ee;display:grid;gap:6px}.urow .uh{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.urow .ua{display:flex;flex-wrap:wrap;gap:6px}';
 var st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
 var auth=document.createElement('div');auth.id='auth';document.body.appendChild(auth);
-var LOGO='<div class="logo"><svg width="40" height="30" viewBox="0 0 40 30"><path d="M1 28 L14 8 L20 16 L26 6 L39 28 Z" fill="#22a34f"/><path d="M14 8 L17.5 13.5 L14 12 L10.6 13.3 Z M26 6 L30 12.4 L26 11 L22.3 12.6Z" fill="#fff"/></svg><b>PEDREIRA IBIÚNA</b></div>';
+var LOGO='<div class="logo"><img src="logo.png" alt="Pedreira Ibiúna" style="height:56px"></div>';
 function tela(html,bind){auth.style.display='flex';auth.innerHTML='<div class="ab">'+LOGO+html+'</div>';if(bind)bind(auth);}
 function erro(t){var e=auth.querySelector('.err');if(e)e.textContent=t||'';}
 function carregando(b,on,txt){if(!b)return;b.disabled=on;if(on){b.dataset.t=b.textContent;b.textContent=txt||'Aguarde…';}else if(b.dataset.t)b.textContent=b.dataset.t;}
