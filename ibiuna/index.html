@@ -43,7 +43,7 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(90deg,var(--g
 .month{flex:none}
 @media(max-width:600px){header{gap:8px;padding:8px 10px}.brand>div{display:none}.brand .lg{height:34px}.brand .lg img{height:28px}
   .month button{width:30px;height:34px}.month span{min-width:82px;font-size:16px}}
-#linhaSeg{grid-template-columns:1fr 1fr;background:var(--g800);padding:4px;margin-bottom:4px}
+#linhaSeg{grid-template-columns:1fr 1fr 1fr;background:var(--g800);padding:4px;margin-bottom:4px}
 #linhaSeg button{color:#cfe3d6;font-size:15px;padding:12px 4px;letter-spacing:.02em}#linhaSeg button.on{background:#fff;color:var(--g800)}
 @media(max-width:600px){.pnl-h{padding:8px 10px}.pnl-h img{display:none}.pnl-h b{font-size:19px}}
 
@@ -347,7 +347,7 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
       <div class="bd">
         <form class="f" id="fb" autocomplete="off">
           <div class="editbar hidden" data-editbar><span>Editando lançamento</span><button type="button" class="btn ghost sm" data-cancel>Cancelar</button></div>
-          <div><label class="fl">Linha</label><div class="chips" data-radio="linha" id="fbLinha"><button type="button" class="chip on" data-v="primaria">Britagem primária</button><button type="button" class="chip" data-v="rebritagem">Rebritagem</button></div></div>
+          <div><label class="fl">Linha</label><div class="chips" data-radio="linha" id="fbLinha"><button type="button" class="chip on" data-v="primaria">Britagem primária</button><button type="button" class="chip" data-v="secundaria">Britagem secundária</button><button type="button" class="chip" data-v="rebritagem">Rebritagem</button></div></div>
           <div class="row2">
             <div><label class="fl">Data</label><input class="inp" type="date" name="data" required></div>
             <div><label class="fl">Turno</label><select class="inp" name="turno"><option>1</option><option>2</option><option>3</option></select></div>
@@ -356,8 +356,8 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
             <div><label class="fl">Horímetro inicial</label><input class="inp" name="horIni" inputmode="decimal" required></div>
             <div><label class="fl">Horímetro final</label><input class="inp" name="horFim" inputmode="decimal" required></div>
           </div>
-          <div id="fbProdRb" class="hidden"><label class="fl">Produção da rebritagem no turno (t)</label><input class="inp" name="prodRb" inputmode="decimal" placeholder="opcional">
-            <p class="note" style="margin:4px 0 0">Informe pela balança/correia. Em branco, o painel estima por horas trabalhadas × t/h planejada da rebritagem.</p></div>
+          <div id="fbProdRb" class="hidden"><label class="fl" id="fbProdLbl">Produção no turno (t)</label><input class="inp" name="prodRb" inputmode="decimal" placeholder="opcional">
+            <p class="note" style="margin:4px 0 0">Informe pela balança/correia. Em branco, o painel estima por horas trabalhadas × t/h planejada desta linha.</p></div>
           <div><label class="fl">Horas programadas no turno</label>
             <div class="step"><button type="button" data-d="-0.5">−</button><input class="inp" name="horasProg" inputmode="decimal"><button type="button" data-d="0.5">+</button></div></div>
           <div><label class="fl">Paradas operacionais (horas)</label><div class="paradas" id="fbParadas"></div>
@@ -380,7 +380,7 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
           <div><label class="fl">Área</label><div class="chips" data-radio="area"><button type="button" class="chip sm on" data-v="Mecânica">Mecânica</button><button type="button" class="chip sm" data-v="Elétrica">Elétrica</button></div></div>
           <div><label class="fl">Tipo</label><div class="chips" data-radio="natureza"><button type="button" class="chip sm on" data-v="Corretiva">Corretiva (falha)</button><button type="button" class="chip sm" data-v="Preventiva">Preventiva</button></div></div>
           <div><label class="fl">Parou a britagem?</label><div class="chips" data-radio="para"><button type="button" class="chip sm on" data-v="sim">Sim</button><button type="button" class="chip sm" data-v="nao">Não</button></div></div>
-          <div id="fmLinhaBox"><label class="fl">Qual linha parou</label><div class="chips" data-radio="linha"><button type="button" class="chip sm on" data-v="primaria">Britagem primária</button><button type="button" class="chip sm" data-v="rebritagem">Rebritagem</button></div></div>
+          <div id="fmLinhaBox"><label class="fl">Qual linha parou</label><div class="chips" data-radio="linha"><button type="button" class="chip sm on" data-v="primaria">Britagem primária</button><button type="button" class="chip sm" data-v="secundaria">Britagem secundária</button><button type="button" class="chip sm" data-v="rebritagem">Rebritagem</button></div></div>
           <div class="row3">
             <div><label class="fl">Início</label><input class="inp" type="time" name="hIni"></div>
             <div><label class="fl">Fim</label><input class="inp" type="time" name="hFim"></div>
@@ -402,7 +402,7 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
 
   <!-- ===================== PAINEL ===================== -->
   <section id="v-painel" class="hidden">
-    <div class="seg" id="linhaSeg"><button data-l="primaria" class="on">Britagem primária</button><button data-l="rebritagem">Rebritagem</button></div>
+    <div class="seg" id="linhaSeg"><button data-l="primaria" class="on">Primária</button><button data-l="secundaria">Secundária</button><button data-l="rebritagem">Rebritagem</button></div>
     <div class="pnl-h"><img src="logo.png" alt=""><div><b id="pnlTit">BRITAGEM PRIMÁRIA</b><small>Painel gerencial · indicadores de performance</small></div></div>
     <div class="banner hidden" id="pnlNota" style="margin-bottom:10px"></div>
     <div class="kpis" id="kpis"></div>
@@ -455,7 +455,7 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
           <div><label class="fl">Dias programados</label><input class="inp" name="diasProgramados" inputmode="numeric"></div>
         </div>
         <div class="calc"><div><small>Meta diária</small><b data-o="md">—</b></div><div><small>Necessidade</small><b data-o="nec">—</b></div></div>
-        <div><label class="fl">Meta mensal da rebritagem (t)</label><input class="inp" name="rbMetaMensal" inputmode="decimal" placeholder="usa o padrão"></div>
+        <div class="row2"><div><label class="fl">Meta da secundária (t)</label><input class="inp" name="scMetaMensal" inputmode="decimal" placeholder="usa o padrão"></div><div><label class="fl">Meta da rebritagem (t)</label><input class="inp" name="rbMetaMensal" inputmode="decimal" placeholder="usa o padrão"></div></div>
         <button class="btn" type="submit">Salvar metas do mês</button>
       </form>
     </div></div>
@@ -472,6 +472,15 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
         <div class="row2">
           <div><label class="fl">Peso padrão por viagem (t)</label><input class="inp" name="pesoPadrao" inputmode="decimal"></div>
           <div><label class="fl">Meta OEE (%)</label><input class="inp" name="metaOEE" inputmode="decimal"></div>
+        </div>
+        <h4 class="h4" style="margin:6px 0 0">Britagem secundária</h4>
+        <div class="row2">
+          <div><label class="fl">Meta mensal padrão (t)</label><input class="inp" name="scMetaMensal" inputmode="decimal"></div>
+          <div><label class="fl">Horas programadas / dia</label><input class="inp" name="scHorasDia" inputmode="decimal"></div>
+        </div>
+        <div class="row2">
+          <div><label class="fl">Produtividade planejada (t/h)</label><input class="inp" name="scProdPlanejada" inputmode="decimal"></div>
+          <div><label class="fl">Meta OEE (%)</label><input class="inp" name="scMetaOEE" inputmode="decimal"></div>
         </div>
         <h4 class="h4" style="margin:6px 0 0">Rebritagem</h4>
         <div class="row2">
@@ -534,13 +543,15 @@ const DEFAULT_CFG={metaMensal:99176,diasProgramados:28,horasDia:9,prodPlanejada:
   frota:['CB01','CB02','CB03','CB04'],
   equipamentos:['Britador de mandíbulas','Alimentador vibratório','Grelha','Transportador de correia','Peneira vibratória','Painel elétrico / motores','Rebritador cônico HP300','Outro'],
   paradasOp:['Gaiola / engaiolamento','Pulmão cheio','Falta de energia','Falta máq./caminhão','Pesagem caminhão','Início / fim de turno','Arrumando frente','DDS'],alcada:5000};
-const LINHAS={primaria:'Britagem primária',rebritagem:'Rebritagem'};
-const linhaDe=r=>r&&r.linha==='rebritagem'?'rebritagem':'primaria';
-function ativoLinha(a){if(!a)return '';if(a.linha)return a.linha;const t=norm((a.local||'')+' '+(a.nome||''));if(/rebrit|conic|hp ?300/.test(t))return 'rebritagem';if(/britagem|primar/.test(t))return 'primaria';return '';}
+const LINHAS={primaria:'Britagem primária',secundaria:'Britagem secundária',rebritagem:'Rebritagem'};
+const LPFX={secundaria:'sc',rebritagem:'rb'},LSUF={secundaria:'SC',rebritagem:'RB'},LEQ={primaria:'britador primário',secundaria:'britador secundário',rebritagem:'rebritador'};
+const linhaDe=r=>r&&LINHAS[r.linha]?r.linha:'primaria';
+function ativoLinha(a){if(!a)return '';if(a.linha)return a.linha;const t=norm((a.local||'')+' '+(a.nome||''));if(/rebrit|hp ?300/.test(t))return 'rebritagem';if(/secund/.test(t))return 'secundaria';if(/britagem|primar/.test(t))return 'primaria';return '';}
 const osLinha=m=>m.linha||ativoLinha(ativoById(m.ativoId))||'primaria';
-// parâmetros de cada linha (a rebritagem usa os da primária enquanto não forem definidos)
-function cfgLinha(l){const c=S.cfg;if(l!=='rebritagem')return{metaMensal:c.metaMensal,horasDia:c.horasDia,prodPlanejada:c.prodPlanejada,metaOEE:c.metaOEE};
-  return{metaMensal:fin(c.rbMetaMensal)?c.rbMetaMensal:c.metaMensal,horasDia:fin(c.rbHorasDia)?c.rbHorasDia:c.horasDia,prodPlanejada:fin(c.rbProdPlanejada)?c.rbProdPlanejada:c.prodPlanejada,metaOEE:fin(c.rbMetaOEE)?c.rbMetaOEE:c.metaOEE};}
+// parâmetros de cada linha (secundária e rebritagem usam os da primária enquanto não forem definidos)
+function cfgLinha(l){const c=S.cfg,p=LPFX[l];if(!p)return{metaMensal:c.metaMensal,horasDia:c.horasDia,prodPlanejada:c.prodPlanejada,metaOEE:c.metaOEE};
+  const g=k=>fin(c[p+k])&&c[p+k]>0?c[p+k]:null;
+  return{metaMensal:g('MetaMensal')??c.metaMensal,horasDia:g('HorasDia')??c.horasDia,prodPlanejada:g('ProdPlanejada')??c.prodPlanejada,metaOEE:g('MetaOEE')??c.metaOEE};}
 const COLORS=['#2b78d0','#ef7d1a','#9aa5a0','#f2b705','#22a34f','#8a4fbf','#d63b2b','#14a3a3','#c2410c','#4b5563','#0f4f2b','#e879a6'];
 
 const S={db:null,user:null,uid:null,canWrite:null,isAdmin:false,downloads:null,
@@ -565,12 +576,12 @@ function dbErr(e){const c=e&&e.code;
 async function withRetry(fn){try{return await fn();}catch(e){if(e&&e.code==='unavailable'){await new Promise(r=>setTimeout(r,600+Math.random()*900));return await fn();}throw e;}}
 
 /* ---------- effective config ---------- */
-function metas(l){const m=S.metaDoc||{},L=cfgLinha(l);const mm=l==='rebritagem'?(fin(m.rbMetaMensal)?m.rbMetaMensal:L.metaMensal):(fin(m.metaMensal)?m.metaMensal:L.metaMensal);
+function metas(l){const m=S.metaDoc||{},L=cfgLinha(l);const k=LPFX[l]?LPFX[l]+'MetaMensal':'metaMensal',mm=fin(m[k])&&m[k]>0?m[k]:L.metaMensal;
   return{metaMensal:mm,diasProgramados:fin(m.diasProgramados)?m.diasProgramados:S.cfg.diasProgramados};}
 
 /* ---------- compute ---------- */
 function compute(linha){
-  linha=linha==='rebritagem'?'rebritagem':'primaria';const rb=linha==='rebritagem';
+  linha=LINHAS[linha]?linha:'primaria';const rb=linha!=='primaria';
   const ym=S.month,N=daysIn(ym),cfg=cfgLinha(linha),M=metas(linha);
   const metaDia=M.diasProgramados>0?M.metaMensal/M.diasProgramados:0;
   const days=[];for(let i=1;i<=N;i++){days.push({d:ym+'-'+pad(i),i,viag:0,prod:0,ht:0,hp:0,hasBrit:false,par:{},po:0,mec:0,ele:0,falhas:0,obs:[],est:false});}
@@ -629,7 +640,7 @@ function renderToday(){
   const ln=S.form==='brit'?(getRadio($('#fb'),'linha')||'primaria'):S.form==='mnt'?'':'primaria';
   const {days,metaDia}=compute(ln||'primaria');const x=days.find(z=>z.d===d);if(!x){box.innerHTML='';return;}
   const at=metaDia?x.prod/metaDia:0;
-  box.innerHTML=`<div class="t"><small>${ln==='rebritagem'?'Rebritagem':'Produção'} ${d===todayStr()?'hoje':dShort(d)}</small><b class="${at>=0.99?'up':''}">${nf(x.prod)} t</b></div>
+  box.innerHTML=`<div class="t"><small>${ln&&ln!=='primaria'?LINHAS[ln]:'Produção'} ${d===todayStr()?'hoje':dShort(d)}</small><b class="${at>=0.99?'up':''}">${nf(x.prod)} t</b></div>
   <div class="t"><small>Meta do dia</small><b>${nf(metaDia)} t</b></div><div class="t"><small>Atingido</small><b class="${at>=0.99?'up':'down'}">${x.prod?pf(at,0):'—'}</b></div>`;
 }
 
@@ -637,10 +648,10 @@ function pbar(p,color){const w=Math.max(0,Math.min(1,p||0))*100;return`<div clas
 const atColor=p=>p>=0.99?'#7bd08f':p>=0.85?'#f2b705':'#f39a8e';
 
 function renderPainel(){
-  const R=compute(S.linha),{T,M,metaDia,days}=R,rb=S.linha==='rebritagem';
+  if(!LINHAS[S.linha])S.linha='primaria';const R=compute(S.linha),{T,M,metaDia,days}=R,rb=S.linha!=='primaria';
   $$('#linhaSeg button').forEach(b=>b.classList.toggle('on',b.dataset.l===S.linha));
   $('#pnlTit').textContent=LINHAS[S.linha].toUpperCase();$('#vehCard').classList.toggle('hidden',rb);
-  const nt=$('#pnlNota');if(rb&&T.estDias){nt.textContent=`Produção estimada em ${T.estDias} dia(s) (horas trabalhadas × ${nf(T.prodPlanejada)} t/h planejada), porque a produção da rebritagem não foi informada no lançamento.`;nt.classList.remove('hidden');}else nt.classList.add('hidden');
+  const nt=$('#pnlNota');if(rb&&T.estDias){nt.textContent=`Produção estimada em ${T.estDias} dia(s) (horas trabalhadas × ${nf(T.prodPlanejada)} t/h planejada), porque a produção não foi informada no lançamento.`;nt.classList.remove('hidden');}else nt.classList.add('hidden');
   const elapsed=(()=>{const t=todayStr();if(ymOf(t)>S.month)return M.diasProgramados;if(ymOf(t)<S.month)return 0;return Math.min(M.diasProgramados,T.diasTrab);})();
   const prodPct=M.metaMensal?T.prod/M.metaMensal:0;
   const htPct=T.hp?T.ht/T.hp:0;
@@ -758,7 +769,7 @@ function renderReg(){
   for(const{col,r}of items){if(r.data!==last){html+=`<div class="dayh">${dLabel(r.data)}</div>`;last=r.data;}
     let ttl,sub;
     if(col==='viagens'){ttl=`${esc(r.frota)} · ${nf(r.viagens)} viagens × ${nf(r.peso,1)} t = ${nf((r.viagens||0)*(r.peso||0))} t`;sub=`Turno ${r.turno||1}`+(fin(r.horIni)&&fin(r.horFim)?` · horímetro ${nf(r.horIni,1)} → ${nf(r.horFim,1)}`:'');}
-    else if(col==='britagem'){const po=parList(r).reduce((a,e)=>a+e[1],0);ttl=`${linhaDe(r)==='rebritagem'?'Rebritagem':'Britagem primária'} · ${nf((r.horFim||0)-(r.horIni||0),1)} h trabalhadas${fin(r.prodRb)?' · '+nf(r.prodRb)+' t':''}`;sub=`Turno ${r.turno||1} · paradas op. ${nf(po,1)} h`+(r.obs?' · '+esc(r.obs):'');}
+    else if(col==='britagem'){const po=parList(r).reduce((a,e)=>a+e[1],0);ttl=`${LINHAS[linhaDe(r)]} · ${nf((r.horFim||0)-(r.horIni||0),1)} h trabalhadas${fin(r.prodRb)?' · '+nf(r.prodRb)+' t':''}`;sub=`Turno ${r.turno||1} · paradas op. ${nf(po,1)} h`+(r.obs?' · '+esc(r.obs):'');}
     else{ttl=`${esc(r.equip)} · ${esc(r.area)} ${r.natureza==='Preventiva'?'preventiva':'corretiva'} · ${nf(r.horas,1)} h <span class="badge ${r.status==='Aberta'?'':'ok'}">${r.status==='Aberta'?'em aberto':'concluída'}</span>`;sub=esc(r.desc)+(r.paraBritagem===false?' · não parou a britagem':' · parou '+LINHAS[osLinha(r)].toLowerCase());}
     const w=who(r.por);const can=S.canWrite!==false&&(S.isAdmin||r.por===S.uid);
     html+=`<div class="rec"><div class="ic" style="background:${ICON[col][0]}"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">${ICON[col][1]}</svg></div>
@@ -773,13 +784,13 @@ function renderAjustes(){
   $$('#v-ajustes input,#v-ajustes textarea,#v-ajustes button').forEach(e=>e.disabled=ro);
   $('#ajMesT').textContent='Metas de '+monthLabel(S.month);
   const fm=$('#fMeta'),M=metas();
-  if(document.activeElement?.form!==fm){fm.metaMensal.value=nf(M.metaMensal);fm.diasProgramados.value=M.diasProgramados;fm.rbMetaMensal.value=S.metaDoc&&fin(S.metaDoc.rbMetaMensal)?nf(S.metaDoc.rbMetaMensal):'';}
+  if(document.activeElement?.form!==fm){fm.metaMensal.value=nf(M.metaMensal);fm.diasProgramados.value=M.diasProgramados;for(const p of ['rb','sc'])fm[p+'MetaMensal'].value=S.metaDoc&&fin(S.metaDoc[p+'MetaMensal'])?nf(S.metaDoc[p+'MetaMensal']):'';}
   updMetaCalc();
   const fa=$('#fAlc');if(document.activeElement?.form!==fa)fa.alcada.value=nf(S.cfg.alcada||5000,2);
   const fc=$('#fCfg'),c=S.cfg;
   if(document.activeElement?.form!==fc){fc.metaMensal.value=nf(c.metaMensal);fc.diasProgramados.value=c.diasProgramados;fc.horasDia.value=nf(c.horasDia,1);fc.prodPlanejada.value=nf(c.prodPlanejada);
     fc.pesoPadrao.value=nf(c.pesoPadrao,1);fc.metaOEE.value=nf(c.metaOEE*100);fc.frota.value=c.frota.join(', ');fc.equipamentos.value=c.equipamentos.join(', ');fc.paradasOp.value=c.paradasOp.join(', ');
-    const L=cfgLinha('rebritagem');fc.rbMetaMensal.value=nf(L.metaMensal);fc.rbHorasDia.value=nf(L.horasDia,1);fc.rbProdPlanejada.value=nf(L.prodPlanejada);fc.rbMetaOEE.value=nf(L.metaOEE*100);}
+    for(const [l,p] of Object.entries(LPFX)){const L=cfgLinha(l);fc[p+'MetaMensal'].value=nf(L.metaMensal);fc[p+'HorasDia'].value=nf(L.horasDia,1);fc[p+'ProdPlanejada'].value=nf(L.prodPlanejada);fc[p+'MetaOEE'].value=nf(L.metaOEE*100);}}
 }
 function updMetaCalc(){const fm=$('#fMeta');const m=num(fm.metaMensal.value),d=num(fm.diasProgramados.value);const md=m&&d?m/d:null;
   $('[data-o="md"]',fm).textContent=md?nf(md)+' t':'—';$('[data-o="nec"]',fm).textContent=md&&S.cfg.horasDia?nf(md/S.cfg.horasDia)+' t/h':'—';}
@@ -809,7 +820,7 @@ function resetForm(id){const f=$(id);f.reset();f.data.value=todayStr();$$('[data
 function fmLinhaUI(){const f=$('#fm');$('#fmLinhaBox').classList.toggle('hidden',getRadio(f,'para')!=='sim');}
 function fmLinhaDoAtivo(){const f=$('#fm'),a=ativoById(f.ativo.value);if(!a)return;const l=ativoLinha(a);setRadio(f,'para',l?'sim':'nao');if(l)setRadio(f,'linha',l);fmLinhaUI();}
 function fbLinhaUI(){const f=$('#fb'),l=getRadio(f,'linha')||'primaria';f.dataset.linha=l;
-  $('#fbTitulo').textContent=(l==='rebritagem'?'Rebritagem':'Britagem primária')+' · horímetro e paradas';$('#fbProdRb').classList.toggle('hidden',l!=='rebritagem');
+  $('#fbTitulo').textContent=LINHAS[l]+' · horímetro e paradas';$('#fbProdRb').classList.toggle('hidden',l==='primaria');$('#fbProdLbl').textContent='Produção da '+LINHAS[l].toLowerCase()+' no turno (t)';
   if(!S.edit)f.horasProg.value=nf(cfgLinha(l).horasDia,1);}
 function setRadio(f,name,v){$$(`[data-radio="${name}"] .chip`,f).forEach(b=>b.classList.toggle('on',b.dataset.v===v));}
 function getRadio(f,name){return $(`[data-radio="${name}"] .chip.on`,f)?.dataset.v;}
@@ -869,16 +880,16 @@ async function onSaveViagem(e){
 async function onSaveBrit(e){
   e.preventDefault();if(!needWrite())return;const f=e.target;
   const data=f.data.value,turno=+f.turno.value,horIni=num(f.horIni.value),horFim=num(f.horFim.value),horasProg=num(f.horasProg.value);
-  if(!data)return toast('Informe a data.',true);if(horIni==null||horFim==null)return toast('Informe os horímetros do '+((getRadio(f,'linha')||'')==='rebritagem'?'rebritador.':'britador.'),true);
+  if(!data)return toast('Informe a data.',true);if(horIni==null||horFim==null)return toast('Informe os horímetros do '+LEQ[getRadio(f,'linha')||'primaria']+'.',true);
   if(horFim<horIni)return toast('Horímetro final menor que o inicial.',true);
   if(horFim-horIni>24&&!await ask(`Foram ${nf(horFim-horIni,1)} h trabalhadas no turno. Confirmar?`))return;
   const paradas=[];$$('[data-par]',f).forEach(i=>{const v=num(i.value);if(v&&v>0)paradas.push({cat:i.dataset.par,h:v});});
-  const linha=getRadio(f,'linha')||'primaria',prodRb=linha==='rebritagem'?num(f.prodRb.value):null;
+  const linha=getRadio(f,'linha')||'primaria',prodRb=linha!=='primaria'?num(f.prodRb.value):null;
   if(prodRb!=null&&prodRb<0)return toast('Produção inválida.',true);
   const body={data,turno,linha,horIni,horFim,horasProg:horasProg??cfgLinha(linha).horasDia,paradas,prodRb:prodRb??null,obs:f.obs.value.trim(),por:S.edit?.por||S.uid||null,em:new Date().toISOString()};
   if(S.edit)body.editadoPor=S.uid||null;
   busy(f,true);
-  try{if(await saveDoc('britagem',linha==='rebritagem'?`${data}_RB_T${turno}`:`${data}_T${turno}`,body,f)){toast(`✔ ${LINHAS[linha]} salva`);resetForm('#fb');}}
+  try{if(await saveDoc('britagem',LSUF[linha]?`${data}_${LSUF[linha]}_T${turno}`:`${data}_T${turno}`,body,f)){toast(`✔ ${LINHAS[linha]} salva`);resetForm('#fb');}}
   catch(err){toast(dbErr(err),true);}finally{busy(f,false);}
 }
 async function onSaveMnt(e){
@@ -940,7 +951,7 @@ function exportDaily(){const R=compute(S.linha);const cats=uniq([...S.cfg.parada
   saveCsv(`controle-diario-${S.linha}-${S.month}.csv`,rows);}
 function exportRaw(){const rows=[['Tipo','Data','Turno','Frota/Equipamento','Viagens','Peso médio (t)','Produção (t)','Horímetro inicial','Horímetro final','Horas','Área','Natureza','Parou britagem','Status','Paradas op.','Descrição/obs.','Registrado em']];
   for(const r of S.viagens)rows.push(['Viagens',r.data,r.turno,csvS(r.frota),r.viagens,csvN(r.peso),csvN(r.viagens*r.peso,1),csvN(r.horIni,1),csvN(r.horFim,1),fin(r.horIni)&&fin(r.horFim)?csvN(r.horFim-r.horIni,1):'','','','','','',csvS(r.obs),r.em||'']);
-  for(const r of S.brit)rows.push([linhaDe(r)==='rebritagem'?'Rebritagem':'Britagem primária',r.data,r.turno,linhaDe(r)==='rebritagem'?'Rebritador':'Britador primário','','','',csvN(r.horIni,1),csvN(r.horFim,1),csvN(r.horFim-r.horIni,1),'','','','',csvS(parList(r).map(([k,v])=>k+': '+String(v).replace('.',',')+' h').join(' | ')),csvS(r.obs),r.em||'']);
+  for(const r of S.brit)rows.push([LINHAS[linhaDe(r)],r.data,r.turno,LEQ[linhaDe(r)],'','','',csvN(r.horIni,1),csvN(r.horFim,1),csvN(r.horFim-r.horIni,1),'','','','',csvS(parList(r).map(([k,v])=>k+': '+String(v).replace('.',',')+' h').join(' | ')),csvS(r.obs),r.em||'']);
   for(const r of S.manut)rows.push(['Manutenção',r.data,'',csvS(r.equip),'','','','','',csvN(r.horas,2),r.area,r.natureza,r.paraBritagem===false?'Não':'Sim',r.status,'',csvS(r.desc),r.em||'']);
   saveCsv(`lancamentos-${S.month}.csv`,rows);}
 
@@ -989,12 +1000,12 @@ function bind(){
   $('#fv').addEventListener('submit',onSaveViagem);$('#fb').addEventListener('submit',onSaveBrit);$('#fm').addEventListener('submit',onSaveMnt);
   $('#fMeta').addEventListener('submit',async e=>{e.preventDefault();if(!needWrite())return;const f=e.target;const m=num(f.metaMensal.value),d=num(f.diasProgramados.value);
     if(!(m>0)||!(d>0&&d<=31))return toast('Confira a meta e os dias programados.',true);busy(f,true);
-    const rbm=num(f.rbMetaMensal.value);
-    try{await withRetry(()=>S.db.doc('metas/'+S.month).set({metaMensal:m,diasProgramados:Math.round(d),rbMetaMensal:rbm>0?rbm:null,por:S.uid||null,em:new Date().toISOString()}));toast('✔ Metas de '+monthLabel(S.month)+' salvas');}catch(err){toast(dbErr(err),true);}finally{busy(f,false);}});
+    const rbm=num(f.rbMetaMensal.value),scm=num(f.scMetaMensal.value);
+    try{await withRetry(()=>S.db.doc('metas/'+S.month).set({metaMensal:m,diasProgramados:Math.round(d),rbMetaMensal:rbm>0?rbm:null,scMetaMensal:scm>0?scm:null,por:S.uid||null,em:new Date().toISOString()}));toast('✔ Metas de '+monthLabel(S.month)+' salvas');}catch(err){toast(dbErr(err),true);}finally{busy(f,false);}});
   $('#fCfg').addEventListener('submit',async e=>{e.preventDefault();if(!needWrite())return;const f=e.target;
     const c={metaMensal:num(f.metaMensal.value),diasProgramados:Math.round(num(f.diasProgramados.value)||0),horasDia:num(f.horasDia.value),prodPlanejada:num(f.prodPlanejada.value),pesoPadrao:num(f.pesoPadrao.value),metaOEE:(num(f.metaOEE.value)||0)/100,
       frota:uniq(list(f.frota.value)),equipamentos:uniq(list(f.equipamentos.value)),paradasOp:uniq(list(f.paradasOp.value)),
-      rbMetaMensal:num(f.rbMetaMensal.value),rbHorasDia:num(f.rbHorasDia.value),rbProdPlanejada:num(f.rbProdPlanejada.value),rbMetaOEE:(num(f.rbMetaOEE.value)||0)/100||null};
+      ...Object.fromEntries(['rb','sc'].flatMap(p=>[[p+'MetaMensal',num(f[p+'MetaMensal'].value)],[p+'HorasDia',num(f[p+'HorasDia'].value)],[p+'ProdPlanejada',num(f[p+'ProdPlanejada'].value)],[p+'MetaOEE',(num(f[p+'MetaOEE'].value)||0)/100||null]]))};
     if(!(c.metaMensal>0&&c.diasProgramados>0&&c.horasDia>0&&c.prodPlanejada>0&&c.pesoPadrao>0)||!c.frota.length)return toast('Preencha todos os parâmetros com valores maiores que zero.',true);
     busy(f,true);try{await withRetry(()=>S.db.doc('cfg/geral').set({...S.cfgRaw,...c}));toast('✔ Parâmetros salvos');}catch(err){toast(dbErr(err),true);}finally{busy(f,false);}});
   $('#exDaily').onclick=exportDaily;$('#exRaw').onclick=exportRaw;
@@ -1011,7 +1022,7 @@ const empty=t=>`<div class="empty">${t}</div>`;
 const ROLES=[['manutencao','Manutenção','Cadastra ativos e abre OS'],['almoxarife','Almoxarife','Controla o estoque e recebe compras'],['compras','Compras','Emite pedidos aos fornecedores'],['supervisor','Supervisor','Aprova compras até a alçada'],['gerente','Gerente','Aprova qualquer valor e altera ajustes']];
 const UNID=['un','pç','jg','kit','m','kg','L','cx','par','rolo'];
 const CAT_PECA=['Mecânica','Elétrica','Desgaste','Lubrificante','Pneu / rodante','Filtro','Consumível','Outro'];
-const CAT_ATIVO=['Britagem','Rebritagem','Alimentação','Transportador','Peneiramento','Elétrico','Escavadeira','Carregadeira','Caminhão','Perfuratriz','Rompedor','Motoniveladora','Carregamento','Transporte','Utilidades','Outro'];
+const CAT_ATIVO=['Britagem','Britagem secundária','Rebritagem','Alimentação','Transportador','Peneiramento','Elétrico','Escavadeira','Carregadeira','Caminhão','Perfuratriz','Rompedor','Motoniveladora','Carregamento','Transporte','Utilidades','Outro'];
 const RC_ST={'Em aprovação':'#c98d00','Aprovação gerência':'#ef7d1a','Em revisão':'#8a4fbf','Aprovada':'#2b78d0','Pedido emitido':'#1d4f91','Recebida parcial':'#0f8c8c','Recebida':'#178041','Reprovada':'#d63b2b','Cancelada':'#8a948f'};
 const RC_OPEN=['Em aprovação','Aprovação gerência','Em revisão','Aprovada','Pedido emitido','Recebida parcial'];
 const stBadge=(s,c)=>`<span class="st" style="background:${c||RC_ST[s]||'#888'}">${esc(s)}</span>`;
@@ -1455,14 +1466,15 @@ function subscribeMnt(){
 /* ================= PLANOS PREVENTIVOS · ROTINAS DE INSPEÇÃO ================= */
 const FREQ={diaria:['Diária',1],semanal:['Semanal',7],quinzenal:['Quinzenal',15],mensal:['Mensal',30]};
 const AREAS_PLANO=['Mecânica','Elétrica','Lubrificação','Inspeção'];
-const HOR_FONTE={manual:'Leitura manual',britador:'Horímetro do britador primário (lançamentos de britagem)',rebritador:'Horímetro do rebritador (lançamentos da rebritagem)',frota:'Horímetro do caminhão (lançamentos de viagens)'};
+const HOR_FONTE={manual:'Leitura manual',britador:'Horímetro do britador primário (lançamentos de britagem)',secundario:'Horímetro do britador secundário (lançamentos da secundária)',rebritador:'Horímetro do rebritador (lançamentos da rebritagem)',frota:'Horímetro do caminhão (lançamentos de viagens)'};
 const dayMs=864e5;
 const daysBetween=(a,b)=>Math.round((Date.parse(b+'T12:00:00')-Date.parse(a+'T12:00:00'))/dayMs);
 const addDays=(d,n)=>{const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());};
 const lines=s=>String(s||'').split('\n').map(x=>x.trim()).filter(Boolean);
 
 function horAtual(a){if(!a)return null;let h=fin(a.hor)?a.hor:null;let d=null;
-  if(a.horFonte==='britador'||a.horFonte==='rebritador'){const ln=a.horFonte==='rebritador'?'rebritagem':'primaria';for(const b of S.britLast)if(linhaDe(b)===ln&&fin(b.horFim)&&(d==null||b.horFim>d))d=b.horFim;}
+  const HFL={britador:'primaria',secundario:'secundaria',rebritador:'rebritagem'};
+  if(HFL[a.horFonte]){const ln=HFL[a.horFonte];for(const b of S.britLast)if(linhaDe(b)===ln&&fin(b.horFim)&&(d==null||b.horFim>d))d=b.horFim;}
   if(a.horFonte==='frota')for(const v of S.viagLast)if(v.frota===a.tag&&fin(v.horFim)&&(d==null||v.horFim>d))d=v.horFim;
   if(d!=null&&(h==null||d>h))h=d;return h;}
 
