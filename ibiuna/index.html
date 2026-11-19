@@ -518,6 +518,7 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
 
 <script src="config.js"></script>
 <script src="backend.js"></script>
+<script>if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});</script>
 <script>
 "use strict";
 /* ---------- helpers ---------- */
