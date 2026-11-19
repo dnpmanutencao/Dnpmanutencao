@@ -40,6 +40,12 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(90deg,var(--g
 .month{display:flex;align-items:center;background:rgba(255,255,255,.12);border-radius:10px;overflow:hidden}
 .month button{background:none;border:0;color:#fff;width:34px;height:38px;font-size:20px}
 .month span{font-family:"Barlow Condensed";font-weight:600;font-size:17px;min-width:96px;text-align:center;text-transform:capitalize}
+.month{flex:none}
+@media(max-width:600px){header{gap:8px;padding:8px 10px}.brand>div{display:none}.brand .lg{height:34px}.brand .lg img{height:28px}
+  .month button{width:30px;height:34px}.month span{min-width:82px;font-size:16px}}
+#linhaSeg{grid-template-columns:1fr 1fr;background:var(--g800);padding:4px;margin-bottom:4px}
+#linhaSeg button{color:#cfe3d6;font-size:15px;padding:12px 4px;letter-spacing:.02em}#linhaSeg button.on{background:#fff;color:var(--g800)}
+@media(max-width:600px){.pnl-h{padding:8px 10px}.pnl-h img{display:none}.pnl-h b{font-size:19px}}
 
 main{max-width:1240px;margin:0 auto;padding:14px 12px calc(var(--nav) + 24px)}
 .banner{background:var(--amber-l);border:1px solid #f0d77a;color:#5c4500;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:14px}
