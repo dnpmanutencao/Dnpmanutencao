@@ -115,6 +115,23 @@ class Folha:
             if horiz: x += larg or (6 + len(txt) * 1.75)
             else: y += P + 0.6
         self.campos.append({'nome': nome, 'tipo': 'escolha', 'ops': ops})
+    def hora(self, nome, rot, y0):
+        """Horário: hora (0 a 23, em duas fileiras) e minuto (00, 15, 30, 45)."""
+        self.c.setFillColor(colors.HexColor('#f4f9f6')); self.c.roundRect(20 * mm, self.Y(y0 + 13), 172 * mm, 21 * mm, 6, stroke=0, fill=1)
+        self.rotulo(24, y0 + 1.2, rot, 9.5, cor=VERDE)
+        self.rotulo(24, y0 + 8.5, '___ : ___', 11, bold=False)
+        self.rotulo(58, y0 - 4, 'Hora', 7.4)
+        ops = []
+        for i in range(24):
+            x = 58 + (i % 12) * (P + 1.2); y = y0 + (i // 12) * 7
+            self.bolinha(x, y, str(i)); ops.append({'v': i, 'x': round(x, 2), 'y': round(y, 2)})
+        self.campos.append({'nome': nome + '_h', 'tipo': 'escolha', 'ops': ops})
+        self.rotulo(140, y0 - 4, 'Minuto', 7.4)
+        ops = []
+        for i, m in enumerate([0, 15, 30, 45]):
+            x = 140 + i * 13; self.bolinha(x, y0 + 3.5, ''); self.rotulo(x + 3, y0 + 4.6, ':%02d' % m, 7.6, bold=False)
+            ops.append({'v': m, 'x': round(x, 2), 'y': round(y0 + 3.5, 2)})
+        self.campos.append({'nome': nome + '_m', 'tipo': 'escolha', 'ops': ops})
     def obs(self, y, h):
         self.rotulo(18, y - 1.5, 'Observações (não são lidas — vá no app se precisar registrar):', 7.2, bold=False)
         self.c.setStrokeColor(colors.HexColor('#b5bdb8')); self.c.rect(18 * mm, self.Y(y + h), 174 * mm, h * mm, stroke=1, fill=0)
@@ -155,16 +172,17 @@ LAY['folhas']['viagens'] = {'campos': f.campos, 'frota': blocos}
 
 # ---------------- BRITAGEM ----------------
 c = canvas.Canvas('folha_britagem.pdf', pagesize=A4)
-f = Folha(c, 'britagem', 'Folha de britagem', passos=[('1', 'Marque britagem', 'e turno.'), ('2', 'Horímetro: escreva', 'e pinte embaixo.'), ('3', 'Paradas: uma', 'bolinha por motivo.')],
-          linhas=['Caneta preta ou azul escura. Depois tire a foto no app: Lançar → Britagem.', 'Errou? Corrija no app na hora de conferir.'])
+f = Folha(c, 'britagem', 'Folha de britagem', passos=[('1', 'Marque britagem', 'e turno.'), ('2', 'Hora que ligou', 'e que desligou.'), ('3', 'Paradas: uma', 'bolinha por motivo.')],
+          linhas=['Caneta preta ou azul escura. Depois tire a foto no app: Lançar → Britagem.', 'Errou? Corrija no app na hora de conferir.'], exemplo=False)
 f.passo(1, 'QUAL BRITAGEM?', 56)
 f.escolha('linha', '', [('primaria', 'Primária'), ('secundaria', 'Secundária'), ('rebritagem', 'Rebritagem')], 80, 55.5, larg=34)
 f.passo(2, 'DATA E TURNO', 65)
 f.rotulo(26, 72.5, 'Data:  ____ / ____', 10, bold=False)
 f.escolha('turno', '', [(1, '1º turno'), (2, '2º turno'), (3, '3º turno')], 80, 71.5, larg=30)
-f.passo(3, 'HORÍMETRO DO BRITADOR', 82, '— escreva nos quadradinhos e pinte embaixo')
-f.numero('horIni', 'No INÍCIO do turno', 30, 104, 5, 1)
-f.numero('horFim', 'No FIM do turno', 104, 104, 5, 1)
+f.passo(3, 'QUE HORAS A BRITAGEM LIGOU E DESLIGOU?', 82, '— pinte a hora e o minuto mais perto')
+f.rotulo(26, 89, 'Exemplo: ligou 7h10 → pinte 7 e :15.   Desligou 16h50 → pinte 16 e :45.', 8, bold=False)
+f.hora('liga', 'LIGOU ÀS', 104)
+f.hora('desl', 'DESLIGOU ÀS', 133)
 f.passo(4, 'PAROU? QUANTO TEMPO?', 166, '— pinte uma bolinha por motivo · não parou = em branco')
 TEMPOS = [(0.5, '½ h'), (1, '1 h'), (1.5, '1½ h'), (2, '2 h'), (3, '3 h'), (4, '4 h'), (6, '6 h'), (8, '8 h')]
 for i, cat in enumerate(PARADAS[:8]):
@@ -175,7 +193,7 @@ for i, cat in enumerate(PARADAS[:8]):
     f.escolha('par_' + str(i), '', TEMPOS, 76, y, larg=15.6)
 LAY['folhas']['britagem'] = {'campos': f.campos, 'paradas': PARADAS[:8]}
 f.assinatura(276)
-f.rodape('Produção, observações e manutenção: lance no app · Gestão Operacional')
+f.rodape('Horas trabalhadas = desligou − ligou − paradas (o app calcula) · Gestão Operacional')
 c.showPage(); c.save()
 
 open('../omr-layout.js', 'w').write('// gerado por folhas/gerar_folhas.py — não editar à mão\nwindow.OMR_LAYOUT=' + json.dumps(LAY, ensure_ascii=False, separators=(',', ':')) + ';\n')

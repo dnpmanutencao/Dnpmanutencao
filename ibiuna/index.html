@@ -365,7 +365,7 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
 
     <!-- BRITAGEM -->
     <div class="card hidden" id="f-brit">
-      <h3 id="fbTitulo">Britagem primária · horímetro e paradas</h3>
+      <h3 id="fbTitulo">Britagem primária · horário e paradas</h3>
       <div class="bd">
         <form class="f" id="fb" autocomplete="off">
           <div class="omrbar"><div class="omrtx"><b>Anotou no papel?</b><span>Tire a foto da folha de britagem e o app preenche para você.</span></div>
@@ -378,9 +378,10 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
             <div><label class="fl">Turno</label><select class="inp" name="turno"><option>1</option><option>2</option><option>3</option></select></div>
           </div>
           <div class="row2">
-            <div><label class="fl">Horímetro inicial</label><input class="inp" name="horIni" inputmode="decimal" required></div>
-            <div><label class="fl">Horímetro final</label><input class="inp" name="horFim" inputmode="decimal" required></div>
+            <div><label class="fl">Ligou às</label><input class="inp" type="time" name="liga"></div>
+            <div><label class="fl">Desligou às</label><input class="inp" type="time" name="desl"></div>
           </div>
+          <p class="note" style="margin:-4px 0 0">Hora que a britagem começou e parou de britar. Passou da meia-noite? Tudo bem, o app entende. Horas trabalhadas = desligou − ligou − paradas.</p>
           <div id="fbProdRb" class="hidden"><label class="fl" id="fbProdLbl">Produção no turno (t)</label><input class="inp" name="prodRb" inputmode="decimal" placeholder="opcional">
             <p class="note" style="margin:4px 0 0">Informe pela balança/correia. Em branco, o painel estima por horas trabalhadas × t/h planejada desta linha.</p></div>
           <div><label class="fl">Horas programadas no turno</label>
@@ -388,6 +389,7 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
           <div><label class="fl">Paradas operacionais (horas)</label><div class="paradas" id="fbParadas"></div>
             <p class="note">Paradas de manutenção mecânica e elétrica são lançadas na aba Manutenção.</p></div>
           <div class="calc"><div><small>Horas trab.</small><b data-o="ht">—</b></div><div><small>Paradas op.</small><b data-o="po">0,0 h</b></div><div><small>F.U.</small><b data-o="fu">—</b></div></div>
+          <p class="note" data-o="hv" style="margin:-4px 0 0"></p>
           <div><label class="fl">Observações</label><textarea class="inp" name="obs" placeholder="Ex.: ajuste de peneira, troca de revestimento…"></textarea></div>
           <button class="btn" type="submit">Salvar britagem</button>
         </form>
@@ -786,7 +788,7 @@ function omrData(c){const d=c.dia&&c.dia.valor,m=c.mes&&c.mes.valor;if(!d||!m||m
 function omrAjuda(tipo){
   const v=tipo==='viagens';
   const passos=v?['Imprima a folha. Use <b>uma folha por turno</b>.','Marque o <b>turno</b>.','Em cada caminhão, pinte as <b>viagens</b>: 34 → pinte o <b>3 em cima</b> e o <b>4 embaixo</b>. 7 → pinte só o <b>7 embaixo</b>. Não rodou → deixe em branco.']
-    :['Imprima a folha. Use <b>uma folha por turno</b>.','Marque <b>qual britagem</b> e o <b>turno</b>.','<b>Horímetro</b>: escreva cada número no quadradinho e pinte a bolinha do mesmo número embaixo.','<b>Paradas</b>: em cada motivo, pinte uma bolinha com o tempo (½ h, 1 h, 2 h…). Não parou → em branco.'];
+    :['Imprima a folha. Use <b>uma folha por turno</b>.','Marque <b>qual britagem</b> e o <b>turno</b>.','<b>Ligou e desligou</b>: pinte a hora e o minuto mais perto. Ligou 7h10 → pinte <b>7</b> e <b>:15</b>.','<b>Paradas</b>: em cada motivo, pinte uma bolinha com o tempo (½ h, 1 h, 2 h…). Não parou → em branco.'];
   passos.push('Pinte a bolinha <b>inteira</b>, com caneta escura. Não faça ✓ nem ✗.','Toque em <b>📷 Tirar foto da folha</b>: foto <b>de cima</b>, com a <b>folha inteira</b> e os <b>4 quadrados pretos</b> aparecendo.','O app mostra o que leu. Confira (o que estiver em <b style="color:#c25e00">laranja</b> precisa de atenção) e toque em <b>Salvar</b>.');
   sheet('Como preencher a folha',`<div class="omr-st">${passos.map((t,i)=>`<div><i>${i+1}</i><span>${t}</span></div>`).join('')}</div>
     <p><a href="folhas/folha_${tipo}.pdf" target="_blank" rel="noopener">Baixar a folha de ${v?'viagens':'britagem'} para imprimir</a> (A4, tamanho real)</p>
@@ -804,7 +806,7 @@ async function lerFolhaUI(file,tipo){
       <div><i>✓</i><span>É a folha de <b>${tipo==='viagens'?'viagens':'britagem'}</b> deste app, impressa em tamanho real.</span></div></div>
       <label class="btn omrbtn">📷 Tirar outra foto<input type="file" accept="image/*" hidden data-omr="${tipo}"></label>`;return;}
   const c=r.campos,duv=Object.entries(c).filter(([k,v])=>v.st==='duvida').map(([k])=>k),data=c.dia?omrData(c):todayStr();
-  const NOMES={dia:'dia',mes:'mês',turno:'turno',linha:'linha',horasProg:'horas programadas',horIni:'horímetro do início',horFim:'horímetro do fim',prodRb:'produção'};
+  const NOMES={dia:'dia',mes:'mês',turno:'turno',linha:'linha',horasProg:'horas programadas',liga_h:'hora que ligou',liga_m:'minuto que ligou',desl_h:'hora que desligou',desl_m:'minuto que desligou',prodRb:'produção'};
   const nomeCampo=k=>NOMES[k]||(k.startsWith('viagens_')?'viagens do '+k.slice(8):k.startsWith('peso_')?'peso do '+k.slice(5):k.startsWith('par_')?'parada “'+(OMR_LAYOUT.folhas.britagem.paradas[+k.slice(4)]||'')+'”':k);
   const aviso=(duv.length||!data?`<div class="omr-av">⚠️ <b>Confira:</b> ${[...(!data?['a data']:[]),...duv.filter(k=>k!=='dia'&&k!=='mes').map(nomeCampo)].join(', ')}. A marcação ficou fraca ou com duas bolinhas. Os campos estão em <b style="color:#c25e00">laranja</b>.</div>`:'')+
     '<p class="note" style="margin:0 0 8px">Na foto: bolinhas <b style="color:#178041">verdes</b> = lidas · <b style="color:#c25e00">laranja</b> = conferir.</p>';
@@ -814,17 +816,17 @@ async function lerFolhaUI(file,tipo){
   if(c.linha.valor){setRadio(f,'linha',c.linha.valor);fbLinhaUI();}
   if(data)f.data.value=data;if(c.turno.valor)f.turno.value=c.turno.valor;
   const put=(campo,el)=>{const v=c[campo];if(!v||v.valor==null)return;el.value=nf(v.valor,campo==='prodRb'?0:1);};
-  put('horIni',f.horIni);put('horFim',f.horFim);put('horasProg',f.horasProg);if(c.prodRb)put('prodRb',f.prodRb);
+  const hhmm=n=>c[n+'_h']&&c[n+'_h'].valor!=null?pad(c[n+'_h'].valor)+':'+pad((c[n+'_m']&&c[n+'_m'].valor)||0):'';f.liga.value=hhmm('liga');f.desl.value=hhmm('desl');
   const cats=OMR_LAYOUT.folhas.britagem.paradas,faltou=[];
   cats.forEach((cat,i)=>{const v=c['par_'+i];if(!v||v.valor==null)return;const inp=$$('[data-par]',f).find(x=>x.dataset.par===cat);if(inp){inp.value=nf(v.valor,1);if(v.st==='duvida')inp.classList.add('duv');}else faltou.push(cat);});
-  const mapa={horIni:f.horIni,horFim:f.horFim,horasProg:f.horasProg,prodRb:f.prodRb,dia:f.data,mes:f.data,turno:f.turno};
+  const mapa={liga_h:f.liga,liga_m:f.liga,desl_h:f.desl,desl_m:f.desl,dia:f.data,mes:f.data,turno:f.turno};
   duv.forEach(k=>{const el=mapa[k];if(el)el.classList.add('duv');if(k==='linha')$('#fbLinha').classList.add('duv');});
-  if(!data)f.data.classList.add('duv');if(c.linha.st==='vazio')$('#fbLinha').classList.add('duv');
+  if(!f.liga.value)f.liga.classList.add('duv');if(!f.desl.value)f.desl.classList.add('duv');if(!data)f.data.classList.add('duv');if(c.linha.st==='vazio')$('#fbLinha').classList.add('duv');
   f.obs.value=(f.obs.value?f.obs.value+' · ':'')+'Lido da folha de britagem';
-  updCalcs();renderToday();window.scrollTo(0,0);
-  const hT=fin(c.horIni.valor)&&fin(c.horFim.valor)?c.horFim.valor-c.horIni.valor:null,pT=cats.reduce((a,cat,i)=>a+((c['par_'+i]||{}).valor||0),0);
+  prefillBrit();updCalcs();renderToday();window.scrollTo(0,0);
+  const jT=janelaH(f.liga.value,f.desl.value),pT=cats.reduce((a,cat,i)=>a+((c['par_'+i]||{}).valor||0),0);
   const resumo=`<div class="omr-ok">✅ <b>${esc(LINHAS[c.linha.valor||'primaria'])}</b>${data?' · dia <b>'+dShort(data)+'</b>':''} · <b>${c.turno.valor||'?'}º turno</b><br>
-    Horímetro: <b>${c.horIni.valor!=null?nf(c.horIni.valor,1):'?'}</b> → <b>${c.horFim.valor!=null?nf(c.horFim.valor,1):'?'}</b>${hT!=null?` (<b>${nf(hT,1)} h</b> trabalhadas)`:''}<br>Paradas: <b>${nf(pT,1)} h</b>${c.prodRb&&c.prodRb.valor!=null?` · Produção: <b>${nf(c.prodRb.valor)} t</b>`:''}</div>`;
+    Ligou <b>${f.liga.value||'?'}</b> · desligou <b>${f.desl.value||'?'}</b>${jT!=null?` (<b>${nf(Math.max(0,jT-pT),1)} h</b> trabalhadas)`:''}<br>Paradas: <b>${nf(pT,1)} h</b>${c.prodRb&&c.prodRb.valor!=null?` · Produção: <b>${nf(c.prodRb.valor)} t</b>`:''}</div>`;
   sheet('Confira o que o app leu',resumo+aviso+prev+(faltou.length?`<p class="note">Paradas da folha que não existem mais no app: ${esc(faltou.join(', '))}.</p>`:'')+'<p class="note">Os valores já estão no formulário de britagem. Feche este aviso, confira e toque em <b>Salvar</b>.</p><button class="btn omrbtn" id="omrOk">✔ Ver formulário e salvar</button>',(b,s2)=>{$('#omrOk',b).onclick=()=>s2.close();});}
 function omrViagensUI(sh,r,topo,data){
   const c=r.campos,fr=OMR_LAYOUT.folhas.viagens.frota,pp=S.cfg.pesoPadrao;
@@ -942,7 +944,7 @@ function renderReg(){
   for(const{col,r}of items){if(r.data!==last){html+=`<div class="dayh">${dLabel(r.data)}</div>`;last=r.data;}
     let ttl,sub;
     if(col==='viagens'){ttl=`${esc(r.frota)} · ${nf(r.viagens)} viagens × ${nf(r.peso,1)} t = ${nf((r.viagens||0)*(r.peso||0))} t`;sub=`Turno ${r.turno||1}`+(fin(r.horIni)&&fin(r.horFim)?` · horímetro ${nf(r.horIni,1)} → ${nf(r.horFim,1)}`:'');}
-    else if(col==='britagem'){const po=parList(r).reduce((a,e)=>a+e[1],0);ttl=`${LINHAS[linhaDe(r)]} · ${nf((r.horFim||0)-(r.horIni||0),1)} h trabalhadas${fin(r.prodRb)?' · '+nf(r.prodRb)+' t':''}`;sub=`Turno ${r.turno||1} · paradas op. ${nf(po,1)} h`+(r.obs?' · '+esc(r.obs):'');}
+    else if(col==='britagem'){const po=parList(r).reduce((a,e)=>a+e[1],0);ttl=`${LINHAS[linhaDe(r)]} · ${nf((r.horFim||0)-(r.horIni||0),1)} h trabalhadas${fin(r.prodRb)?' · '+nf(r.prodRb)+' t':''}`;sub=`Turno ${r.turno||1}${r.liga?` · ${r.liga}–${r.desl}`:''} · paradas op. ${nf(po,1)} h`+(r.obs?' · '+esc(r.obs):'');}
     else{ttl=`${esc(r.equip)} · ${esc(r.area)} ${r.natureza==='Preventiva'?'preventiva':'corretiva'} · ${nf(r.horas,1)} h <span class="badge ${r.status==='Aberta'?'':'ok'}">${r.status==='Aberta'?'em aberto':'concluída'}</span>`;sub=esc(r.desc)+(r.paraBritagem===false?' · não parou a britagem':' · parou '+LINHAS[osLinha(r)].toLowerCase());}
     const w=who(r.por);const can=S.canWrite!==false&&(S.isAdmin||r.por===S.uid);
     html+=`<div class="rec"><div class="ic" style="background:${ICON[col][0]}"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">${ICON[col][1]}</svg></div>
@@ -996,13 +998,13 @@ function applyCfg(){
 }
 function resetForm(id){const f=$(id);f.reset();f.data.value=todayStr();$$('[data-editbar]',f).forEach(e=>e.classList.add('hidden'));
   if(id==='#fv'){f.dataset.frota='';f.peso.value=nf(S.cfg.pesoPadrao,1);}
-  if(id==='#fb'){f._extra=[];$$('[data-par]',f).forEach(i=>i.value='');setRadio(f,'linha',f.dataset.linha||'primaria');fbLinhaUI();}
+  if(id==='#fb'){f._extra=[];delete f.dataset.base;delete f.dataset.htOld;$$('[data-par]',f).forEach(i=>i.value='');setRadio(f,'linha',f.dataset.linha||'primaria');fbLinhaUI();}
   if(id==='#fm'){S.fotosNovas={abertura:[],fechamento:[]};S.fotosAtuais={abertura:[],fechamento:[]};setTimeout(()=>typeof renderPickers==='function'&&renderPickers(),0);$('#fmPecas').innerHTML='';delete f.horas.dataset.manual;osPecasCusto();setRadio(f,'area','Mecânica');setRadio(f,'natureza','Corretiva');setRadio(f,'para','sim');setRadio(f,'linha','primaria');fmLinhaUI();setRadio(f,'status','Concluída');setRadio(f,'prioridade','Média');setRadio(f,'andamento','Pendente');fillEquipe('');fillResp('','');}
   S.edit=null;applyCfg();if(id==='#fm')fmLinhaDoAtivo();}
 function fmLinhaUI(){const f=$('#fm');$('#fmLinhaBox').classList.toggle('hidden',getRadio(f,'para')!=='sim');}
 function fmLinhaDoAtivo(){const f=$('#fm'),a=ativoById(f.ativo.value);if(!a)return;const l=ativoLinha(a);setRadio(f,'para',l?'sim':'nao');if(l)setRadio(f,'linha',l);fmLinhaUI();}
 function fbLinhaUI(){const f=$('#fb'),l=getRadio(f,'linha')||'primaria';f.dataset.linha=l;
-  $('#fbTitulo').textContent=LINHAS[l]+' · horímetro e paradas';$('#fbProdRb').classList.toggle('hidden',l==='primaria');$('#fbProdLbl').textContent='Produção da '+LINHAS[l].toLowerCase()+' no turno (t)';
+  $('#fbTitulo').textContent=LINHAS[l]+' · horário e paradas';$('#fbProdRb').classList.toggle('hidden',l==='primaria');$('#fbProdLbl').textContent='Produção da '+LINHAS[l].toLowerCase()+' no turno (t)';
   if(!S.edit)f.horasProg.value=nf(cfgLinha(l).horasDia,1);}
 function setRadio(f,name,v){$$(`[data-radio="${name}"] .chip`,f).forEach(b=>b.classList.toggle('on',b.dataset.v===v));}
 function getRadio(f,name){return $(`[data-radio="${name}"] .chip.on`,f)?.dataset.v;}
@@ -1011,8 +1013,9 @@ function updCalcs(){
   const fv=$('#fv'),n=num(fv.viagens.value)||0,p=num(fv.peso.value)||0,hi=num(fv.horIni.value),hf=num(fv.horFim.value);
   const h=hi!=null&&hf!=null&&hf>hi?hf-hi:null;
   $('[data-o="prod"]',fv).textContent=nf(n*p)+' t';$('[data-o="horas"]',fv).textContent=h!=null?nf(h,1)+' h':'—';$('[data-o="vh"]',fv).textContent=h?nf(n/h,1):'—';
-  const fb=$('#fb'),bi=num(fb.horIni.value),bf=num(fb.horFim.value),hp=num(fb.horasProg.value);const ht=bi!=null&&bf!=null&&bf>=bi?bf-bi:null;
-  let po=0;$$('[data-par]',fb).forEach(i=>po+=num(i.value)||0);
+  const fb=$('#fb'),hp=num(fb.horasProg.value);
+  let po=0;$$('[data-par]',fb).forEach(i=>po+=num(i.value)||0);const ht=britHT(fb,po),base=britBase(fb);
+  $('[data-o="hv"]',fb).innerHTML=ht!=null?`Horímetro virtual do ${esc(LEQ[getRadio(fb,'linha')||'primaria'])}: <b>${nf(base,1)} h → ${nf(base+ht,1)} h</b>`:'';
   $('[data-o="ht"]',fb).textContent=ht!=null?nf(ht,1)+' h':'—';$('[data-o="po"]',fb).textContent=nf(po,1)+' h';$('[data-o="fu"]',fb).textContent=ht!=null&&hp?pf(ht/hp,0):'—';
   const fm=$('#fm');if(fm.hIni.value&&fm.hFim.value&&!fm.horas.dataset.manual){const[a,b]=fm.hIni.value.split(':').map(Number),[c,d]=fm.hFim.value.split(':').map(Number);let m=(c*60+d)-(a*60+b);if(m<0)m+=1440;fm.horas.value=nf(m/60,2);}
 }
@@ -1026,11 +1029,18 @@ async function prefillHor(){ // horímetro inicial = último final
       if(last&&!fv.horIni.value&&fv.dataset.frota===fr){fv.horIni.value=nf(last.horFim,1);updCalcs();}}
   }catch(e){}
 }
+/* Britadores sem horímetro: horas = desligou − ligou − paradas; o "horímetro virtual" soma essas horas turno a turno */
+function janelaH(a,b){if(!a||!b)return null;const[h1,m1]=a.split(':').map(Number),[h2,m2]=b.split(':').map(Number);let m=(h2*60+m2)-(h1*60+m1);if(m<=0)m+=1440;return m/60;}
+function britHT(f,po){if(f.dataset.htOld&&!f.liga.value&&!f.desl.value)return +f.dataset.htOld;const j=janelaH(f.liga.value,f.desl.value);return j==null?null:Math.max(0,j-po);}
+function britBaseSync(ln,data,turno){const k=data+'T'+turno;let best=null;
+  for(const b of [...S.brit,...S.britLast]){if(linhaDe(b)!==ln||!fin(b.horFim))continue;const kb=b.data+'T'+(b.turno||1);if(kb>=k)continue;if(!best||kb>best.k||(kb===best.k&&b.horFim>best.v))best={k:kb,v:b.horFim};}
+  return best?best.v:0;}
+function britBase(f){if(f.dataset.base!=null&&f.dataset.base!=='')return +f.dataset.base;return britBaseSync(getRadio(f,'linha')||'primaria',f.data.value,f.turno.value);}
 async function prefillBrit(){
-  if(!S.db)return;const fb=$('#fb');if(fb.horIni.value||S.edit)return;const ln=getRadio(fb,'linha')||'primaria';
-  try{const q=await S.db.collection('britagem').where('data','<=',fb.data.value).orderBy('data','desc').limit(12).get();
-    const last=q.docs.map(d=>d.data()).filter(x=>linhaDe(x)===ln&&fin(x.horFim)&&!(x.data===fb.data.value&&String(x.turno)===fb.turno.value)).sort((a,b)=>(b.data+b.turno).localeCompare(a.data+a.turno))[0];
-    if(last&&!fb.horIni.value&&(getRadio(fb,'linha')||'primaria')===ln){fb.horIni.value=nf(last.horFim,1);updCalcs();}}catch(e){}
+  const fb=$('#fb');if(S.edit)return;delete fb.dataset.base;updCalcs();if(!S.db)return;const ln=getRadio(fb,'linha')||'primaria',d=fb.data.value,t=fb.turno.value;
+  try{const q=await S.db.collection('britagem').where('data','<=',d).orderBy('data','desc').limit(30).get();
+    const k=d+'T'+t;const last=q.docs.map(x=>x.data()).filter(x=>linhaDe(x)===ln&&fin(x.horFim)&&(x.data+'T'+(x.turno||1))<k).sort((a,b)=>(b.data+'T'+(b.turno||1)).localeCompare(a.data+'T'+(a.turno||1))||b.horFim-a.horFim)[0];
+    if(!S.edit&&(getRadio(fb,'linha')||'primaria')===ln&&fb.data.value===d&&fb.turno.value===t){if(last)fb.dataset.base=last.horFim;updCalcs();}}catch(e){}
 }
 
 function needWrite(){if(!S.db){toast('Sem conexão com o banco de dados.',true);return false;}if(S.canWrite===false){toast('Você tem acesso só de leitura.',true);return false;}return true;}
@@ -1061,14 +1071,17 @@ async function onSaveViagem(e){
 }
 async function onSaveBrit(e){
   e.preventDefault();if(!needWrite())return;const f=e.target;
-  const data=f.data.value,turno=+f.turno.value,horIni=num(f.horIni.value),horFim=num(f.horFim.value),horasProg=num(f.horasProg.value);
-  if(!data)return toast('Informe a data.',true);if(horIni==null||horFim==null)return toast('Informe os horímetros do '+LEQ[getRadio(f,'linha')||'primaria']+'.',true);
-  if(horFim<horIni)return toast('Horímetro final menor que o inicial.',true);
-  if(horFim-horIni>24&&!await ask(`Foram ${nf(horFim-horIni,1)} h trabalhadas no turno. Confirmar?`))return;
+  const data=f.data.value,turno=+f.turno.value,horasProg=num(f.horasProg.value),liga=f.liga.value||null,desl=f.desl.value||null;
+  if(!data)return toast('Informe a data.',true);
+  let po=0;$$('[data-par]',f).forEach(i=>po+=num(i.value)||0);const ht=britHT(f,po);
+  if(ht==null)return toast('Informe a hora que ligou e que desligou.',true);
+  if(liga&&desl&&po>janelaH(liga,desl)+0.01&&!await ask(`As paradas (${nf(po,1)} h) passam do tempo entre ligar e desligar (${nf(janelaH(liga,desl),1)} h). Salvar com 0 h trabalhadas?`))return;
+  if(liga&&desl&&janelaH(liga,desl)>14&&!await ask(`Ficou ligada ${nf(janelaH(liga,desl),1)} h no turno. Confirmar?`))return;
+  const horIni=britBase(f),horFim=Math.round((horIni+ht)*100)/100;
   const paradas=[];$$('[data-par]',f).forEach(i=>{const v=num(i.value);if(v&&v>0)paradas.push({cat:i.dataset.par,h:v});});
   const linha=getRadio(f,'linha')||'primaria',prodRb=linha!=='primaria'?num(f.prodRb.value):null;
   if(prodRb!=null&&prodRb<0)return toast('Produção inválida.',true);
-  const body={data,turno,linha,horIni,horFim,horasProg:horasProg??cfgLinha(linha).horasDia,paradas,prodRb:prodRb??null,obs:f.obs.value.trim(),por:S.edit?.por||S.uid||null,em:new Date().toISOString()};
+  const body={data,turno,linha,liga,desl,horIni,horFim,horasProg:horasProg??cfgLinha(linha).horasDia,paradas,prodRb:prodRb??null,obs:f.obs.value.trim(),por:S.edit?.por||S.uid||null,em:new Date().toISOString()};
   if(S.edit)body.editadoPor=S.uid||null;
   busy(f,true);
   try{if(await saveDoc('britagem',LSUF[linha]?`${data}_${LSUF[linha]}_T${turno}`:`${data}_T${turno}`,body,f)){toast(`✔ ${LINHAS[linha]} salva`);resetForm('#fb');}}
@@ -1108,7 +1121,7 @@ function startEdit(col,id){
     f.viagens.value=r.viagens;f.peso.value=nf(r.peso,1);f.horIni.value=fin(r.horIni)?nf(r.horIni,1):'';f.horFim.value=fin(r.horFim)?nf(r.horFim,1):'';f.obs.value=r.obs||'';}
   if(col==='britagem'){setForm('brit');const f=$('#fb');f.dataset.linha=linhaDe(r);resetForm('#fb');S.edit={col,id,por:r.por};f._extra=parList(r).map(e=>e[0]);f.data.value=r.data;f.turno.value=r.turno||1;
     setRadio(f,'linha',linhaDe(r));fbLinhaUI();f.prodRb.value=fin(r.prodRb)?nf(r.prodRb):'';
-    f.horIni.value=nf(r.horIni,1);f.horFim.value=nf(r.horFim,1);f.horasProg.value=nf(r.horasProg,1);f.obs.value=r.obs||'';applyCfg();
+    f.liga.value=r.liga||'';f.desl.value=r.desl||'';f.dataset.base=fin(r.horIni)?r.horIni:0;if(!r.liga&&fin(r.horIni)&&fin(r.horFim))f.dataset.htOld=r.horFim-r.horIni;f.horasProg.value=nf(r.horasProg,1);f.obs.value=r.obs||'';applyCfg();
     const pm=Object.fromEntries(parList(r));$$('[data-par]',f).forEach(i=>{const v=pm[i.dataset.par];i.value=v?nf(v,1):'';});}
   if(col==='manutencao'){setForm('mnt');const f=$('#fm');resetForm('#fm');S.edit={col,id,por:r.por,pecas:r.pecas||[],wasStatus:r.status,extra:Object.fromEntries(['planoId','tarefas','duracaoEst','auto','inspecaoRotinaId','concluidaPor','concluidaEm'].filter(k=>r[k]!==undefined).map(k=>[k,r[k]]))};f.data.value=r.data;
     const av=r.ativoId&&ativoById(r.ativoId)?r.ativoId:'eq:'+r.equip;if(![...f.ativo.options].some(o=>o.value===av))f.ativo.insertAdjacentHTML('beforeend',`<option value="${esc(av)}">${esc(r.equip)}</option>`);f.ativo.value=av;
@@ -1170,7 +1183,7 @@ function bind(){
     const ch=e.target.closest('#fvFrota .chip');if(ch){$$('#fvFrota .chip').forEach(c=>c.classList.toggle('on',c===ch));$('#fv').dataset.frota=ch.dataset.v;if(!S.edit)$('#fv').horIni.value='';prefillHor();return;}
     const rd=e.target.closest('[data-radio] .chip');if(rd){$$('.chip',rd.parentElement).forEach(c=>c.classList.toggle('on',c===rd));
       const fr=rd.closest('form'),nm=rd.parentElement.dataset.radio;
-      if(fr&&fr.id==='fb'&&nm==='linha'){fbLinhaUI();if(!S.edit){fr.horIni.value='';prefillBrit();}updCalcs();renderToday();}
+      if(fr&&fr.id==='fb'&&nm==='linha'){fbLinhaUI();if(!S.edit)prefillBrit();updCalcs();renderToday();}
       if(fr&&fr.id==='fm'&&nm==='para')fmLinhaUI();return;}
     const ls=e.target.closest('#linhaSeg button');if(ls){S.linha=ls.dataset.l;render();return;}
     const pm=e.target.closest('#pnlModo button');if(pm){S.pmodo=pm.dataset.m;render();return;}
@@ -1182,7 +1195,7 @@ function bind(){
   document.addEventListener('input',e=>{if(e.target.name==='horas'&&e.target.form?.id==='fm')e.target.dataset.manual='1';if(e.target.closest('#fv,#fb,#fm'))updCalcs();if(e.target.form?.id==='fMeta')updMetaCalc();});
   $('#fm').hIni.addEventListener('change',()=>{delete $('#fm').horas.dataset.manual;updCalcs();});$('#fm').hFim.addEventListener('change',()=>{delete $('#fm').horas.dataset.manual;updCalcs();});
   $('#fv').data.addEventListener('change',()=>{if(!S.edit){$('#fv').horIni.value='';prefillHor();}renderToday();});
-  $('#fb').data.addEventListener('change',()=>{if(!S.edit){$('#fb').horIni.value='';prefillBrit();}renderToday();});
+  $('#fb').data.addEventListener('change',()=>{prefillBrit();renderToday();});$('#fb').turno.addEventListener('change',()=>prefillBrit());
   document.addEventListener('change',e=>{const i=e.target.closest&&e.target.closest('[data-omr]');if(!i||!i.files||!i.files[0])return;const f=i.files[0],t=i.dataset.omr;i.value='';lerFolhaUI(f,t);});
   document.addEventListener('input',e=>{if(e.target.classList&&e.target.classList.contains('duv'))e.target.classList.remove('duv');});
   document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('[data-omrajuda]');if(!a)return;e.preventDefault();omrAjuda(a.dataset.omrajuda);});
@@ -1658,7 +1671,7 @@ function subscribeMnt(){
 /* ================= PLANOS PREVENTIVOS · ROTINAS DE INSPEÇÃO ================= */
 const FREQ={diaria:['Diária',1],semanal:['Semanal',7],quinzenal:['Quinzenal',15],mensal:['Mensal',30]};
 const AREAS_PLANO=['Mecânica','Elétrica','Lubrificação','Inspeção'];
-const HOR_FONTE={manual:'Leitura manual',britador:'Horímetro do britador primário (lançamentos de britagem)',secundario:'Horímetro do britador secundário (lançamentos da secundária)',rebritador:'Horímetro do rebritador (lançamentos da rebritagem)',frota:'Horímetro do caminhão (lançamentos de viagens)'};
+const HOR_FONTE={manual:'Leitura manual',britador:'Horímetro virtual do britador primário (soma das horas trabalhadas)',secundario:'Horímetro virtual do britador secundário (soma das horas trabalhadas)',rebritador:'Horímetro virtual do rebritador (soma das horas trabalhadas)',frota:'Horímetro do caminhão (lançamentos de viagens)'};
 const dayMs=864e5;
 const daysBetween=(a,b)=>Math.round((Date.parse(b+'T12:00:00')-Date.parse(a+'T12:00:00'))/dayMs);
 const addDays=(d,n)=>{const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());};
