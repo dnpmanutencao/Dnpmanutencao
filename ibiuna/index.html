@@ -31,7 +31,10 @@ button{cursor:pointer}
 header{position:sticky;top:0;z-index:20;background:linear-gradient(90deg,var(--g950),var(--g800));color:#fff;padding:10px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 .brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
 .brand svg{flex:none}
-.omrbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:#eef5f0;border:1px dashed #9cc7ad;border-radius:10px;padding:8px 10px}.omrbar a{font-size:13px;font-weight:600;color:var(--g700,#126235)}
+.omrbar{display:grid;gap:8px;background:#eef5f0;border:1px dashed #9cc7ad;border-radius:12px;padding:10px 12px}.omrtx b{display:block;font-size:15px}.omrtx span{font-size:13px;color:var(--muted)}
+.omrbtn{width:100%;justify-content:center;font-size:17px;padding:13px}.omrlk{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.omrlk a{font-size:13px;font-weight:600;color:#126235}
+.omr-ok{background:#e5f5ea;border-radius:10px;padding:10px 12px;margin:0 0 10px;font-size:15px;line-height:1.45}.omr-ok b{color:#126235}.omr-av{background:#fff3e6;border:1px solid #f3c58f;border-radius:10px;padding:10px 12px;margin:0 0 10px;font-size:14px}
+.omr-st{display:grid;gap:10px;margin:4px 0 12px}.omr-st div{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start;font-size:15px;line-height:1.4}.omr-st i{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#0f4f2b;color:#fff;font-style:normal;font-weight:700}
 .omr-prev{width:100%;border-radius:10px;border:1px solid var(--line);margin:6px 0 10px}.duv{outline:3px solid #ef7d1a!important;outline-offset:1px;background:#fff6ec!important}
 .omr-t td,.omr-t th{padding:5px 6px}.omr-t input{width:84px;font-size:16px;padding:6px}
 #pnlModo{grid-template-columns:1fr 1fr;margin-bottom:10px}
@@ -336,7 +339,9 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
       <h3>Apontamento de viagens</h3>
       <div class="bd">
         <form class="f" id="fv" autocomplete="off">
-          <div class="omrbar"><label class="btn ghost sm">📷 Ler folha preenchida<input type="file" accept="image/*" hidden data-omr="viagens"></label><a href="folhas/folha_viagens.pdf" target="_blank" rel="noopener">Baixar folha para imprimir</a></div>
+          <div class="omrbar"><div class="omrtx"><b>Anotou no papel?</b><span>Tire a foto da folha de viagens e o app preenche para você.</span></div>
+          <label class="btn omrbtn">📷 Tirar foto da folha<input type="file" accept="image/*" hidden data-omr="viagens"></label>
+          <div class="omrlk"><a href="#" data-omrajuda="viagens">Como preencher a folha</a><a href="folhas/folha_viagens.pdf" target="_blank" rel="noopener">Baixar folha para imprimir</a></div></div>
           <div class="editbar hidden" data-editbar><span>Editando lançamento</span><button type="button" class="btn ghost sm" data-cancel>Cancelar</button></div>
           <div class="row2">
             <div><label class="fl">Data</label><input class="inp" type="date" name="data" required></div>
@@ -363,7 +368,9 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
       <h3 id="fbTitulo">Britagem primária · horímetro e paradas</h3>
       <div class="bd">
         <form class="f" id="fb" autocomplete="off">
-          <div class="omrbar"><label class="btn ghost sm">📷 Ler folha preenchida<input type="file" accept="image/*" hidden data-omr="britagem"></label><a href="folhas/folha_britagem.pdf" target="_blank" rel="noopener">Baixar folha para imprimir</a></div>
+          <div class="omrbar"><div class="omrtx"><b>Anotou no papel?</b><span>Tire a foto da folha de britagem e o app preenche para você.</span></div>
+          <label class="btn omrbtn">📷 Tirar foto da folha<input type="file" accept="image/*" hidden data-omr="britagem"></label>
+          <div class="omrlk"><a href="#" data-omrajuda="britagem">Como preencher a folha</a><a href="folhas/folha_britagem.pdf" target="_blank" rel="noopener">Baixar folha para imprimir</a></div></div>
           <div class="editbar hidden" data-editbar><span>Editando lançamento</span><button type="button" class="btn ghost sm" data-cancel>Cancelar</button></div>
           <div><label class="fl">Linha</label><div class="chips" data-radio="linha" id="fbLinha"><button type="button" class="chip on" data-v="primaria">Britagem primária</button><button type="button" class="chip" data-v="secundaria">Britagem secundária</button><button type="button" class="chip" data-v="rebritagem">Rebritagem</button></div></div>
           <div class="row2">
@@ -776,14 +783,33 @@ function drawCharts(R){
 // ===================== LEITURA DAS FOLHAS (bolinhas) =====================
 function omrData(c){const d=c.dia&&c.dia.valor,m=c.mes&&c.mes.valor;if(!d||!m||m>12||d>31)return null;const hoje=todayStr();let y=+hoje.slice(0,4);let s=y+'-'+pad(m)+'-'+pad(d);
   if(s>addDays(hoje,1))s=(y-1)+'-'+pad(m)+'-'+pad(d);const t=new Date(s+'T12:00:00');return isNaN(t)||t.getDate()!==d?null:s;}
+function omrAjuda(tipo){
+  const v=tipo==='viagens';
+  sheet('Como preencher a folha',`<div class="omr-st">
+    <div><i>1</i><span>Imprima a <a href="folhas/folha_${tipo}.pdf" target="_blank" rel="noopener">folha de ${v?'viagens':'britagem'}</a> em A4, <b>tamanho real</b>. Use <b>uma folha por turno</b>${v?'':' e por linha'}.</span></div>
+    <div><i>2</i><span>Em cada número, <b>escreva os algarismos nos quadradinhos</b> e <b>pinte a bolinha</b> do mesmo algarismo embaixo. Ex.: 34 viagens → pinte o <b>3</b> na 1ª coluna e o <b>4</b> na 2ª.</span></div>
+    <div><i>3</i><span>Pinte a bolinha <b>inteira</b>, com caneta preta ou azul escura. Não faça ✓ nem ✗. O que ficar em branco não é lançado.</span></div>
+    <div><i>4</i><span>${v?'Marque só os caminhões que rodaram. O peso é opcional: em branco o app usa o peso padrão.':'Paradas em horas: 1 hora e meia = <b>1,5</b>; meia hora = <b>0,5</b>. Manutenção não vai na folha: abra a OS no app.'}</span></div>
+    <div><i>5</i><span>No app, toque em <b>📷 Tirar foto da folha</b>. Foto <b>de cima</b>, com a <b>folha inteira</b> e os <b>4 quadrados pretos</b> aparecendo, em lugar claro.</span></div>
+    <div><i>6</i><span>O app mostra o que leu. <b>Confira</b>: o que estiver em <b style="color:#c25e00">laranja</b> precisa da sua atenção. Depois toque em <b>Salvar</b>.</span></div></div>
+    <label class="btn omrbtn">📷 Tirar foto da folha agora<input type="file" accept="image/*" hidden data-omr="${tipo}"></label>`);}
 async function lerFolhaUI(file,tipo){
   if(!window.OMR||!window.OMR_LAYOUT)return toast('O leitor de folhas não carregou. Atualize o app.',true);
   const sh=sheet('Lendo a folha…','<p class="note">Processando a foto no aparelho…</p>');
   let r;try{r=await OMR.lerArquivo(file,tipo);}catch(e){sh.body.innerHTML=`<p>${esc(e.message||'Erro ao ler a foto.')}</p>`;return;}
   const prev=r.previa?`<img class="omr-prev" src="${r.previa}" alt="foto lida">`:'';
-  if(!r.ok){sh.body.innerHTML=`<p style="color:var(--red);font-weight:600">${esc(r.erro)}</p>${prev}<p class="note">Dicas: folha inteira na foto, os 4 quadrados pretos aparecendo, foto de cima, sem sombra forte.</p><label class="btn">📷 Tentar outra foto<input type="file" accept="image/*" hidden data-omr="${tipo}"></label>`;return;}
+  if(!r.ok){sh.el.querySelector('.shh b').textContent='Não consegui ler a folha';
+    sh.body.innerHTML=`${prev}<div class="omr-av"><b>Vamos tentar de novo?</b> Confira:</div><div class="omr-st">
+      <div><i>✓</i><span>A <b>folha inteira</b> aparece na foto, com os <b>4 quadrados pretos</b> dos cantos.</span></div>
+      <div><i>✓</i><span>O celular está <b>de cima</b> da folha, sem inclinar muito.</span></div>
+      <div><i>✓</i><span>Tem <b>luz</b> boa e sem sombra forte em cima da folha.</span></div>
+      <div><i>✓</i><span>É a folha de <b>${tipo==='viagens'?'viagens':'britagem'}</b> deste app, impressa em tamanho real.</span></div></div>
+      <label class="btn omrbtn">📷 Tirar outra foto<input type="file" accept="image/*" hidden data-omr="${tipo}"></label>`;return;}
   const c=r.campos,duv=Object.entries(c).filter(([k,v])=>v.st==='duvida').map(([k])=>k),data=omrData(c);
-  const aviso=`<p class="note" style="margin:0 0 6px">Verde = marcação lida. ${duv.length?'<b style="color:#c25e00">Laranja = marcação fraca ou dupla: confira.</b>':''} Confira tudo antes de salvar.</p>`;
+  const NOMES={dia:'dia',mes:'mês',turno:'turno',linha:'linha',horasProg:'horas programadas',horIni:'horímetro do início',horFim:'horímetro do fim',prodRb:'produção'};
+  const nomeCampo=k=>NOMES[k]||(k.startsWith('viagens_')?'viagens do '+k.slice(8):k.startsWith('peso_')?'peso do '+k.slice(5):k.startsWith('par_')?'parada “'+(OMR_LAYOUT.folhas.britagem.paradas[+k.slice(4)]||'')+'”':k);
+  const aviso=(duv.length||!data?`<div class="omr-av">⚠️ <b>Confira:</b> ${[...(!data?['a data']:[]),...duv.filter(k=>k!=='dia'&&k!=='mes').map(nomeCampo)].join(', ')}. A marcação ficou fraca ou com duas bolinhas. Os campos estão em <b style="color:#c25e00">laranja</b>.</div>`:'')+
+    '<p class="note" style="margin:0 0 8px">Na foto: bolinhas <b style="color:#178041">verdes</b> = lidas · <b style="color:#c25e00">laranja</b> = conferir.</p>';
   if(tipo==='viagens')return omrViagensUI(sh,r,prev+aviso,data);
   // britagem: preenche o formulário e a pessoa confere e salva
   sh.close();setView('lancar');setForm('brit');resetForm('#fb');const f=$('#fb');
@@ -798,19 +824,24 @@ async function lerFolhaUI(file,tipo){
   if(!data)f.data.classList.add('duv');if(c.linha.st==='vazio')$('#fbLinha').classList.add('duv');
   f.obs.value=(f.obs.value?f.obs.value+' · ':'')+'Lido da folha de britagem';
   updCalcs();renderToday();window.scrollTo(0,0);
-  sheet('Folha lida — confira',prev+aviso+(duv.length?`<p style="color:#c25e00;font-weight:600">${duv.length} campo(s) com dúvida estão marcados em laranja no formulário.</p>`:'<p style="color:var(--g600);font-weight:600">Todas as marcações foram lidas.</p>')+(faltou.length?`<p class="note">Paradas da folha que não existem mais no app: ${esc(faltou.join(', '))}.</p>`:'')+'<button class="btn" id="omrOk">Conferir no formulário e salvar</button>',(b,s2)=>{$('#omrOk',b).onclick=()=>s2.close();});}
+  const hT=fin(c.horIni.valor)&&fin(c.horFim.valor)?c.horFim.valor-c.horIni.valor:null,pT=cats.reduce((a,cat,i)=>a+((c['par_'+i]||{}).valor||0),0);
+  const resumo=`<div class="omr-ok">✅ <b>${esc(LINHAS[c.linha.valor||'primaria'])}</b>${data?' · dia <b>'+dShort(data)+'</b>':''} · <b>${c.turno.valor||'?'}º turno</b><br>
+    Horímetro: <b>${c.horIni.valor!=null?nf(c.horIni.valor,1):'?'}</b> → <b>${c.horFim.valor!=null?nf(c.horFim.valor,1):'?'}</b>${hT!=null?` (<b>${nf(hT,1)} h</b> trabalhadas)`:''}<br>Paradas: <b>${nf(pT,1)} h</b>${c.prodRb&&c.prodRb.valor!=null?` · Produção: <b>${nf(c.prodRb.valor)} t</b>`:''}</div>`;
+  sheet('Confira o que o app leu',resumo+aviso+prev+(faltou.length?`<p class="note">Paradas da folha que não existem mais no app: ${esc(faltou.join(', '))}.</p>`:'')+'<p class="note">Os valores já estão no formulário de britagem. Feche este aviso, confira e toque em <b>Salvar</b>.</p><button class="btn omrbtn" id="omrOk">✔ Ver formulário e salvar</button>',(b,s2)=>{$('#omrOk',b).onclick=()=>s2.close();});}
 function omrViagensUI(sh,r,topo,data){
   const c=r.campos,fr=OMR_LAYOUT.folhas.viagens.frota,pp=S.cfg.pesoPadrao;
   const linhas=fr.map(n=>({frota:n,v:c['viagens_'+n],p:c['peso_'+n]})).filter(x=>x.v&&x.v.valor!=null||x.p&&x.p.valor!=null);
   const cls=v=>v&&v.st==='duvida'?'duv':'';
-  sh.el.querySelector('.shh b').textContent='Folha de viagens lida — confira';
-  sh.body.innerHTML=topo+`<div class="row2"><div><label class="fl">Data</label><input class="inp ${data&&c.dia.st!=='duvida'&&c.mes.st!=='duvida'?'':'duv'}" type="date" id="omD" value="${data||todayStr()}"></div>
+  sh.el.querySelector('.shh b').textContent='Confira o que o app leu';
+  const tot=linhas.reduce((a,x)=>a+(x.v&&x.v.valor||0)*((x.p&&x.p.valor)||pp),0);
+  const resumo=`<div class="omr-ok">✅ ${data?'Dia <b>'+dShort(data)+'</b>, ':''}<b>${c.turno.valor||'?'}º turno</b><br>${linhas.length?linhas.map(x=>`<b>${esc(x.frota)}</b>: ${x.v&&x.v.valor!=null?x.v.valor:'?'} viagens`).join(' · ')+`<br>Total aproximado: <b>${nf(tot)} t</b>`:'Nenhum caminhão marcado.'}</div>`;
+  sh.body.innerHTML=resumo+topo+`<p class="note" style="margin:6px 0">Se algo estiver errado, corrija aqui embaixo antes de salvar.</p><div class="row2"><div><label class="fl">Data</label><input class="inp ${data&&c.dia.st!=='duvida'&&c.mes.st!=='duvida'?'':'duv'}" type="date" id="omD" value="${data||todayStr()}"></div>
     <div><label class="fl">Turno</label><select class="inp ${c.turno.st!=='ok'?'duv':''}" id="omT">${[1,2,3].map(t=>`<option ${t===(c.turno.valor||1)?'selected':''}>${t}</option>`).join('')}</select></div></div>
     ${linhas.length?`<table class="t omr-t" style="margin-top:10px"><tr><th class="l">Frota</th><th>Viagens</th><th>Peso médio (t)</th></tr>${linhas.map((x,i)=>`<tr><td class="l"><b>${esc(x.frota)}</b></td>
       <td><input class="inp ${cls(x.v)}" data-om="v" data-i="${i}" inputmode="numeric" value="${x.v&&x.v.valor!=null?x.v.valor:''}"></td>
       <td><input class="inp ${cls(x.p)}" data-om="p" data-i="${i}" inputmode="decimal" value="${x.p&&x.p.valor!=null?nf(x.p.valor,1):''}" placeholder="${nf(pp,1)}"></td></tr>`).join('')}</table>
       <p class="note">Peso em branco = peso padrão (${nf(pp,1)} t). Linha com viagens em branco não é salva.</p>
-      <button class="btn" id="omS" style="margin-top:8px">Salvar ${linhas.length} lançamento(s)</button>`:'<p>Nenhum caminhão marcado nesta folha.</p>'}`;
+      <button class="btn omrbtn" id="omS" style="margin-top:8px">✔ Está certo, salvar</button>`:'<p>Nenhum caminhão marcado nesta folha.</p>'}`;
   sh.body.addEventListener('input',e=>{if(e.target.classList.contains('duv'))e.target.classList.remove('duv');});
   const bt=$('#omS',sh.body);if(!bt)return;
   bt.onclick=async()=>{if(!needWrite())return;const d=$('#omD',sh.body).value,t=+$('#omT',sh.body).value;if(!d)return toast('Informe a data.',true);
@@ -1156,6 +1187,7 @@ function bind(){
   $('#fb').data.addEventListener('change',()=>{if(!S.edit){$('#fb').horIni.value='';prefillBrit();}renderToday();});
   document.addEventListener('change',e=>{const i=e.target.closest&&e.target.closest('[data-omr]');if(!i||!i.files||!i.files[0])return;const f=i.files[0],t=i.dataset.omr;i.value='';lerFolhaUI(f,t);});
   document.addEventListener('input',e=>{if(e.target.classList&&e.target.classList.contains('duv'))e.target.classList.remove('duv');});
+  document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('[data-omrajuda]');if(!a)return;e.preventDefault();omrAjuda(a.dataset.omrajuda);});
   $('#fm').data.addEventListener('change',renderToday);$('#fmResp').addEventListener('change',()=>{const f=$('#fm');f.respTxt.classList.toggle('hidden',f.resp.value!=='__outro');if(f.resp.value==='__outro')f.respTxt.focus();});$('#fm').ativo.addEventListener('change',fmLinhaDoAtivo);
   $('#fv').addEventListener('submit',onSaveViagem);$('#fb').addEventListener('submit',onSaveBrit);$('#fm').addEventListener('submit',onSaveMnt);
   $('#fMeta').addEventListener('submit',async e=>{e.preventDefault();if(!needWrite())return;const f=e.target;const m=num(f.metaMensal.value),d=num(f.diasProgramados.value);
