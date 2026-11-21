@@ -630,8 +630,9 @@ function compute(linha){
   for(const v of (rb?[]:S.viagens)){const x=byD[v.data];if(!x)continue;const n=+v.viagens||0,p=+v.peso||0;x.viag+=n;x.prod+=n*p;
     const k=v.frota||'?';veh[k]=veh[k]||{viag:0,prod:0,horas:0};veh[k].viag+=n;veh[k].prod+=n*p;
     if(fin(v.horIni)&&fin(v.horFim)&&v.horFim>v.horIni)veh[k].horas+=v.horFim-v.horIni;}
-  for(const b of S.brit){if(linhaDe(b)!==linha)continue;const x=byD[b.data];if(!x)continue;x.hasBrit=true;
-    const hb=fin(b.horIni)&&fin(b.horFim)&&b.horFim>=b.horIni?b.horFim-b.horIni:0;x.ht+=hb;
+  const recsL=S.brit.filter(b=>linhaDe(b)===linha),liqM=new Map(britLiq(linha,recsL,allOS()).map(r=>[r.b,r.liq]));
+  for(const b of recsL){const x=byD[b.data];if(!x)continue;x.hasBrit=true;
+    const hb=liqM.get(b)||0;x.ht+=hb;
     if(rb){if(fin(b.prodRb)){x.prod+=b.prodRb;}else{x.prod+=hb*(cfg.prodPlanejada||0);x.est=true;}}
     x.hp+=fin(b.horasProg)?b.horasProg:cfg.horasDia;
     for(const[k,h]of parList(b)){if(fin(h)&&h>0){x.par[k]=(x.par[k]||0)+h;x.po+=h;}}
@@ -944,7 +945,7 @@ function renderReg(){
   for(const{col,r}of items){if(r.data!==last){html+=`<div class="dayh">${dLabel(r.data)}</div>`;last=r.data;}
     let ttl,sub;
     if(col==='viagens'){ttl=`${esc(r.frota)} · ${nf(r.viagens)} viagens × ${nf(r.peso,1)} t = ${nf((r.viagens||0)*(r.peso||0))} t`;sub=`Turno ${r.turno||1}`+(fin(r.horIni)&&fin(r.horFim)?` · horímetro ${nf(r.horIni,1)} → ${nf(r.horFim,1)}`:'');}
-    else if(col==='britagem'){const po=parList(r).reduce((a,e)=>a+e[1],0);ttl=`${LINHAS[linhaDe(r)]} · ${nf((r.horFim||0)-(r.horIni||0),1)} h trabalhadas${fin(r.prodRb)?' · '+nf(r.prodRb)+' t':''}`;sub=`Turno ${r.turno||1}${r.liga?` · ${r.liga}–${r.desl}`:''} · paradas op. ${nf(po,1)} h`+(r.obs?' · '+esc(r.obs):'');}
+    else if(col==='britagem'){const po=parList(r).reduce((a,e)=>a+e[1],0);ttl=`${LINHAS[linhaDe(r)]} · ${nf(britOp(r),1)} h trabalhadas${fin(r.prodRb)?' · '+nf(r.prodRb)+' t':''}`;sub=`Turno ${r.turno||1}${r.liga?` · ${r.liga}–${r.desl}`:''} · paradas op. ${nf(po,1)} h`+(r.obs?' · '+esc(r.obs):'');}
     else{ttl=`${esc(r.equip)} · ${esc(r.area)} ${r.natureza==='Preventiva'?'preventiva':'corretiva'} · ${nf(r.horas,1)} h <span class="badge ${r.status==='Aberta'?'':'ok'}">${r.status==='Aberta'?'em aberto':'concluída'}</span>`;sub=esc(r.desc)+(r.paraBritagem===false?' · não parou a britagem':' · parou '+LINHAS[osLinha(r)].toLowerCase());}
     const w=who(r.por);const can=S.canWrite!==false&&(S.isAdmin||r.por===S.uid);
     html+=`<div class="rec"><div class="ic" style="background:${ICON[col][0]}"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">${ICON[col][1]}</svg></div>
@@ -1014,8 +1015,8 @@ function updCalcs(){
   const h=hi!=null&&hf!=null&&hf>hi?hf-hi:null;
   $('[data-o="prod"]',fv).textContent=nf(n*p)+' t';$('[data-o="horas"]',fv).textContent=h!=null?nf(h,1)+' h':'—';$('[data-o="vh"]',fv).textContent=h?nf(n/h,1):'—';
   const fb=$('#fb'),hp=num(fb.horasProg.value);
-  let po=0;$$('[data-par]',fb).forEach(i=>po+=num(i.value)||0);const ht=britHT(fb,po),base=britBase(fb);
-  $('[data-o="hv"]',fb).innerHTML=ht!=null?`Horímetro virtual do ${esc(LEQ[getRadio(fb,'linha')||'primaria'])}: <b>${nf(base,1)} h → ${nf(base+ht,1)} h</b>`:'';
+  let po=0;$$('[data-par]',fb).forEach(i=>po+=num(i.value)||0);const ht=britHT(fb,po);
+  $('[data-o="hv"]',fb).innerHTML=ht!=null?`Este turno soma <b>${nf(ht,1)} h</b> ao horímetro virtual do ${esc(LEQ[getRadio(fb,'linha')||'primaria'])} (menos o tempo de OS que parou a britagem).`:'';
   $('[data-o="ht"]',fb).textContent=ht!=null?nf(ht,1)+' h':'—';$('[data-o="po"]',fb).textContent=nf(po,1)+' h';$('[data-o="fu"]',fb).textContent=ht!=null&&hp?pf(ht/hp,0):'—';
   const fm=$('#fm');if(fm.hIni.value&&fm.hFim.value&&!fm.horas.dataset.manual){const[a,b]=fm.hIni.value.split(':').map(Number),[c,d]=fm.hFim.value.split(':').map(Number);let m=(c*60+d)-(a*60+b);if(m<0)m+=1440;fm.horas.value=nf(m/60,2);}
 }
@@ -1032,16 +1033,26 @@ async function prefillHor(){ // horímetro inicial = último final
 /* Britadores sem horímetro: horas = desligou − ligou − paradas; o "horímetro virtual" soma essas horas turno a turno */
 function janelaH(a,b){if(!a||!b)return null;const[h1,m1]=a.split(':').map(Number),[h2,m2]=b.split(':').map(Number);let m=(h2*60+m2)-(h1*60+m1);if(m<=0)m+=1440;return m/60;}
 function britHT(f,po){if(f.dataset.htOld&&!f.liga.value&&!f.desl.value)return +f.dataset.htOld;const j=janelaH(f.liga.value,f.desl.value);return j==null?null:Math.max(0,j-po);}
-function britBaseSync(ln,data,turno){const k=data+'T'+turno;let best=null;
-  for(const b of [...S.brit,...S.britLast]){if(linhaDe(b)!==ln||!fin(b.horFim))continue;const kb=b.data+'T'+(b.turno||1);if(kb>=k)continue;if(!best||kb>best.k||(kb===best.k&&b.horFim>best.v))best={k:kb,v:b.horFim};}
-  return best?best.v:0;}
-function britBase(f){if(f.dataset.base!=null&&f.dataset.base!=='')return +f.dataset.base;return britBaseSync(getRadio(f,'linha')||'primaria',f.data.value,f.turno.value);}
-async function prefillBrit(){
-  const fb=$('#fb');if(S.edit)return;delete fb.dataset.base;updCalcs();if(!S.db)return;const ln=getRadio(fb,'linha')||'primaria',d=fb.data.value,t=fb.turno.value;
-  try{const q=await S.db.collection('britagem').where('data','<=',d).orderBy('data','desc').limit(30).get();
-    const k=d+'T'+t;const last=q.docs.map(x=>x.data()).filter(x=>linhaDe(x)===ln&&fin(x.horFim)&&(x.data+'T'+(x.turno||1))<k).sort((a,b)=>(b.data+'T'+(b.turno||1)).localeCompare(a.data+'T'+(a.turno||1))||b.horFim-a.horFim)[0];
-    if(!S.edit&&(getRadio(fb,'linha')||'primaria')===ln&&fb.data.value===d&&fb.turno.value===t){if(last)fb.dataset.base=last.horFim;updCalcs();}}catch(e){}
-}
+const dMin=d=>Date.parse(d+'T00:00:00Z')/6e4,hmMin=t=>{const[a,b]=String(t).split(':').map(Number);return a*60+b;};
+const HFL={britador:'primaria',secundario:'secundaria',rebritador:'rebritagem'};
+function britOp(b){ // horas com a britagem rodando, antes de descontar manutenção
+  if(b.liga&&b.desl){const po=parList(b).reduce((a,e)=>a+(fin(e[1])?e[1]:0),0);return Math.max(0,janelaH(b.liga,b.desl)-po);}
+  return fin(b.horIni)&&fin(b.horFim)&&b.horFim>=b.horIni?b.horFim-b.horIni:0;}
+function britLiq(ln,recs,oss){ // desconta as OS que pararam a britagem dentro do horário ligado
+  const os=oss.filter(o=>o.paraBritagem!==false&&osLinha(o)===ln);
+  const prim={};for(const b of recs)if(b.liga&&b.desl&&(!prim[b.data]||(+b.turno||1)<(+prim[b.data].turno||1)))prim[b.data]=b;
+  return recs.map(b=>{const op=britOp(b);let m=0;
+    if(b.liga&&b.desl){const s0=dMin(b.data)+hmMin(b.liga),e0=s0+janelaH(b.liga,b.desl)*60;
+      for(const o of os){if(o.hIni){const a=dMin(o.data)+hmMin(o.hIni),dur=o.hFim&&o.hFim!==o.hIni?janelaH(o.hIni,o.hFim)*60:(fin(o.horas)?o.horas*60:0);m+=Math.max(0,Math.min(e0,a+dur)-Math.max(s0,a))/60;}
+        else if(o.data===b.data&&prim[b.data]===b&&fin(o.horas))m+=o.horas;}}
+    m=Math.min(m,op);return{b,op,mnt:m,liq:op-m};});}
+function osUnicas(){const m=new Map();for(const o of [...(S.osBrit||[]),...allOS()])m.set(o._id,o);return[...m.values()];}
+function hvLinha(ln,a){ // horímetro virtual: soma de todos os turnos (não depende da ordem em que foram lançados)
+  const recs=(S.britAll||[]).filter(b=>linhaDe(b)===ln);const L=britLiq(ln,recs,osUnicas());
+  if(a&&fin(a.hor)&&a.horData)return a.hor+L.filter(r=>r.b.data>a.horData).reduce((t,r)=>t+r.liq,0);
+  if(!recs.length)return null;const leg=recs.filter(b=>!b.liga&&fin(b.horIni)).map(b=>b.horIni);
+  return(leg.length?Math.min(...leg):0)+L.reduce((t,r)=>t+r.liq,0);}
+async function prefillBrit(){updCalcs();}
 
 function needWrite(){if(!S.db){toast('Sem conexão com o banco de dados.',true);return false;}if(S.canWrite===false){toast('Você tem acesso só de leitura.',true);return false;}return true;}
 function busy(f,on){const b=$('button[type=submit]',f);b.disabled=on;if(on){b.dataset.t=b.textContent;b.textContent='Salvando…';}else if(b.dataset.t)b.textContent=b.dataset.t;}
@@ -1077,7 +1088,7 @@ async function onSaveBrit(e){
   if(ht==null)return toast('Informe a hora que ligou e que desligou.',true);
   if(liga&&desl&&po>janelaH(liga,desl)+0.01&&!await ask(`As paradas (${nf(po,1)} h) passam do tempo entre ligar e desligar (${nf(janelaH(liga,desl),1)} h). Salvar com 0 h trabalhadas?`))return;
   if(liga&&desl&&janelaH(liga,desl)>14&&!await ask(`Ficou ligada ${nf(janelaH(liga,desl),1)} h no turno. Confirmar?`))return;
-  const horIni=britBase(f),horFim=Math.round((horIni+ht)*100)/100;
+  const leg=!liga&&f.dataset.htOld,horIni=leg?+f.dataset.base:null,horFim=leg?horIni+ +f.dataset.htOld:null;
   const paradas=[];$$('[data-par]',f).forEach(i=>{const v=num(i.value);if(v&&v>0)paradas.push({cat:i.dataset.par,h:v});});
   const linha=getRadio(f,'linha')||'primaria',prodRb=linha!=='primaria'?num(f.prodRb.value):null;
   if(prodRb!=null&&prodRb<0)return toast('Produção inválida.',true);
@@ -1146,9 +1157,9 @@ function exportDaily(){const R=compute(S.linha);const cats=uniq([...S.cfg.parada
   const rows=[['Data','Meta diária (t)','Viagens','Peso médio (t)','Produção (t)','Desvio %','Horas trabalhadas','Horas programadas','Produtividade (t/h)',...cats.map(csvS),'Total paradas op. (h)','Mnt. mecânica (h)','Mnt. elétrica (h)','Nº falhas','Principal parada','Observações']];
   for(const x of R.days)rows.push([x.d.split('-').reverse().join('/'),csvN(x.meta,1),x.viag,csvN(x.viag?x.prod/x.viag:0),csvN(x.prod,1),x.prod?csvN((x.at-1)*100,1):'',csvN(x.ht,1),csvN(x.hp,1),csvN(x.ht?x.prod/x.ht:0,1),...cats.map(k=>csvN(x.par[k]||0,2)),csvN(x.po,2),csvN(x.mec,2),csvN(x.ele,2),x.falhas,csvS(x.top),csvS(x.obs.join(' | '))]);
   saveCsv(`controle-diario-${S.linha}-${S.month}.csv`,rows);}
-function exportRaw(){const rows=[['Tipo','Data','Turno','Frota/Equipamento','Viagens','Peso médio (t)','Produção (t)','Horímetro inicial','Horímetro final','Horas','Área','Natureza','Parou britagem','Status','Paradas op.','Descrição/obs.','Registrado em']];
+function exportRaw(){const rows=[['Tipo','Data','Turno','Frota/Equipamento','Viagens','Peso médio (t)','Produção (t)','Horímetro inicial / ligou','Horímetro final / desligou','Horas','Área','Natureza','Parou britagem','Status','Paradas op.','Descrição/obs.','Registrado em']];
   for(const r of S.viagens)rows.push(['Viagens',r.data,r.turno,csvS(r.frota),r.viagens,csvN(r.peso),csvN(r.viagens*r.peso,1),csvN(r.horIni,1),csvN(r.horFim,1),fin(r.horIni)&&fin(r.horFim)?csvN(r.horFim-r.horIni,1):'','','','','','',csvS(r.obs),r.em||'']);
-  for(const r of S.brit)rows.push([LINHAS[linhaDe(r)],r.data,r.turno,LEQ[linhaDe(r)],'','','',csvN(r.horIni,1),csvN(r.horFim,1),csvN(r.horFim-r.horIni,1),'','','','',csvS(parList(r).map(([k,v])=>k+': '+String(v).replace('.',',')+' h').join(' | ')),csvS(r.obs),r.em||'']);
+  for(const r of S.brit)rows.push([LINHAS[linhaDe(r)],r.data,r.turno,LEQ[linhaDe(r)],'','','',r.liga||csvN(r.horIni,1),r.desl||csvN(r.horFim,1),csvN(britOp(r),1),'','','','',csvS(parList(r).map(([k,v])=>k+': '+String(v).replace('.',',')+' h').join(' | ')),csvS(r.obs),r.em||'']);
   for(const r of S.manut)rows.push(['Manutenção',r.data,'',csvS(r.equip),'','','','','',csvN(r.horas,2),r.area,r.natureza,r.paraBritagem===false?'Não':'Sim',r.status,'',csvS(r.desc),r.em||'']);
   saveCsv(`lancamentos-${S.month}.csv`,rows);}
 
@@ -1622,7 +1633,7 @@ function bindMnt(){
     if(act==='novoPlano')return planoForm();if(act==='planoEditar')return planoForm(id);if(act==='planoGerar')return planoGerar(id);if(act==='planoExec')return planoExecForm(id);
     if(act==='novaRotina')return rotinaForm();if(act==='rotinaEditar')return rotinaForm(id);if(act==='inspExec')return inspExec(id);
     if(act==='task'){const[o,k]=id.split('|');return osToggleTask(o,+k);}
-    if(act==='horLeitura'){const a=ativoById(id);const v=await askText(`Leitura atual do horímetro de ${a.tag}:`,'Ex.: 12480,5','Salvar');if(v===null)return;const n=num(v);if(n==null)return toast('Valor inválido.',true);
+    if(act==='horLeitura'){const a=ativoById(id);const v=await askText(HFL[a.horFonte]?`Horas acumuladas de ${a.tag} até hoje (estimativa). Daqui pra frente o app soma os turnos lançados a partir de amanhã:`:`Leitura atual do horímetro de ${a.tag}:`,'Ex.: 12480,5','Salvar');if(v===null)return;const n=num(v);if(n==null)return toast('Valor inválido.',true);
       const cur=horAtual(a);if(cur!=null&&n<cur&&!await ask(`A leitura (${nf(n,1)}) é menor que a atual (${nf(cur,1)}). Salvar mesmo assim?`))return;
       return w(()=>S.db.collection('ativos').doc(id).update({hor:n,horData:todayStr()}),'✔ Horímetro atualizado');}
     if(act==='novoAtivo')return ativoForm();
@@ -1658,6 +1669,8 @@ function subscribeMnt(){
   sub(db.collection('rotinas'),s=>{S.rotinas=s.docs.map(d=>({...d.data(),_id:d.id}));render();});
   sub(db.collection('inspecoes').where('data','>=',addDays(todayStr(),-60)),s=>{S.insps=s.docs.map(d=>({...d.data(),_id:d.id}));render();});
   sub(db.collection('britagem').orderBy('data','desc').limit(10),s=>{S.britLast=s.docs.map(d=>d.data());scheduleAutoGen();render();});
+  sub(db.collection('britagem'),s=>{S.britAll=s.docs.map(d=>({...d.data(),_id:d.id}));render();});
+  sub(db.collection('manutencao').where('data','>=','2026-11-01'),s=>{S.osBrit=s.docs.map(d=>({...d.data(),_id:d.id}));render();});
   sub(db.collection('viagens').orderBy('data','desc').limit(80),s=>{S.viagLast=s.docs.map(d=>d.data());scheduleAutoGen();render();});
   sub(db.collection('pecas'),s=>{S.pecas=s.docs.map(d=>({...d.data(),_id:d.id}));render();});
   sub(db.collection('movimentos'),s=>{S.movs=s.docs.map(d=>({...d.data(),_id:d.id}));render();});
@@ -1678,8 +1691,7 @@ const addDays=(d,n)=>{const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);r
 const lines=s=>String(s||'').split('\n').map(x=>x.trim()).filter(Boolean);
 
 function horAtual(a){if(!a)return null;let h=fin(a.hor)?a.hor:null;let d=null;
-  const HFL={britador:'primaria',secundario:'secundaria',rebritador:'rebritagem'};
-  if(HFL[a.horFonte]){const ln=HFL[a.horFonte];for(const b of S.britLast)if(linhaDe(b)===ln&&fin(b.horFim)&&(d==null||b.horFim>d))d=b.horFim;}
+  if(HFL[a.horFonte])return hvLinha(HFL[a.horFonte],a);
   if(a.horFonte==='frota')for(const v of S.viagLast)if(v.frota===a.tag&&fin(v.horFim)&&(d==null||v.horFim>d))d=v.horFim;
   if(d!=null&&(h==null||d>h))h=d;return h;}
 
