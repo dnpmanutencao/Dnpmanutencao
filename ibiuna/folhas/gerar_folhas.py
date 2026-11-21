@@ -30,7 +30,8 @@ ORI_L = 3.5
 VERDE = colors.HexColor('#0f4f2b'); CINZA = colors.HexColor('#9aa39e'); ESC = colors.HexColor('#14211a')
 
 class Folha:
-    def __init__(self, c, tipo, titulo):
+    def __init__(self, c, tipo, titulo, passos=None, linhas=None, exemplo=True):
+        self.passos = passos; self.linhas = linhas; self.exemplo = exemplo
         self.c = c; self.campos = []; self.tipo = tipo
         c.setTitle(titulo)
         for (x, y) in FID: self.quad(x, y, FID_L)
@@ -42,7 +43,7 @@ class Folha:
     def instrucoes(self):
         c = self.c; y0 = 26; c.setFillColor(colors.HexColor('#eef5f0')); c.setStrokeColor(colors.HexColor('#9cc7ad'))
         c.roundRect(18 * mm, self.Y(y0 + 22), 174 * mm, 22 * mm, 6, stroke=1, fill=1)
-        passos = [('1', 'Escreva o número', 'nos quadradinhos.'), ('2', 'Pinte a bolinha', 'do mesmo número.'), ('3', 'Tire a foto no app', 'Lançar → Ler folha.')]
+        passos = self.passos or [('1', 'Escreva o número', 'nos quadradinhos.'), ('2', 'Pinte a bolinha', 'do mesmo número.'), ('3', 'Tire a foto no app', 'Lançar → Ler folha.')]
         for i, (n, a1, a2) in enumerate(passos):
             x = 22 + i * 39
             c.setFillColor(VERDE); c.circle((x + 3) * mm, self.Y(y0 + 7), 3 * mm, stroke=0, fill=1)
@@ -50,11 +51,10 @@ class Folha:
             c.setFillColor(ESC); c.setFont('SB', 7.6); c.drawString((x + 7.5) * mm, self.Y(y0 + 6.2), a1)
             c.setFont('S', 7.2); c.drawString((x + 7.5) * mm, self.Y(y0 + 9.6), a2)
         c.setFont('S', 7); c.setFillColor(ESC)
-        c.drawString(22 * mm, self.Y(y0 + 15.5), 'Caneta preta ou azul escura. Em branco = não informado. Errou? Avise no app ao conferir.')
-        c.drawString(22 * mm, self.Y(y0 + 19.2), 'Número de 1 dígito: pode pintar só a última coluna (ex.: 7 viagens = só o 7).')
-        # exemplo: 34
-        ex = 143; c.setFont('SB', 7.4); c.drawString(ex * mm, self.Y(y0 + 4.5), 'Exemplo: 34')
-        for j, d in enumerate(['3', '4']):
+        ls = self.linhas or ['Caneta preta ou azul escura. Em branco = não informado.', 'Errou? Corrija no app na hora de conferir.']
+        c.drawString(22 * mm, self.Y(y0 + 15.5), ls[0]); c.drawString(22 * mm, self.Y(y0 + 19.2), ls[1])
+        ex = 143; c.setFont('SB', 7.4); c.drawString(ex * mm, self.Y(y0 + 4.5), 'Exemplo: 34' if self.exemplo else 'Como pintar:')
+        for j, d in enumerate(['3', '4'] if self.exemplo else []):
             x = ex + 3 + j * 6; self.caixinha(x, y0 + 8.6); c.setFont('SB', 8); c.setFillColor(colors.HexColor('#1f3fa0')); c.drawCentredString(x * mm, self.Y(y0 + 10), d)
             c.setFillColor(colors.HexColor('#1f3fa0')); c.circle(x * mm, self.Y(y0 + 15.8), 1.9 * mm, stroke=0, fill=1)
             c.setFillColor(colors.white); c.setFont('SB', 6); c.drawCentredString(x * mm, self.Y(y0 + 16.6), d)
@@ -96,6 +96,16 @@ class Folha:
             cols.append(bs); x += P + 0.4
         self.campos.append({'nome': nome, 'tipo': 'num', 'int': inteiros, 'dec': decimais, 'cols': cols})
         return x
+    def numeroH(self, nome, x0, y0, linhas, gap=8.5):
+        """Uma linha de bolinhas 0..9 por algarismo (ex.: dezena e unidade)."""
+        cols = []
+        for k, rot in enumerate(linhas):
+            y = y0 + k * gap; self.rotulo(x0, y + 1.2, rot, 8, bold=False)
+            bs = []
+            for d in range(10):
+                x = x0 + 20 + d * (P + 1.2); self.bolinha(x, y, str(d)); bs.append({'v': d, 'x': round(x, 2), 'y': round(y, 2)})
+            cols.append(bs)
+        self.campos.append({'nome': nome, 'tipo': 'num', 'int': len(linhas), 'dec': 0, 'cols': cols})
     def escolha(self, nome, rot, opcoes, x0, y0, horiz=True, larg=None):
         self.rotulo(x0 - R, y0 - 5, rot, 7.4)
         ops = []; x, y = x0, y0
@@ -123,53 +133,49 @@ LAY = {'pagina': [W, H], 'fid': FID, 'fidL': FID_L, 'ori': ORI, 'oriL': ORI_L, '
 
 # ---------------- VIAGENS ----------------
 c = canvas.Canvas('folha_viagens.pdf', pagesize=A4)
-f = Folha(c, 'viagens', 'Folha de viagens')
-f.passo(1, 'DIA E TURNO', 58)
-data_turno(f, 24, 78)
-f.passo(2, 'CAMINHÕES', 132, '— marque só os que rodaram neste turno')
-blocos = []; por_linha = 4; larg = 44.5
+f = Folha(c, 'viagens', 'Folha de viagens', passos=[('1', 'Marque o turno.', ''), ('2', 'Pinte as viagens', 'de cada caminhão.'), ('3', 'Tire a foto no app', 'Lançar → Viagens.')],
+          linhas=['Caneta preta ou azul escura. Caminhão que não rodou: deixe em branco.', 'Errou? Corrija no app na hora de conferir.'], exemplo=False)
+f.passo(1, 'DATA E TURNO', 58)
+f.rotulo(24, 69, 'Data:  ____ / ____', 10, bold=False)
+f.escolha('turno', '', [(1, '1º turno'), (2, '2º turno'), (3, '3º turno')], 80, 68, larg=30)
+f.passo(2, 'QUANTAS VIAGENS CADA CAMINHÃO FEZ?', 82)
+f.rotulo(24, 89, '34 viagens → pinte o 3 em cima e o 4 embaixo.   7 viagens → pinte só o 7 embaixo.', 8.2, bold=False)
+blocos = []
 for i, fr in enumerate(FROTA[:8]):
-    lin, col = divmod(i, por_linha)
-    bx = 21 + col * larg; by = 146 + lin * 78
-    f.c.setFillColor(colors.HexColor('#e8f1ec')); f.c.roundRect((bx - 3.5) * mm, f.Y(by + 1), (larg - 2.5) * mm, 8.6 * mm, 4, stroke=0, fill=1)
-    f.rotulo(bx + (larg - 2.5) / 2 - 3.5, by - 2, fr, 12, centro=True, cor=VERDE)
-    x = f.numero('viagens_' + fr, 'Viagens', bx, by + 17, 2)
-    f.numero('peso_' + fr, 'Peso (t) opcional', x + 3, by + 17, 2, 1)
+    by = 98 + i * 27
+    f.c.setStrokeColor(colors.HexColor('#9cc7ad')); f.c.setFillColor(colors.HexColor('#f4f9f6')); f.c.roundRect(20 * mm, f.Y(by + 21), 172 * mm, 23 * mm, 6, stroke=1, fill=1)
+    f.rotulo(24, by + 11, fr, 15, cor=VERDE)
+    f.rotulo(24, by + 16.5, 'viagens: ______', 7.6, bold=False)
+    f.numeroH('viagens_' + fr, 62, by + 6, ['dezena', 'unidade'])
     blocos.append(fr)
-yo = 146 + 78 * ((len(blocos) - 1) // por_linha) + 17 + 9 * P + 12
-if yo + 22 < 268:
-    f.obs(yo, 268 - yo - 6)
-f.assinatura(276)
-f.rodape('Peso em branco = peso padrão do app · Gestão Operacional')
+f.assinatura(98 + len(blocos) * 27 + 6)
+f.rodape('O peso de cada viagem é o padrão do app · Gestão Operacional')
 c.showPage(); c.save()
 LAY['folhas']['viagens'] = {'campos': f.campos, 'frota': blocos}
 
 # ---------------- BRITAGEM ----------------
 c = canvas.Canvas('folha_britagem.pdf', pagesize=A4)
-f = Folha(c, 'britagem', 'Folha de britagem')
-f.passo(1, 'LINHA', 55)
-f.escolha('linha', '', [('primaria', 'Britagem primária'), ('secundaria', 'Britagem secundária'), ('rebritagem', 'Rebritagem')], 48, 55, larg=48)
-f.passo(2, 'DIA, TURNO E HORAS', 64)
-x = data_turno(f, 24, 80)
-f.numero('horasProg', 'Horas programadas', x + 2, 80, 2, 1)
-f.rotulo(x + 1, 130, '(só se for diferente do normal)', 6.4, bold=False)
-f.passo(3, 'HORÍMETRO DO BRITADOR E PRODUÇÃO', 136)
-f.numero('horIni', 'Horímetro no INÍCIO', 24, 152, 5, 1)
-f.numero('horFim', 'Horímetro no FIM', 72, 152, 5, 1)
-f.numero('prodRb', 'Produção (t) — só secundária/rebritagem', 124, 152, 5, rotx=124 - R)
-yp = 219
-f.passo(4, 'PARADAS OPERACIONAIS EM HORAS', 205, '— 0,5 = meia hora · manutenção vai na OS')
-largp = 22
+f = Folha(c, 'britagem', 'Folha de britagem', passos=[('1', 'Marque britagem', 'e turno.'), ('2', 'Horímetro: escreva', 'e pinte embaixo.'), ('3', 'Paradas: uma', 'bolinha por motivo.')],
+          linhas=['Caneta preta ou azul escura. Depois tire a foto no app: Lançar → Britagem.', 'Errou? Corrija no app na hora de conferir.'])
+f.passo(1, 'QUAL BRITAGEM?', 56)
+f.escolha('linha', '', [('primaria', 'Primária'), ('secundaria', 'Secundária'), ('rebritagem', 'Rebritagem')], 80, 55.5, larg=34)
+f.passo(2, 'DATA E TURNO', 65)
+f.rotulo(26, 72.5, 'Data:  ____ / ____', 10, bold=False)
+f.escolha('turno', '', [(1, '1º turno'), (2, '2º turno'), (3, '3º turno')], 80, 71.5, larg=30)
+f.passo(3, 'HORÍMETRO DO BRITADOR', 82, '— escreva nos quadradinhos e pinte embaixo')
+f.numero('horIni', 'No INÍCIO do turno', 30, 104, 5, 1)
+f.numero('horFim', 'No FIM do turno', 104, 104, 5, 1)
+f.passo(4, 'PAROU? QUANTO TEMPO?', 166, '— pinte uma bolinha por motivo · não parou = em branco')
+TEMPOS = [(0.5, '½ h'), (1, '1 h'), (1.5, '1½ h'), (2, '2 h'), (3, '3 h'), (4, '4 h'), (6, '6 h'), (8, '8 h')]
 for i, cat in enumerate(PARADAS[:8]):
-    bx = 22 + i * largp
-    pal = cat.split(' '); l1 = ''; l2 = ''
-    for p in pal:
-        if len((l1 + ' ' + p).strip()) <= 11 and not l2: l1 = (l1 + ' ' + p).strip()
-        else: l2 = (l2 + ' ' + p).strip()
-    f.rotulo(bx + 2.5, yp - 7.2, l1, 6.4, centro=True); f.rotulo(bx + 2.5, yp - 4.6, l2, 6.4, centro=True)
-    f.numero('par_' + str(i), '', bx, yp + 6, 1, 1)
+    y = 177 + i * 11.5
+    if i % 2 == 0:
+        f.c.setFillColor(colors.HexColor('#f4f9f6')); f.c.rect(20 * mm, f.Y(y + 4.6), 172 * mm, 9.2 * mm, stroke=0, fill=1)
+    f.rotulo(24, y + 1.3, cat, 8.6)
+    f.escolha('par_' + str(i), '', TEMPOS, 76, y, larg=15.6)
 LAY['folhas']['britagem'] = {'campos': f.campos, 'paradas': PARADAS[:8]}
-f.rodape('Observações e manutenção: lance no app · Gestão Operacional')
+f.assinatura(276)
+f.rodape('Produção, observações e manutenção: lance no app · Gestão Operacional')
 c.showPage(); c.save()
 
 open('../omr-layout.js', 'w').write('// gerado por folhas/gerar_folhas.py — não editar à mão\nwindow.OMR_LAYOUT=' + json.dumps(LAY, ensure_ascii=False, separators=(',', ':')) + ';\n')

@@ -785,13 +785,11 @@ function omrData(c){const d=c.dia&&c.dia.valor,m=c.mes&&c.mes.valor;if(!d||!m||m
   if(s>addDays(hoje,1))s=(y-1)+'-'+pad(m)+'-'+pad(d);const t=new Date(s+'T12:00:00');return isNaN(t)||t.getDate()!==d?null:s;}
 function omrAjuda(tipo){
   const v=tipo==='viagens';
-  sheet('Como preencher a folha',`<div class="omr-st">
-    <div><i>1</i><span>Imprima a <a href="folhas/folha_${tipo}.pdf" target="_blank" rel="noopener">folha de ${v?'viagens':'britagem'}</a> em A4, <b>tamanho real</b>. Use <b>uma folha por turno</b>${v?'':' e por linha'}.</span></div>
-    <div><i>2</i><span>Em cada número, <b>escreva os algarismos nos quadradinhos</b> e <b>pinte a bolinha</b> do mesmo algarismo embaixo. Ex.: 34 viagens → pinte o <b>3</b> na 1ª coluna e o <b>4</b> na 2ª.</span></div>
-    <div><i>3</i><span>Pinte a bolinha <b>inteira</b>, com caneta preta ou azul escura. Não faça ✓ nem ✗. O que ficar em branco não é lançado.</span></div>
-    <div><i>4</i><span>${v?'Marque só os caminhões que rodaram. O peso é opcional: em branco o app usa o peso padrão.':'Paradas em horas: 1 hora e meia = <b>1,5</b>; meia hora = <b>0,5</b>. Manutenção não vai na folha: abra a OS no app.'}</span></div>
-    <div><i>5</i><span>No app, toque em <b>📷 Tirar foto da folha</b>. Foto <b>de cima</b>, com a <b>folha inteira</b> e os <b>4 quadrados pretos</b> aparecendo, em lugar claro.</span></div>
-    <div><i>6</i><span>O app mostra o que leu. <b>Confira</b>: o que estiver em <b style="color:#c25e00">laranja</b> precisa da sua atenção. Depois toque em <b>Salvar</b>.</span></div></div>
+  const passos=v?['Imprima a folha. Use <b>uma folha por turno</b>.','Marque o <b>turno</b>.','Em cada caminhão, pinte as <b>viagens</b>: 34 → pinte o <b>3 em cima</b> e o <b>4 embaixo</b>. 7 → pinte só o <b>7 embaixo</b>. Não rodou → deixe em branco.']
+    :['Imprima a folha. Use <b>uma folha por turno</b>.','Marque <b>qual britagem</b> e o <b>turno</b>.','<b>Horímetro</b>: escreva cada número no quadradinho e pinte a bolinha do mesmo número embaixo.','<b>Paradas</b>: em cada motivo, pinte uma bolinha com o tempo (½ h, 1 h, 2 h…). Não parou → em branco.'];
+  passos.push('Pinte a bolinha <b>inteira</b>, com caneta escura. Não faça ✓ nem ✗.','Toque em <b>📷 Tirar foto da folha</b>: foto <b>de cima</b>, com a <b>folha inteira</b> e os <b>4 quadrados pretos</b> aparecendo.','O app mostra o que leu. Confira (o que estiver em <b style="color:#c25e00">laranja</b> precisa de atenção) e toque em <b>Salvar</b>.');
+  sheet('Como preencher a folha',`<div class="omr-st">${passos.map((t,i)=>`<div><i>${i+1}</i><span>${t}</span></div>`).join('')}</div>
+    <p><a href="folhas/folha_${tipo}.pdf" target="_blank" rel="noopener">Baixar a folha de ${v?'viagens':'britagem'} para imprimir</a> (A4, tamanho real)</p>
     <label class="btn omrbtn">📷 Tirar foto da folha agora<input type="file" accept="image/*" hidden data-omr="${tipo}"></label>`);}
 async function lerFolhaUI(file,tipo){
   if(!window.OMR||!window.OMR_LAYOUT)return toast('O leitor de folhas não carregou. Atualize o app.',true);
@@ -805,7 +803,7 @@ async function lerFolhaUI(file,tipo){
       <div><i>✓</i><span>Tem <b>luz</b> boa e sem sombra forte em cima da folha.</span></div>
       <div><i>✓</i><span>É a folha de <b>${tipo==='viagens'?'viagens':'britagem'}</b> deste app, impressa em tamanho real.</span></div></div>
       <label class="btn omrbtn">📷 Tirar outra foto<input type="file" accept="image/*" hidden data-omr="${tipo}"></label>`;return;}
-  const c=r.campos,duv=Object.entries(c).filter(([k,v])=>v.st==='duvida').map(([k])=>k),data=omrData(c);
+  const c=r.campos,duv=Object.entries(c).filter(([k,v])=>v.st==='duvida').map(([k])=>k),data=c.dia?omrData(c):todayStr();
   const NOMES={dia:'dia',mes:'mês',turno:'turno',linha:'linha',horasProg:'horas programadas',horIni:'horímetro do início',horFim:'horímetro do fim',prodRb:'produção'};
   const nomeCampo=k=>NOMES[k]||(k.startsWith('viagens_')?'viagens do '+k.slice(8):k.startsWith('peso_')?'peso do '+k.slice(5):k.startsWith('par_')?'parada “'+(OMR_LAYOUT.folhas.britagem.paradas[+k.slice(4)]||'')+'”':k);
   const aviso=(duv.length||!data?`<div class="omr-av">⚠️ <b>Confira:</b> ${[...(!data?['a data']:[]),...duv.filter(k=>k!=='dia'&&k!=='mes').map(nomeCampo)].join(', ')}. A marcação ficou fraca ou com duas bolinhas. Os campos estão em <b style="color:#c25e00">laranja</b>.</div>`:'')+
@@ -835,7 +833,7 @@ function omrViagensUI(sh,r,topo,data){
   sh.el.querySelector('.shh b').textContent='Confira o que o app leu';
   const tot=linhas.reduce((a,x)=>a+(x.v&&x.v.valor||0)*((x.p&&x.p.valor)||pp),0);
   const resumo=`<div class="omr-ok">✅ ${data?'Dia <b>'+dShort(data)+'</b>, ':''}<b>${c.turno.valor||'?'}º turno</b><br>${linhas.length?linhas.map(x=>`<b>${esc(x.frota)}</b>: ${x.v&&x.v.valor!=null?x.v.valor:'?'} viagens`).join(' · ')+`<br>Total aproximado: <b>${nf(tot)} t</b>`:'Nenhum caminhão marcado.'}</div>`;
-  sh.body.innerHTML=resumo+topo+`<p class="note" style="margin:6px 0">Se algo estiver errado, corrija aqui embaixo antes de salvar.</p><div class="row2"><div><label class="fl">Data</label><input class="inp ${data&&c.dia.st!=='duvida'&&c.mes.st!=='duvida'?'':'duv'}" type="date" id="omD" value="${data||todayStr()}"></div>
+  sh.body.innerHTML=resumo+topo+`<p class="note" style="margin:6px 0">Se algo estiver errado, corrija aqui embaixo antes de salvar.</p><div class="row2"><div><label class="fl">Data</label><input class="inp ${data&&!(c.dia&&c.dia.st==='duvida')&&!(c.mes&&c.mes.st==='duvida')?'':'duv'}" type="date" id="omD" value="${data||todayStr()}"><p class="note" style="margin:2px 0 0">Confira se a data é a do turno anotado.</p></div>
     <div><label class="fl">Turno</label><select class="inp ${c.turno.st!=='ok'?'duv':''}" id="omT">${[1,2,3].map(t=>`<option ${t===(c.turno.valor||1)?'selected':''}>${t}</option>`).join('')}</select></div></div>
     ${linhas.length?`<table class="t omr-t" style="margin-top:10px"><tr><th class="l">Frota</th><th>Viagens</th><th>Peso médio (t)</th></tr>${linhas.map((x,i)=>`<tr><td class="l"><b>${esc(x.frota)}</b></td>
       <td><input class="inp ${cls(x.v)}" data-om="v" data-i="${i}" inputmode="numeric" value="${x.v&&x.v.valor!=null?x.v.valor:''}"></td>
