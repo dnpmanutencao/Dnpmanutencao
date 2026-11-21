@@ -31,6 +31,19 @@ button{cursor:pointer}
 header{position:sticky;top:0;z-index:20;background:linear-gradient(90deg,var(--g950),var(--g800));color:#fff;padding:10px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 .brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
 .brand svg{flex:none}
+#pnlModo{grid-template-columns:1fr 1fr;margin-bottom:10px}
+.md{display:grid;gap:14px}@media(min-width:1100px){.md{grid-template-columns:1fr 1fr}}
+.md-p{display:grid;gap:10px;align-content:start}
+.md-h{display:flex;align-items:center;gap:12px;border-radius:12px;padding:12px 14px;color:#fff}.md-h b{display:block;font:700 26px/1 "Barlow Condensed";letter-spacing:.03em}.md-h small{font-size:12px;opacity:.9;letter-spacing:.04em;text-transform:uppercase}
+.md-h svg{flex:none}.md-h.g1{background:linear-gradient(90deg,#0b3d22,#178041)}.md-h.g2{background:linear-gradient(90deg,#0d3270,#1f6fd6)}.md-h.g3{background:linear-gradient(90deg,#4a3a12,#b07d1a)}
+.md-k{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.md-k div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 6px;text-align:center}.md-k small{display:block;font-size:11px;color:var(--muted)}.md-k b{font:700 26px/1.1 "Barlow Condensed"}
+.md-r{display:grid;grid-template-columns:1.6fr 1fr;gap:6px}.md-r>div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.md-bar{height:10px;border-radius:6px;background:#e6ebe8;overflow:hidden;margin-top:6px}.md-bar i{display:block;height:100%;border-radius:6px}
+.md-d{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.md-d .card h3,.md-p .card h3{font-size:14px;padding:7px 10px}.md-d .chartbox{height:170px}
+.md-t td,.md-t th{font-size:12px;padding:4px 6px}.pri{display:inline-block;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700}
+.pri.Alta,.st.Atrasada{background:var(--red-l);color:var(--red)}.pri.Média,.st.Pendente{background:var(--amber-l);color:#7a5600}.pri.Baixa{background:#eef1ef;color:#5b6a61}.st{display:inline-block;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700}.st.Em.andamento,.st.andamento{background:#e3effd;color:#1f5fbf}.st.Concluída{background:#e5f5ea;color:#178041}
+@media(max-width:600px){.md-k{grid-template-columns:repeat(3,1fr)}.md-r{grid-template-columns:1fr}}
 .pnl-h{display:flex;align-items:center;gap:12px;background:linear-gradient(90deg,var(--g950),var(--g800));color:#fff;border-radius:12px;padding:10px 14px;margin:10px 0}
 .pnl-h img{height:40px;background:#fff;border-radius:8px;padding:3px 7px}.pnl-h b{display:block;font:700 22px/1 "Barlow Condensed";letter-spacing:.03em}.pnl-h small{opacity:.85;font-size:12px}
 .brand .lg{flex:none;height:38px;background:#fff;border-radius:8px;padding:3px 7px;display:flex;align-items:center}.brand .lg img{height:32px;display:block}
@@ -377,8 +390,10 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
           <div class="editbar hidden" data-editbar><span>Editando OS</span><button type="button" class="btn ghost sm" data-cancel>Cancelar</button></div>
           <div><label class="fl">Data</label><input class="inp" type="date" name="data" required></div>
           <div><label class="fl">Ativo / equipamento</label><select class="inp" name="ativo" id="fmAtivo"></select></div>
-          <div><label class="fl">Área</label><div class="chips" data-radio="area"><button type="button" class="chip sm on" data-v="Mecânica">Mecânica</button><button type="button" class="chip sm" data-v="Elétrica">Elétrica</button></div></div>
-          <div><label class="fl">Tipo</label><div class="chips" data-radio="natureza"><button type="button" class="chip sm on" data-v="Corretiva">Corretiva (falha)</button><button type="button" class="chip sm" data-v="Preventiva">Preventiva</button></div></div>
+          <div><label class="fl">Área</label><div class="chips" data-radio="area"><button type="button" class="chip sm on" data-v="Mecânica">Mecânica</button><button type="button" class="chip sm" data-v="Elétrica">Elétrica</button><button type="button" class="chip sm" data-v="Operacional">Operacional</button></div></div>
+          <div><label class="fl">Tipo</label><div class="chips" data-radio="natureza"><button type="button" class="chip sm on" data-v="Corretiva">Corretiva (falha)</button><button type="button" class="chip sm" data-v="Preventiva">Preventiva</button><button type="button" class="chip sm" data-v="Preditiva">Preditiva</button><button type="button" class="chip sm" data-v="Melhoria">Melhoria</button></div></div>
+          <div class="row2"><div><label class="fl">Prioridade</label><div class="chips" data-radio="prioridade"><button type="button" class="chip sm" data-v="Alta">Alta</button><button type="button" class="chip sm on" data-v="Média">Média</button><button type="button" class="chip sm" data-v="Baixa">Baixa</button></div></div>
+            <div><label class="fl">Prazo</label><input class="inp" type="date" name="prazo"><p class="note" style="margin:2px 0 0">Em branco: Alta 1 dia, Média 7, Baixa 15.</p></div></div>
           <div><label class="fl">Parou a britagem?</label><div class="chips" data-radio="para"><button type="button" class="chip sm on" data-v="sim">Sim</button><button type="button" class="chip sm" data-v="nao">Não</button></div></div>
           <div id="fmLinhaBox"><label class="fl">Qual linha parou</label><div class="chips" data-radio="linha"><button type="button" class="chip sm on" data-v="primaria">Britagem primária</button><button type="button" class="chip sm" data-v="secundaria">Britagem secundária</button><button type="button" class="chip sm" data-v="rebritagem">Rebritagem</button></div></div>
           <div class="row3">
@@ -390,6 +405,7 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
           <div><label class="fl">Peças utilizadas (saem do estoque)</label><div id="fmPecas"></div><button type="button" class="btn ghost sm" id="fmAddPeca">+ Adicionar peça do estoque</button><p class="note" data-o="custo"></p></div>
           <div class="fotoarea"><label class="fl">Fotos da abertura (o problema encontrado)</label><div id="fmFotosA"></div></div>
           <div><label class="fl">Status</label><div class="chips" data-radio="status"><button type="button" class="chip sm" data-v="Aberta">Em aberto</button><button type="button" class="chip sm on" data-v="Concluída">Concluída</button></div></div>
+          <div id="fmAnd" class="hidden"><label class="fl">Situação</label><div class="chips" data-radio="andamento"><button type="button" class="chip sm on" data-v="Pendente">Pendente</button><button type="button" class="chip sm" data-v="Em andamento">Em andamento</button></div></div>
           <div id="fmFech" class="f" style="gap:12px">
             <div><label class="fl">Solução / o que foi feito</label><textarea class="inp" name="sol" placeholder="Ex.: trocada a correia, reapertados os parafusos"></textarea></div>
             <div class="fotoarea"><label class="fl">Fotos do fechamento (serviço pronto)</label><div id="fmFotosF"></div></div>
@@ -402,6 +418,9 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
 
   <!-- ===================== PAINEL ===================== -->
   <section id="v-painel" class="hidden">
+    <div class="seg" id="pnlModo"><button data-m="op" class="on">Operação</button><button data-m="mnt">Manutenção</button></div>
+    <div id="pnlMnt" class="hidden"></div>
+    <div id="pnlOp">
     <div class="seg" id="linhaSeg"><button data-l="primaria" class="on">Primária</button><button data-l="secundaria">Secundária</button><button data-l="rebritagem">Rebritagem</button></div>
     <div class="pnl-h"><img src="logo.png" alt=""><div><b id="pnlTit">BRITAGEM PRIMÁRIA</b><small>Painel gerencial · indicadores de performance</small></div></div>
     <div class="banner hidden" id="pnlNota" style="margin-bottom:10px"></div>
@@ -424,6 +443,7 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap" id="exportBar" class="hidden">
       <button class="btn ghost sm" id="exDaily">Baixar controle diário (.csv)</button>
       <button class="btn ghost sm" id="exRaw">Baixar todos os lançamentos (.csv)</button>
+    </div>
     </div>
   </section>
 
@@ -600,7 +620,7 @@ function compute(linha){
   const openOS=[];
   for(const m of S.manut){if(m.status==='Aberta'&&ymOf(m.data)===ym)openOS.push(m);
     const x=byD[m.data];if(!x||m.paraBritagem===false||osLinha(m)!==linha)continue;const h=fin(m.horas)?m.horas:0;
-    if(m.area==='Elétrica')x.ele+=h;else x.mec+=h;if(m.natureza!=='Preventiva')x.falhas++;}
+    if(m.area==='Elétrica')x.ele+=h;else x.mec+=h;if(!m.natureza||m.natureza==='Corretiva')x.falhas++;}
   for(const x of days){if(!x.hasBrit&&x.prod>0)x.hp=cfg.horasDia;x.meta=metaDia;x.at=metaDia>0?x.prod/metaDia:0;
     const all={...x.par};if(x.mec)all['Manutenção mecânica']=x.mec;if(x.ele)all['Manutenção elétrica']=x.ele;
     let top='',tv=0;for(const[k,v]of Object.entries(all))if(v>tv){tv=v;top=k;}x.top=top;x.manut=x.mec+x.ele;}
@@ -627,7 +647,7 @@ function setForm(f){S.form=f;$$('#formSeg button').forEach(b=>b.classList.toggle
 function renderAll(){
   $('#mLabel').textContent=monthLabel(S.month);
   if(S.view==='lancar')renderToday();
-  if(S.view==='painel')renderPainel();
+  if(S.view==='painel'){const mm=S.pmodo==='mnt';$$('#pnlModo button').forEach(b=>b.classList.toggle('on',b.dataset.m===(mm?'mnt':'op')));$('#pnlOp').classList.toggle('hidden',mm);$('#pnlMnt').classList.toggle('hidden',!mm);if(mm)renderMntDash();else renderPainel();}
   if(S.view==='reg')renderReg();
   if(S.view==='ajustes'){renderAjustes();renderTeam();}
   if(S.view==='mnt')renderMnt();
@@ -743,6 +763,67 @@ function drawCharts(R){
     options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{display:false},tooltip:{enabled:!!P.length}}},
     plugins:[{id:'center',afterDraw(ch){const{ctx,chartArea:{left,right,top,bottom}}=ch;ctx.save();ctx.font='700 22px "Barlow Condensed"';ctx.fillStyle='#14211a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(nf(S.parTot||0,1)+' h',(left+right)/2,(top+bottom)/2);ctx.restore();}}]});
 }
+// ===================== PAINEL DE MANUTENÇÃO =====================
+const PRAZO_DIAS={Alta:1,Média:7,Baixa:15};
+function osPrazo(o){return o.prazo||addDays(o.data,PRAZO_DIAS[o.prioridade||'Média']??7);}
+function osSit(o){if(o.status!=='Aberta')return'Concluída';if(osPrazo(o)<todayStr())return'Atrasada';return o.andamento==='Em andamento'?'Em andamento':'Pendente';}
+function osTipo(o){return['Preventiva','Corretiva','Preditiva','Melhoria'].includes(o.natureza)?o.natureza:'Corretiva';}
+function osOcor(o){return o.area==='Elétrica'?'Elétrica':o.area==='Operacional'?'Operacional':'Mecânica';}
+function osCritica(o){if(o.status!=='Aberta')return false;if(o.prioridade)return o.prioridade==='Alta';const a=ativoById(o.ativoId);return osTipo(o)==='Corretiva'&&a&&a.criticidade==='A';}
+const MD_GR=[{k:'brit',t:'BRITAGEM',s:'Britagem primária',c:'g1',cor:'#178041',l:['primaria']},{k:'rebrit',t:'REBRITAGEM',s:'Secundária e rebritagem · HP300',c:'g2',cor:'#1f6fd6',l:['secundaria','rebritagem']},{k:'mina',t:'FROTA E MINA',s:'Caminhões, escavadeiras, carregadeiras e apoio',c:'g3',cor:'#b07d1a',l:['']}];
+function osGrupo(o){const a=ativoById(o.ativoId);let l=a?ativoLinha(a):(o.paraBritagem===false?'':(o.linha||'primaria'));return l==='secundaria'||l==='rebritagem'?'rebrit':l==='primaria'?'brit':'mina';}
+const MD_ICO='<svg width="44" height="40" viewBox="0 0 44 40"><g fill="#fff"><circle cx="22" cy="7" r="5"/><circle cx="15" cy="17" r="5"/><circle cx="29" cy="17" r="5"/><circle cx="8" cy="28" r="5"/><circle cx="22" cy="28" r="5"/><circle cx="36" cy="28" r="5"/></g></svg>';
+function mdDados(g){
+  const ym=S.month,y=ym.slice(0,4),hoje=todayStr(),todas=allOS().filter(o=>osGrupo(o)===g.k);
+  const mes=todas.filter(o=>ymOf(o.data)===ym||(o.status==='Aberta'&&o.data<ym+'-01'));
+  const n=k=>mes.filter(o=>osSit(o)===k).length;
+  const D={tot:mes.length,conc:n('Concluída'),pend:n('Pendente'),and:n('Em andamento'),atr:n('Atrasada'),crit:mes.filter(osCritica).length,mes};
+  D.pct=D.tot?D.conc/D.tot:0;
+  const cnt=(f,ks)=>ks.map(k=>[k,mes.filter(o=>f(o)===k).length]);
+  D.tipos=cnt(osTipo,['Preventiva','Corretiva','Preditiva','Melhoria']);D.ocor=cnt(osOcor,['Mecânica','Elétrica','Operacional']);
+  D.status=[['Concluídas',D.conc],['Pendentes',D.pend],['Em andamento',D.and],['Atrasadas',D.atr]];
+  const doMes=mes.filter(o=>ymOf(o.data)===ym),h=o=>fin(o.horas)?o.horas:0;
+  D.horas=['Preventiva','Corretiva','Preditiva','Melhoria'].map(k=>[k,doMes.filter(o=>osTipo(o)===k).reduce((a,o)=>a+h(o),0)]);D.hTot=D.horas.reduce((a,x)=>a+x[1],0);
+  const ano=todas.filter(o=>String(o.data).slice(0,4)===y);D.evH=[];D.evA=[];D.evC=[];
+  for(let m=1;m<=12;m++){const k=y+'-'+pad(m);D.evH.push(ano.filter(o=>ymOf(o.data)===k).reduce((a,o)=>a+h(o),0));D.evA.push(ano.filter(o=>ymOf(o.data)===k).length);
+    D.evC.push(todas.filter(o=>o.status!=='Aberta'&&String(o.concluidaEm||o.data).slice(0,7)===k).length);}
+  // MTBF / MTTR (corretivas do mês)
+  const falhas=doMes.filter(o=>osTipo(o)==='Corretiva');D.falhas=falhas.length;D.mttr=falhas.length?falhas.reduce((a,o)=>a+h(o),0)/falhas.length:null;
+  let ht=null;if(g.k!=='mina'){ht=0;for(const l of g.l)ht+=compute(l).T.ht;}D.mtbf=ht&&falhas.length?ht/falhas.length:null;D.ht=ht;
+  const PO={Alta:0,Média:1,Baixa:2};D.prior=mes.filter(o=>o.status==='Aberta').sort((a,b)=>(PO[a.prioridade||'Média']-PO[b.prioridade||'Média'])||(osSit(a)==='Atrasada'?-1:0)-(osSit(b)==='Atrasada'?-1:0)||String(a.data).localeCompare(b.data)).slice(0,8);
+  return D;}
+function osNum(o,g){return(g.k==='brit'?'BR':g.k==='rebrit'?'RB':'FM')+'-'+String(o._id).replace(/[^a-z0-9]/gi,'').slice(-4).toUpperCase();}
+function renderMntDash(){
+  const box=$('#pnlMnt');if(!box)return;
+  if(!box.dataset.ok){box.dataset.ok='1';box.innerHTML='<div class="md">'+MD_GR.map(g=>`<div class="md-p" id="md-${g.k}"><div class="md-h ${g.c}">${MD_ICO}<div><b>${g.t}</b><small>${g.s}</small></div></div><div class="md-c"></div>
+    <div class="md-d"><div class="card"><h3>Status das OS</h3><div class="bd"><div class="chartbox"><canvas id="mdS-${g.k}"></canvas></div></div></div>
+      <div class="card"><h3>Tipo de manutenção</h3><div class="bd"><div class="chartbox"><canvas id="mdT-${g.k}"></canvas></div></div></div>
+      <div class="card"><h3>Tipos de ocorrências</h3><div class="bd"><div class="chartbox"><canvas id="mdO-${g.k}"></canvas></div></div></div></div>
+    <div class="card"><h3>Horas de manutenção por tipo (mês)</h3><div class="bd md-hr"></div></div>
+    <div class="md-d"><div class="card"><h3>Evolução mensal das horas</h3><div class="bd"><div class="chartbox"><canvas id="mdH-${g.k}"></canvas></div></div></div>
+      <div class="card"><h3>Demandas: OS abertas × concluídas</h3><div class="bd"><div class="chartbox"><canvas id="mdA-${g.k}"></canvas></div></div></div></div>
+    <div class="card"><h3>Demandas prioritárias</h3><div class="bd tscroll md-pr" style="padding:0"></div></div></div>`).join('')+'</div>';}
+  const MES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const CS={Concluídas:'#178041',Pendentes:'#f2b705','Em andamento':'#1f6fd6',Atrasadas:'#d63b2b',Preventiva:'#1f6fd6',Corretiva:'#d63b2b',Preditiva:'#8b3fd9',Melhoria:'#8a948f',Mecânica:'#d63b2b',Elétrica:'#f2b705',Operacional:'#8a948f'};
+  const donut=(id,pares,tot)=>upsert(id,{type:'doughnut',data:{labels:pares.map(x=>x[0]+' ('+x[1]+')'),datasets:[{data:tot?pares.map(x=>x[1]):[1],backgroundColor:tot?pares.map(x=>CS[x[0]]||'#999'):['#e5e9e7'],borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:11}}},tooltip:{enabled:!!tot},c:{tot}}},
+    plugins:[{id:'c',afterDraw(ch,args,op){const{ctx}=ch,m=ch.getDatasetMeta(0).data[0];if(!m)return;ctx.save();ctx.textAlign='center';ctx.fillStyle='#14211a';ctx.font='700 20px "Barlow Condensed"';ctx.fillText(String(op&&op.tot!=null?op.tot:tot),m.x,m.y+2);ctx.font='600 10px Barlow';ctx.fillText('OS',m.x,m.y+14);ctx.restore();}}]});
+  for(const g of MD_GR){const D=mdDados(g),el=$('#md-'+g.k);if(!el)continue;
+    const k=(t,v,c)=>`<div><small>${t}</small><b style="color:${c||'#14211a'}">${v}</b></div>`;
+    $('.md-c',el).innerHTML=`<div class="md-k">${k('Total de OS',D.tot)}${k('Concluídas',D.conc,'#178041')}${k('Pendentes',D.pend,'#c77700')}${k('Em andamento',D.and,'#1f6fd6')}${k('Atrasadas',D.atr,D.atr?'#d63b2b':'')}</div>
+      <div class="md-r" style="margin-top:6px"><div><small class="note">% de conclusão</small><div style="display:flex;align-items:center;gap:10px"><b style="font:700 26px 'Barlow Condensed'">${pf(D.pct,1)}</b><div class="md-bar" style="flex:1"><i style="width:${Math.round(D.pct*100)}%;background:${g.cor}"></i></div></div></div>
+        <div style="${D.crit?'background:#fdecea;border-color:#f3b8b1':''}"><small class="note">OS críticas</small><b style="display:block;font:700 26px 'Barlow Condensed';color:${D.crit?'#d63b2b':'#14211a'}">${D.crit}</b></div></div>
+      <div class="md-k" style="grid-template-columns:repeat(3,1fr);margin-top:6px">${k('MTBF',D.mtbf!=null?nf(D.mtbf,1)+' h':'—')}${k('MTTR',D.mttr!=null?nf(D.mttr,1)+' h':'—')}${k('Falhas (corretivas)',D.falhas)}</div>`;
+    donut('mdS-'+g.k,D.status,D.tot);donut('mdT-'+g.k,D.tipos,D.tot);donut('mdO-'+g.k,D.ocor,D.tot);
+    const mx=Math.max(1,...D.horas.map(x=>x[1]));
+    $('.md-hr',el).innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start">
+      <div>${D.horas.map(([t,v])=>`<div style="display:grid;grid-template-columns:72px 1fr;align-items:center;gap:6px;margin:4px 0"><span style="font-size:12px">${t}</span><div style="display:flex;align-items:center;gap:4px"><i style="display:block;height:14px;border-radius:3px;width:${Math.max(2,v/mx*100)}%;background:${CS[t]}"></i><b style="font-size:12px;white-space:nowrap">${nf(v,1)} h</b></div></div>`).join('')}</div>
+      <table class="t md-t"><tr><th class="l">Tipo</th><th>Horas</th><th>%</th></tr>${D.horas.map(([t,v])=>`<tr><td class="l">${t}</td><td>${nf(v,1)} h</td><td>${D.hTot?pf(v/D.hTot,0):'—'}</td></tr>`).join('')}<tr class="tot"><td>Total</td><td>${nf(D.hTot,1)} h</td><td>${D.hTot?'100%':'—'}</td></tr></table></div>`;
+    const bopt={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{beginAtZero:true,grid:{color:'#eef1ef'},ticks:{precision:0,font:{size:10}}}}};
+    upsert('mdH-'+g.k,{type:'bar',data:{labels:MES,datasets:[{label:'Horas',data:D.evH.map(v=>+v.toFixed(1)),backgroundColor:g.cor,borderRadius:3}]},options:bopt});
+    upsert('mdA-'+g.k,{type:'bar',data:{labels:MES,datasets:[{label:'Abertas',data:D.evA,backgroundColor:'#1f6fd6',borderRadius:3},{label:'Concluídas',data:D.evC,backgroundColor:'#22a34f',borderRadius:3}]},options:{...bopt,plugins:{legend:{display:true,labels:{boxWidth:10,font:{size:11}}}}}});
+    $('.md-pr',el).innerHTML=D.prior.length?`<table class="t md-t"><tr><th class="l">Nº OS</th><th class="l">Data</th><th class="l">Equipamento</th><th class="l">Descrição</th><th>Prioridade</th><th>Status</th></tr>${D.prior.map(o=>{const st=osSit(o);return`<tr data-open="os|${esc(o._id)}" style="cursor:pointer"><td class="l">${osNum(o,g)}</td><td class="l">${dShort(o.data)}</td><td class="l">${esc(o.equip||'')}</td><td class="l">${esc(String(o.desc||'').slice(0,60))}</td><td><span class="pri ${esc(o.prioridade||'Média')}">${esc(o.prioridade||'Média')}</span></td><td><span class="st ${st}">${st}</span></td></tr>`;}).join('')}</table>`:'<p class="note" style="padding:10px">Nenhuma OS em aberto. 👍</p>';}
+}
 function drawParCat(T){
   const P=T.paradas,box=$('#parCatBox');box.style.height=Math.max(140,P.length*30+30)+'px';
   upsert('chParCat',{type:'bar',data:{labels:P.length?P.map(e=>e[0]):['Nenhuma parada no mês'],datasets:[{data:P.length?P.map(e=>+e[1].toFixed(1)):[0],backgroundColor:P.map((e,i)=>COLORS[i%COLORS.length]),borderRadius:4,barThickness:18}]},
@@ -816,7 +897,7 @@ function applyCfg(){
 function resetForm(id){const f=$(id);f.reset();f.data.value=todayStr();$$('[data-editbar]',f).forEach(e=>e.classList.add('hidden'));
   if(id==='#fv'){f.dataset.frota='';f.peso.value=nf(S.cfg.pesoPadrao,1);}
   if(id==='#fb'){f._extra=[];$$('[data-par]',f).forEach(i=>i.value='');setRadio(f,'linha',f.dataset.linha||'primaria');fbLinhaUI();}
-  if(id==='#fm'){S.fotosNovas={abertura:[],fechamento:[]};S.fotosAtuais={abertura:[],fechamento:[]};setTimeout(()=>typeof renderPickers==='function'&&renderPickers(),0);$('#fmPecas').innerHTML='';delete f.horas.dataset.manual;osPecasCusto();setRadio(f,'area','Mecânica');setRadio(f,'natureza','Corretiva');setRadio(f,'para','sim');setRadio(f,'linha','primaria');fmLinhaUI();setRadio(f,'status','Concluída');}
+  if(id==='#fm'){S.fotosNovas={abertura:[],fechamento:[]};S.fotosAtuais={abertura:[],fechamento:[]};setTimeout(()=>typeof renderPickers==='function'&&renderPickers(),0);$('#fmPecas').innerHTML='';delete f.horas.dataset.manual;osPecasCusto();setRadio(f,'area','Mecânica');setRadio(f,'natureza','Corretiva');setRadio(f,'para','sim');setRadio(f,'linha','primaria');fmLinhaUI();setRadio(f,'status','Concluída');setRadio(f,'prioridade','Média');setRadio(f,'andamento','Pendente');}
   S.edit=null;applyCfg();if(id==='#fm')fmLinhaDoAtivo();}
 function fmLinhaUI(){const f=$('#fm');$('#fmLinhaBox').classList.toggle('hidden',getRadio(f,'para')!=='sim');}
 function fmLinhaDoAtivo(){const f=$('#fm'),a=ativoById(f.ativo.value);if(!a)return;const l=ativoLinha(a);setRadio(f,'para',l?'sim':'nao');if(l)setRadio(f,'linha',l);fmLinhaUI();}
@@ -898,6 +979,7 @@ async function onSaveMnt(e){
   const horas=num(f.horas.value);const av=f.ativo.value;const at=av&&!av.startsWith('eq:')?ativoById(av):null;
   const pecas=collectOSPecas();const custoPecas=pecas.reduce((a,p)=>a+p.qtd*p.custoUnit,0);
   const body={data:f.data.value,ativoId:at?at._id:null,equip:at?ativoLabel(at):av.replace(/^eq:/,''),area:getRadio(f,'area'),natureza:getRadio(f,'natureza'),paraBritagem:getRadio(f,'para')==='sim',linha:getRadio(f,'linha')||'primaria',
+    prioridade:getRadio(f,'prioridade')||'Média',prazo:f.prazo.value||null,andamento:getRadio(f,'status')==='Aberta'?(getRadio(f,'andamento')||'Pendente'):null,
     hIni:f.hIni.value||null,hFim:f.hFim.value||null,horas:horas??0,desc:f.desc.value.trim(),status:getRadio(f,'status'),solucao:f.sol.value.trim(),pecas,custoPecas,por:S.edit?.por||S.uid||null,em:new Date().toISOString()};
   if(!body.data)return toast('Informe a data.',true);if(!body.equip)return toast('Escolha o ativo.',true);if(!body.desc)return toast('Descreva o serviço.',true);
   if(body.status==='Concluída'&&!(horas>0)&&body.paraBritagem&&!await ask('Nenhuma hora de parada informada. Salvar mesmo assim?'))return;
@@ -931,7 +1013,7 @@ function startEdit(col,id){
     const av=r.ativoId&&ativoById(r.ativoId)?r.ativoId:'eq:'+r.equip;if(![...f.ativo.options].some(o=>o.value===av))f.ativo.insertAdjacentHTML('beforeend',`<option value="${esc(av)}">${esc(r.equip)}</option>`);f.ativo.value=av;
     $('#fmPecas').innerHTML=(r.pecas||[]).map(p=>osPecaRow(p.pecaId,p.qtd)).join('');osPecasCusto();
     f.sol.value=r.solucao||'';S.fotosNovas={abertura:[],fechamento:[]};S.fotosAtuais={abertura:[...(r.fotosAbertura||[])],fechamento:[...(r.fotosFechamento||[])]};setTimeout(renderPickers,0);
-    setRadio(f,'area',r.area);setRadio(f,'natureza',r.natureza);setRadio(f,'para',r.paraBritagem===false?'nao':'sim');setRadio(f,'linha',osLinha(r));fmLinhaUI();setRadio(f,'status',r.status);
+    setRadio(f,'area',r.area);setRadio(f,'natureza',r.natureza);setRadio(f,'para',r.paraBritagem===false?'nao':'sim');setRadio(f,'linha',osLinha(r));fmLinhaUI();setRadio(f,'status',r.status);setRadio(f,'prioridade',r.prioridade||'Média');setRadio(f,'andamento',r.andamento||'Pendente');f.prazo.value=r.prazo||'';
     f.hIni.value=r.hIni||'';f.hFim.value=r.hFim||'';f.horas.value=nf(r.horas,2);f.horas.dataset.manual='1';f.desc.value=r.desc||'';}
   const fid={viagens:'#fv',britagem:'#fb',manutencao:'#fm'}[col];$$('[data-editbar]',$(fid)).forEach(e=>e.classList.remove('hidden'));
   updCalcs();
@@ -965,6 +1047,8 @@ function subscribeMonth(){
       S[key]=snap.docs.map(d=>({...d.data(),_id:d.id}));if(!snap.metadata.fromCache){S.loaded[col]=true;if(col==='viagens'){clearTimeout(timer);banner(null);}}else S.loaded[col]=S.loaded[col]||snap.size>0;render();},
     err=>{clearTimeout(timer);S.loaded[col]=true;if(err.code==='revoked')banner('Seu acesso foi alterado. Recarregue a página.',true);else banner('Não foi possível ler '+col+' agora.',true);render();}));
   sub('viagens','viagens');sub('britagem','brit');sub('manutencao','manut');
+  S.manutAno=[];const y=ym.slice(0,4);
+  S.subs.push(S.db.collection('manutencao').where('data','>=',y+'-01-01').where('data','<=',y+'-12-31').onSnapshot(s=>{S.manutAno=s.docs.map(d=>({...d.data(),_id:d.id}));render();},()=>{}));
   S.subs.push(S.db.doc('metas/'+ym).onSnapshot(s=>{S.metaDoc=s.exists?s.data():null;render();},()=>{}));
 }
 function applyPerms(){
@@ -988,6 +1072,7 @@ function bind(){
       if(fr&&fr.id==='fb'&&nm==='linha'){fbLinhaUI();if(!S.edit){fr.horIni.value='';prefillBrit();}updCalcs();renderToday();}
       if(fr&&fr.id==='fm'&&nm==='para')fmLinhaUI();return;}
     const ls=e.target.closest('#linhaSeg button');if(ls){S.linha=ls.dataset.l;render();return;}
+    const pm=e.target.closest('#pnlModo button');if(pm){S.pmodo=pm.dataset.m;render();return;}
     const rf=e.target.closest('#regFilter .chip');if(rf){S.regFilter=rf.dataset.k;$$('#regFilter .chip').forEach(c=>c.classList.toggle('on',c===rf));render();return;}
     const ed=e.target.closest('[data-ed]');if(ed){const[c,i]=ed.dataset.ed.split('|');startEdit(c,i);return;}
     const dl=e.target.closest('[data-del]');if(dl){const[c,i]=dl.dataset.del.split('|');delRec(c,i);return;}
@@ -1040,7 +1125,7 @@ const byTag=(a,b)=>String(a.tag||'').localeCompare(String(b.tag||''),'pt-BR',{nu
 const byCod=(a,b)=>String(a.codigo||'').localeCompare(String(b.codigo||''),'pt-BR',{numeric:true});
 const lowItems=st=>S.pecas.filter(p=>p.inativa!==true&&p.estoqueMin>0&&(st[p._id]||0)<=p.estoqueMin);
 const rcTotal=r=>(r.itens||[]).reduce((a,i)=>a+(+i.qtd||0)*(+i.valorUnit||0),0);
-function allOS(){const m=new Map();for(const o of [...S.manut,...S.osAbertas])m.set(o._id,o);return[...m.values()];}
+function allOS(){const m=new Map();for(const o of [...(S.manutAno||[]),...S.manut,...S.osAbertas])m.set(o._id,o);return[...m.values()];}
 
 function rcPendingFor(r){const mine=r.por===S.uid,self=!mine||S.isOwner;
   if(r.status==='Em aprovação'&&has('supervisor')&&self)return'Aprovar';
@@ -1138,7 +1223,7 @@ function osDetail(id){
     sh.refresh=()=>{const o=allOS().find(x=>x._id===id);if(!o){body.innerHTML=empty('Esta OS não está carregada (mude o mês ou ela foi excluída).');return;}
       const rcs=S.reqs.filter(r=>r.osId===id);loadNames([o.por]);
       body.innerHTML=`<div class="lt" style="margin-bottom:8px"><b style="font-size:18px">${esc(o.equip)}</b>${o.status==='Aberta'?stBadge('em aberto','var(--orange)'):stBadge('concluída','var(--g600)')}</div>
-      <div class="kv"><span>Data</span><b>${dLabel(o.data)}</b><span>Tipo</span><b>${esc(o.area)} · ${esc(o.natureza)}</b><span>Horário</span><b>${esc(o.hIni||'—')} → ${esc(o.hFim||'—')} (${nf(o.horas,1)} h)</b><span>Parou a britagem</span><b>${o.paraBritagem===false?'Não':'Sim · '+LINHAS[osLinha(o)]}</b><span>Aberta por</span><b>${esc(who(o.por)||'—')}</b></div>
+      <div class="kv"><span>Data</span><b>${dLabel(o.data)}</b><span>Tipo</span><b>${esc(o.area)} · ${esc(o.natureza)}</b><span>Horário</span><b>${esc(o.hIni||'—')} → ${esc(o.hFim||'—')} (${nf(o.horas,1)} h)</b><span>Prioridade</span><b>${esc(o.prioridade||'Média')}${o.status==='Aberta'?' · prazo '+dShort(osPrazo(o)):''}</b>${o.status==='Aberta'?`<span>Situação</span><b>${esc(osSit(o))}</b>`:''}<span>Parou a britagem</span><b>${o.paraBritagem===false?'Não':'Sim · '+LINHAS[osLinha(o)]}</b><span>Aberta por</span><b>${esc(who(o.por)||'—')}</b></div>
       <p style="margin:10px 0">${esc(o.desc)}</p>
       ${FOTO_ON()?`<h4 class="h4">Fotos da abertura</h4>${galeria(o.fotosAbertura)}`:''}
       ${o.status!=='Aberta'||o.solucao||(o.fotosFechamento||[]).length?`<h4 class="h4">Fechamento</h4>${o.solucao?`<p style="margin:0 0 8px">${esc(o.solucao)}</p>`:''}${FOTO_ON()?galeria(o.fotosFechamento):''}`:''}
@@ -1147,7 +1232,7 @@ function osDetail(id){
       ${o.planoId&&o.status==='Aberta'?(()=>{const pl=S.planos.find(p=>p._id===o.planoId);return pl&&(pl.pecas||[]).length?`<p class="note">Peças previstas: ${pl.pecas.map(x=>{const pc=pecaById(x.pecaId);return nq(x.qtd)+'× '+esc(pc?pc.codigo:'?');}).join(', ')} — lance as usadas em “Editar”.</p>`:'';})():''}
       <h4 class="h4">Peças utilizadas</h4>${(o.pecas||[]).length?`<table class="t"><tr><th class="l">Peça</th><th>Qtd</th><th>Custo</th></tr>${o.pecas.map(p=>{const pc=pecaById(p.pecaId);return`<tr><td class="l">${esc(pc?pc.codigo+' · '+pc.descricao:'(peça removida)')}</td><td>${nq(p.qtd)}</td><td>${brl(p.qtd*(p.custoUnit||0))}</td></tr>`;}).join('')}<tr class="tot"><td>Total</td><td></td><td>${brl(o.custoPecas)}</td></tr></table>`:'<p class="note">Nenhuma peça lançada.</p>'}
       <h4 class="h4">Requisições de compra</h4>${rcs.length?rcs.map(r=>`<div class="li" data-open="rc|${esc(r._id)}"><div class="lt"><b>${esc(r.numero)}</b>${stBadge(r.status)}</div></div>`).join(''):'<p class="note">Nenhuma.</p>'}
-      <div class="acts2">${o.status==='Aberta'?`<button class="btn" data-act="osConcluir" data-id="${esc(id)}">Concluir OS</button>`:''}
+      <div class="acts2">${o.status==='Aberta'&&o.andamento!=='Em andamento'?`<button class="btn ghost" data-act="osIniciar" data-id="${esc(id)}">Iniciar atendimento</button>`:''}${o.status==='Aberta'?`<button class="btn" data-act="osConcluir" data-id="${esc(id)}">Concluir OS</button>`:''}
       <button class="btn ghost" data-act="osEditar" data-id="${esc(id)}">Editar</button><button class="btn ghost" data-act="rcFromOS" data-id="${esc(id)}">Requisitar compra</button></div>`;hidratarFotos(body);};
     sh.refresh();});
   return s;}
@@ -1415,6 +1500,7 @@ function bindMnt(){
     if(act==='novaOS'||act==='osParaAtivo'){S.sheet&&S.sheet.close();setView('lancar');setForm('mnt');resetForm('#fm');if(id){$('#fmAtivo').value=id;fmLinhaDoAtivo();}return;}
     if(act==='osEditar'){S.sheet&&S.sheet.close();startEdit('manutencao',id);return;}
     if(act==='osConcluir')return FOTO_ON()?osConcluirForm(id):osConcluir(id);
+    if(act==='osIniciar'){try{await withRetry(()=>S.db.collection('manutencao').doc(id).update({andamento:'Em andamento',iniciadaEm:nowIso(),iniciadaPor:S.uid||null}));toast('✔ OS em andamento');S.sheet&&S.sheet.refresh&&S.sheet.refresh();}catch(e){toast(dbErr(e),true);}return;}
     if(act==='novoPlano')return planoForm();if(act==='planoEditar')return planoForm(id);if(act==='planoGerar')return planoGerar(id);if(act==='planoExec')return planoExecForm(id);
     if(act==='novaRotina')return rotinaForm();if(act==='rotinaEditar')return rotinaForm(id);if(act==='inspExec')return inspExec(id);
     if(act==='task'){const[o,k]=id.split('|');return osToggleTask(o,+k);}
@@ -1515,7 +1601,7 @@ const plansDue=()=>S.planos.filter(p=>planStatus(p).st==='Vencido');
 /* ---------- auto OS ---------- */
 let agT;function scheduleAutoGen(){clearTimeout(agT);agT=setTimeout(autoGen,1500);}
 function planKey(p,s){return safeId(`prev_${p._id}_${p.tipo==='horas'?Math.round(s.next):s.next}`);}
-function osFromPlan(p,s,auto){const a=s.a;return{data:todayStr(),ativoId:p.ativoId||null,equip:a?ativoLabel(a):'(ativo removido)',area:p.area==='Elétrica'?'Elétrica':'Mecânica',natureza:'Preventiva',paraBritagem:false,
+function osFromPlan(p,s,auto){const a=s.a;return{data:todayStr(),ativoId:p.ativoId||null,equip:a?ativoLabel(a):'(ativo removido)',area:p.area==='Elétrica'?'Elétrica':'Mecânica',natureza:'Preventiva',paraBritagem:false,prioridade:'Média',andamento:'Pendente',prazo:s.next!=null&&p.tipo!=='horas'&&/^\d{4}-/.test(String(s.next))?s.next:null,
   hIni:null,hFim:null,horas:0,desc:`Preventiva: ${p.nome}`+(s.next!=null?` (${p.tipo==='horas'?'horímetro '+nf(s.next):'vence '+dShort(s.next)})`:''),status:'Aberta',pecas:[],custoPecas:0,
   planoId:p._id,tarefas:(p.tarefas||[]).map(t=>({t,ok:false})),duracaoEst:p.duracao||null,auto:!!auto,por:auto?null:(S.uid||null),em:nowIso()};}
 async function autoGen(){
@@ -1698,7 +1784,7 @@ function inspExec(id){
       const noks=out.filter(i=>i.r==='NOK');const openOS=noks.length&&$('#ixOSck',body).checked;const data=$('#ixData',body).value||todayStr();
       const btn=$('#ixSave',body);btn.disabled=true;btn.textContent='Salvando…';let osId=null;
       if(openOS){osId=`${data}_${rid()}`;const desc=`Inspeção "${r.nome}": `+noks.map(i=>i.t+(i.tipo==='num'&&i.v!=null?` (${nf(i.v,1)} ${i.un||''})`:'')+(i.obs?' — '+i.obs:'')).join('; ');
-        const ok=await w(()=>S.db.collection('manutencao').doc(osId).set({data,ativoId:a?a._id:null,equip:a?ativoLabel(a):(r.local||r.nome),area:'Mecânica',natureza:'Corretiva',paraBritagem:$('#ixPara',body).checked,linha:ativoLinha(a)||'primaria',hIni:null,hFim:null,horas:0,desc,status:'Aberta',pecas:[],custoPecas:0,inspecaoRotinaId:r._id,por:S.uid||null,em:nowIso()}));
+        const ok=await w(()=>S.db.collection('manutencao').doc(osId).set({data,ativoId:a?a._id:null,equip:a?ativoLabel(a):(r.local||r.nome),area:'Mecânica',natureza:'Corretiva',prioridade:noks.some(x=>x.crit==='ALTA')||$('#ixPara',body).checked?'Alta':'Média',andamento:'Pendente',paraBritagem:$('#ixPara',body).checked,linha:ativoLinha(a)||'primaria',hIni:null,hFim:null,horas:0,desc,status:'Aberta',pecas:[],custoPecas:0,inspecaoRotinaId:r._id,por:S.uid||null,em:nowIso()}));
         if(!ok){btn.disabled=false;btn.textContent='Concluir inspeção';return;}}
       const ok=await w(()=>S.db.collection('inspecoes').doc(rid()).set({rotinaId:r._id,rotinaNome:r.nome,ativoId:r.ativoId||null,data,turno:+$('#ixTurno',body).value,itens:out,nok:noks.length,osId,obs:$('#ixObs',body).value.trim(),hor:num($('#ixHor',body).value),osNum:$('#ixOSn',body).value.trim()||null,conformidade:RS.pct,classif:cls||RS.sug,por:S.uid||null,em:nowIso()}),
         noks.length?`✔ Inspeção salva · ${noks.length} NOK${openOS?' · OS aberta':''}`:'✔ Inspeção salva · tudo OK');
@@ -1731,7 +1817,8 @@ function pickerHTML(fase){const a=S.fotosAtuais[fase],n=S.fotosNovas[fase];
   return(itens?`<div class="fotos">${itens}</div>`:'')+`<label class="btn ghost sm fotobtn">📷 ${a.length+n.length?'Adicionar mais':'Tirar ou escolher foto'}<input type="file" accept="image/*" multiple hidden data-fotofase="${fase}"></label>`;}
 function renderPickers(){if(!FOTO_ON()){$$('.fotoarea').forEach(e=>e.classList.add('hidden'));return;}
   const a=$('#fmFotosA'),f=$('#fmFotosF');if(a){a.innerHTML=pickerHTML('abertura');hidratarFotos(a);}if(f){f.innerHTML=pickerHTML('fechamento');hidratarFotos(f);}
-  const fw=$('#fmFech');if(fw)fw.classList.toggle('hidden',getRadio($('#fm'),'status')!=='Concluída');}
+  const fw=$('#fmFech');if(fw)fw.classList.toggle('hidden',getRadio($('#fm'),'status')!=='Concluída');
+  const fa=$('#fmAnd');if(fa)fa.classList.toggle('hidden',getRadio($('#fm'),'status')!=='Aberta');}
 async function adicionarFotos(files,fase,alvo,depois){
   for(const file of files){if(!/^image\//.test(file.type)&&!/\.(jpe?g|png|heic|heif|webp)$/i.test(file.name)){toast('Arquivo não é uma imagem: '+file.name,true);continue;}
     try{alvo[fase].push(await prepararFoto(file));}catch(e){toast(e.message,true);}}
