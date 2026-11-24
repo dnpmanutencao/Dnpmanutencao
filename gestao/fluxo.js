@@ -13,13 +13,13 @@ function fData(l) { return fBaix(l) ? (l.dataBaixa || l.dataVencimento) : l.data
 function fFiltra(l) { return (!F.obra || String(l.projetoId) === F.obra) && (!F.cat || l.categoria === F.cat); }
 
 function fCarregar(forcar) {
-  if (F.carregando) return;
+  if (F.carregando) { if (forcar) F.denovo = true; return; } // pedido durante outra carga: recarrega de novo no fim
   if (!F.lanc) DB.get('g_fluxo2').then(function (c) { if (c && !F.lanc) { F.todos = c.lanc; F.saldo = c.saldo; F.lanc = F.todos; if (G.view === 'tFluxo') fTela(); } });
   if (!navigator.onLine) return;
   F.carregando = true;
   sys('fxListar', []).then(function (r) {
     F.todos = (r.itens || []).map(fMapear); F.saldo = r.saldo || {}; F.lanc = F.todos; DB.set('g_fluxo2', { lanc: F.todos, saldo: F.saldo });
-  }).catch(function (e) { aviso(e.message, 'err'); }).then(function () { F.carregando = false; if (G.view === 'tFluxo') fTela(); });
+  }).catch(function (e) { aviso(e.message, 'err'); }).then(function () { F.carregando = false; if (F.denovo) { F.denovo = false; return fCarregar(true); } if (G.view === 'tFluxo' && !F.ed) fTela(); });
 }
 
 // ---------- cálculo do saldo dia a dia ----------
