@@ -715,33 +715,46 @@ function fExLerPdfLinhas(linhas) {
   var colC = null, colD = null, colS = null, colV = null; // centro x das colunas, se o PDF tiver cabeçalho
   linhas.forEach(function (l) { l.itens.forEach(function (i) { var n = fExNorm(i.t); if (colC == null && /^(CREDITO|CREDITOS|ENTRADAS?)( R)?$/.test(n)) colC = i.cx; if (colD == null && /^(DEBITO|DEBITOS|SAIDAS?)( R)?$/.test(n)) colD = i.cx; if (colS == null && /^SALDO( R)?$/.test(n)) colS = i.cx; if (colV == null && /^VALOR( R)?$/.test(n)) colV = i.cx; }); });
   var perto = function (x, c) { return c == null ? 1e9 : Math.abs(x - c); };
-  var itens = [], ultData = null, ultSaldo = null;
+  var LIXO = /HISTORICO|DOCUMENTO|PERIODO|AGENCIA|PAGINA|DATA HORA|SALDO DISPONIVEL|APLICATIVO|CENTRAL DE ATEND|^EXTRATO|LANCAMENTOS FUTUROS|^\d{1,3} \d{1,3}$/;
+  // 1ª passada: separa linhas com valor (lançamentos) e pedaços de descrição (linhas sem valor, acima/abaixo, como no Santander)
+  var ancoras = [], pedacos = [], parar = false, ultData = null;
   linhas.forEach(function (l) {
-    // junta pedaços: "1.234,56" às vezes vem separado do "-" ou do "D"
+    if (parar) return;
     var tk = []; l.itens.forEach(function (i) { var t = i.t; if (tk.length && /^[-DC]$/i.test(t) && FX_RE_VAL.test(tk[tk.length - 1].t + t)) { tk[tk.length - 1].t += t; return; } tk.push({ x: i.cx, t: t }); });
+    var linhaN = fExNorm(tk.map(function (i) { return i.t; }).join(' '));
+    if (/^SALDO$|POSICAO EM|ENTENDA A COMPOSICAO|^RESUMO DO PERIODO/.test(linhaN)) { parar = true; return; }
     var primeiro = tk[0] ? tk[0].t : '', dm = primeiro.match(/^(\d{1,2})\/(\d{1,2})(\/(\d{2,4}))?$/), data = null;
     if (dm) { var a = dm[4] ? (dm[4].length === 2 ? '20' + dm[4] : dm[4]) : anoPadrao; data = a + '-' + dm[2].padStart(2, '0') + '-' + dm[1].padStart(2, '0'); tk.shift(); }
     var vals = tk.filter(function (i) { return FX_RE_VAL.test(i.t); });
     var desc = tk.filter(function (i) { return !FX_RE_VAL.test(i.t); }).map(function (i) { return i.t; }).join(' ').replace(/\s+/g, ' ').trim();
-    var n = fExNorm(desc);
-    if (!vals.length) { if (!data && itens.length && itens[itens.length - 1]._aberto && desc && desc.length < 80 && !/SALDO|PAGINA|EXTRATO|AGENCIA|CONTA/.test(n)) itens[itens.length - 1].descricao += ' ' + desc; return; }
-    if (itens.length) itens[itens.length - 1]._aberto = false;
-    if (!data) { if (!ultData || !desc) return; data = ultData; }
+    if (!vals.length) { if (desc && !data && !LIXO.test(fExNorm(desc))) pedacos.push({ y: l.y, pg: l.pg, t: desc }); return; }
+    if (!data) { if (!ultData || !desc || LIXO.test(fExNorm(desc))) return; data = ultData; }
     ultData = data;
-    var saldoLinha = null, vtk = vals[0];
-    if (vals.length >= 2) { saldoLinha = fExNum(vals[vals.length - 1].t); vtk = vals[0]; }
+    ancoras.push({ y: l.y, pg: l.pg, data: data, vals: vals, desc: desc, acima: [], abaixo: [] });
+  });
+  // cada pedaço vai para o lançamento mais próximo na mesma página (empate: o de cima)
+  pedacos.forEach(function (p) {
+    var melhor = null, dist = 1e9;
+    ancoras.forEach(function (a) { if (a.pg !== p.pg) return; var d = Math.abs(a.y - p.y); if (d < dist - 0.01 || (Math.abs(d - dist) < 0.01 && a.y > melhor.y)) { dist = d; melhor = a; } });
+    if (melhor && dist <= 15) (p.y > melhor.y ? melhor.acima : melhor.abaixo).push(p);
+  });
+  // 2ª passada: valor, sinal e saldo (o extrato pode vir do mais novo para o mais antigo)
+  var itens = [], ultSaldo = null;
+  ancoras.forEach(function (a) {
+    var desc = a.acima.sort(function (p, q) { return q.y - p.y; }).map(function (p) { return p.t; }).concat(a.desc ? [a.desc] : [], a.abaixo.sort(function (p, q) { return q.y - p.y; }).map(function (p) { return p.t; })).join(' ').replace(/\s+/g, ' ').trim();
+    var n = fExNorm(desc), vals = a.vals, saldoLinha = null, vtk = vals[0];
+    if (vals.length >= 2) saldoLinha = fExNum(vals[vals.length - 1].t);
     else if (colS != null && (colV != null || colC != null || colD != null) && perto(vals[0].x, colS) < Math.min(perto(vals[0].x, colV), perto(vals[0].x, colC), perto(vals[0].x, colD))) { saldoLinha = fExNum(vals[0].t); vtk = null; }
     if (/^SALDO|SALDO ANTERIOR|SALDO DO DIA|SALDO FINAL|SDO /.test(n) || !vtk) { if (saldoLinha != null && !isNaN(saldoLinha)) ultSaldo = saldoLinha; return; }
     var v = fExNum(vtk.t); if (isNaN(v) || !v) return;
     var temSinal = /-|\(|D$/i.test(vtk.t) || /C$/i.test(vtk.t);
     if (!temSinal) {
       if (colC != null && colD != null) v = perto(vtk.x, colD) < perto(vtk.x, colC) ? -Math.abs(v) : Math.abs(v);
-      else if (saldoLinha != null && ultSaldo != null && !isNaN(saldoLinha)) v = saldoLinha < ultSaldo ? -Math.abs(v) : Math.abs(v);
+      else if (saldoLinha != null && ultSaldo != null && !isNaN(saldoLinha) && colS == null) v = saldoLinha < ultSaldo ? -Math.abs(v) : Math.abs(v);
     }
     if (saldoLinha != null && !isNaN(saldoLinha)) ultSaldo = saldoLinha;
-    itens.push({ data: data, valor: Math.round(v * 100) / 100, descricao: desc || '(sem descrição)', doc: '', _aberto: true });
+    itens.push({ data: a.data, valor: Math.round(v * 100) / 100, descricao: desc || '(sem descrição)', doc: '' });
   });
-  itens.forEach(function (i) { delete i._aberto; });
   return { itens: fExChaves(itens, 'pdf'), saldo: null, formato: 'PDF' };
 }
 function fExLerArquivo(arq) {
