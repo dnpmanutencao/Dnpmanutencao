@@ -773,26 +773,34 @@ function fExLerArquivo(arq) {
     mostrar(/<OFX>|OFXHEADER|<STMTTRN>/i.test(t) ? fExLerOfx(t) : fExLerCsv(t));
   }).catch(function (e) { aviso('Não consegui ler o arquivo: ' + e.message, 'err'); });
 }
+function fExSel(r) { return r.itens.filter(function (i) { return (!r.de || i.data >= r.de) && (!r.ate || i.data <= r.ate); }); }
 function fExHtmlImp() {
-  var r = fEx().imp, ds = r.itens.map(function (i) { return i.data; }).sort(), e = 0, s = 0;
-  r.itens.forEach(function (i) { if (i.valor > 0) e += i.valor; else s -= i.valor; });
+  var r = fEx().imp, todos = r.itens.map(function (i) { return i.data; }).sort();
+  if (!r.de) { r.de = todos[0]; r.ate = todos[todos.length - 1]; }
+  var sel = fExSel(r), ds = sel.map(function (i) { return i.data; }).sort(), e = 0, s = 0;
+  var ja = {}; F.todos.forEach(function (l) { if (l.origemTipo === 'Extrato') ja[l.origemId] = 1; });
+  r.novos = sel.filter(function (i) { return !ja[i.chave]; }).length;
+  sel.forEach(function (i) { if (i.valor > 0) e += i.valor; else s -= i.valor; });
+  if (!ds.length) ds = [r.de, r.ate];
   var h = '<div class="card"><h2 style="margin-top:0">📤 Enviar extrato</h2><p><b>' + esc(r.nome) + '</b> (' + r.formato + ')</p>' +
     '<ul class="lista"><li><span>Período</span><b>' + fDia(ds[0]) + '/' + ds[0].slice(0, 4) + ' a ' + fDia(ds[ds.length - 1]) + '/' + ds[ds.length - 1].slice(0, 4) + '</b></li>' +
-    '<li><span>Lançamentos no arquivo</span><b>' + r.itens.length + '</b></li><li><span>Novos (serão lançados)</span><b style="color:#1b7f3b">' + r.novos + '</b></li><li><span>Já lançados (serão pulados)</span><b>' + (r.itens.length - r.novos) + '</b></li>' +
-    '<li><span>Entradas no arquivo</span><b style="color:#1b7f3b">' + fBrl(e) + '</b></li><li><span>Saídas no arquivo</span><b style="color:#c62828">' + fBrl(s) + '</b></li></ul>';
+    '<li><span>Lançamentos no período</span><b>' + sel.length + ' de ' + r.itens.length + '</b></li><li><span>Novos (serão lançados)</span><b style="color:#1b7f3b">' + r.novos + '</b></li><li><span>Já lançados (serão pulados)</span><b>' + (sel.length - r.novos) + '</b></li>' +
+    '<li><span>Entradas no período</span><b style="color:#1b7f3b">' + fBrl(e) + '</b></li><li><span>Saídas no período</span><b style="color:#c62828">' + fBrl(s) + '</b></li></ul>' +
+    '<p style="margin:12px 0 4px"><b>Lançar só deste período</b> <span class="muted" style="font-size:12px">(o arquivo tem de ' + todos[0].split('-').reverse().join('/') + ' a ' + todos[todos.length - 1].split('-').reverse().join('/') + ')</span></p>' +
+    '<div style="display:flex;gap:8px"><input type="date" value="' + r.de + '" min="' + todos[0] + '" max="' + todos[todos.length - 1] + '" onchange="fEx().imp.de=this.value;fTela()"><input type="date" value="' + r.ate + '" min="' + todos[0] + '" max="' + todos[todos.length - 1] + '" onchange="fEx().imp.ate=this.value;fTela()"></div>';
   if (r.saldo) h += '<label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-weight:400"><input type="checkbox" id="ex-imp-saldo" style="width:auto"' + (r.usarSaldo ? ' checked' : '') + ' onchange="fEx().imp.usarSaldo=this.checked"> Ajustar o saldo do fluxo pelo extrato: ' + fBrl(r.saldo.valor) + ' em ' + r.saldo.data.split('-').reverse().join('/') + '</label>';
-  h += '<div style="max-height:260px;overflow:auto;margin-top:10px;border:1px solid var(--borda);border-radius:8px;padding:6px 8px"><ul class="lista">' + r.itens.slice(0, 300).map(function (i) { return '<li><span style="font-size:12px"><span class="muted">' + fDia(i.data) + '</span> ' + esc(i.descricao) + '</span><b style="white-space:nowrap;color:' + (i.valor > 0 ? '#1b7f3b' : '#c62828') + '">' + (i.valor > 0 ? '+' : '−') + fBrl(Math.abs(i.valor)) + '</b></li>'; }).join('') + (r.itens.length > 300 ? '<li class="muted">… e mais ' + (r.itens.length - 300) + '</li>' : '') + '</ul></div>' +
+  h += '<div style="max-height:260px;overflow:auto;margin-top:10px;border:1px solid var(--borda);border-radius:8px;padding:6px 8px"><ul class="lista">' + sel.slice(0, 300).map(function (i) { return '<li><span style="font-size:12px"><span class="muted">' + fDia(i.data) + '</span> ' + esc(i.descricao) + '</span><b style="white-space:nowrap;color:' + (i.valor > 0 ? '#1b7f3b' : '#c62828') + '">' + (i.valor > 0 ? '+' : '−') + fBrl(Math.abs(i.valor)) + '</b></li>'; }).join('') + (sel.length > 300 ? '<li class="muted">… e mais ' + (sel.length - 300) + '</li>' : '') + '</ul></div>' +
     '<div style="height:12px"></div><button class="btn lar" id="ex-imp-ok" style="padding:14px;font-size:16px"' + (r.novos || r.saldo ? '' : ' disabled') + '>' + (r.novos ? 'Lançar ' + r.novos + ' lançamento' + (r.novos === 1 ? '' : 's') : 'Nada novo para lançar') + '</button>' +
-    '<button class="btn sec" style="margin-top:8px" onclick="fEx().imp=null;fTela()">Cancelar</button></div>';
+    '<button class="btn sec" style="margin-top:8px" onclick="fEx().imp=null;fTela()">Cancelar</button><p class="muted" style="font-size:11px;text-align:right;margin:6px 0 0">leitor de extrato v3</p></div>';
   return h;
 }
 function fExImportar() {
   var x = fEx(), r = x.imp; if (!r || !gOnline()) return;
   var b = $('ex-imp-ok'); b.disabled = true; aviso('Lançando ' + r.novos + '...');
-  var itens = r.itens.map(function (i) { return { data: i.data, valor: i.valor, descricao: i.descricao + (i.doc && String(i.descricao).indexOf(i.doc) < 0 ? ' · doc ' + i.doc : ''), chave: i.chave }; });
+  var itens = fExSel(r).map(function (i) { return { data: i.data, valor: i.valor, descricao: i.descricao + (i.doc && String(i.descricao).indexOf(i.doc) < 0 ? ' · doc ' + i.doc : ''), chave: i.chave }; });
   sys('fxImportarExtrato', [itens, r.usarSaldo && r.saldo ? r.saldo : null]).then(function (res) {
     aviso(res.novos + ' lançamento' + (res.novos === 1 ? '' : 's') + ' novo' + (res.novos === 1 ? '' : 's') + (res.duplicados ? ' · ' + res.duplicados + ' já existia' + (res.duplicados === 1 ? '' : 'm') : '') + (res.saldo ? ' · saldo ajustado' : '') + '. Agora é só completar.', 'ok');
-    var ds = r.itens.map(function (i) { return i.data; }).sort(); F.mes = ds[0].slice(0, 7); x.imp = null; x.filtro = 'sem'; fCarregar(true); fTela();
+    var ds = fExSel(r).map(function (i) { return i.data; }).sort(); if (ds.length) F.mes = ds[0].slice(0, 7); x.imp = null; x.filtro = 'sem'; fCarregar(true); fTela();
   }).catch(function (e) { aviso(e.message, 'err'); b.disabled = false; });
 }
 
