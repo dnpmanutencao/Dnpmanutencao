@@ -24,7 +24,7 @@ function fCarregar(forcar) {
 
 // ---------- cálculo do saldo dia a dia ----------
 // converte o registro da aba FluxoCaixa para o formato usado nas telas
-function fMapear(o) { return { id: o.id, tipo: o.tipo, valorTotal: +o.valor || 0, descricao: o.descricao, categoria: o.categoria, projetoId: o.projetoId, nomeProjeto: o.nomeObra, fornecedorCliente: o.fornecedorCliente, formaPagamento: o.formaPagamento, dataVencimento: o.dataVencimento, dataBaixa: o.dataPagamento, status: o.status === 'Pago' ? 'Baixado' : o.status === 'Previsto' ? 'Previsto' : 'Aberto', origemTipo: o.origemTipo, origemId: o.origemId, comprovanteUrl: o.comprovanteUrl, dadosPagamento: o.dadosPagamento || null, dataLancamento: String(o.criadoEm || '').slice(0, 10) }; }
+function fMapear(o) { return { id: o.id, tipo: o.tipo, valorTotal: +o.valor || 0, descricao: o.descricao, categoria: o.categoria, projetoId: o.projetoId, nomeProjeto: o.nomeObra, fornecedorCliente: o.fornecedorCliente, formaPagamento: o.formaPagamento, dataVencimento: o.dataVencimento, dataBaixa: o.dataPagamento, status: o.status === 'Pago' ? 'Baixado' : o.status === 'Previsto' ? 'Previsto' : 'Aberto', origemTipo: o.origemTipo, origemId: o.origemId, comprovanteUrl: o.comprovanteUrl, dadosPagamento: o.dadosPagamento || null, obs: o.obs || '', funcionarioId: o.funcionarioId || '', funcionarioNome: o.funcionarioNome || '', dataLancamento: String(o.criadoEm || '').slice(0, 10) }; }
 // (antigo) modo manual: só lançamentos feitos a partir da data de início; automáticos (folha, medição, custos fixos) só quando liberados
 function fAplicar(l) {
   var s = F.saldo || {}, ini = s.inicio || '', lin = +s.linhaInicio || 0;
@@ -498,25 +498,23 @@ function fPgRelFinanceiro() {
 (function () { var st = document.createElement('style'); st.textContent = '.fx-grid{display:grid;grid-template-columns:1fr;gap:0 12px}@media(min-width:900px){.fx-grid{grid-template-columns:3fr 2fr}}'; document.head.appendChild(st); })();
 
 // rotas: Financeiro abre o fluxo; ao sair, a largura volta ao normal
-// ---------- extrato: classificar cada lançamento em lista (obra/tipo, funcionário, observação) ----------
-// Sem mudar o servidor: obra → projetoId; outro tipo de despesa → categoria; funcionário → fornecedorCliente "Funcionário: Nome";
-// observação → dadosPagamento.obs. Os lançamentos do extrato vêm com origemTipo 'Extrato' e origemId = chave do item (evita duplicar).
+// ---------- extrato: enviar o arquivo do banco e classificar cada lançamento em lista ----------
+// Cada item do extrato entra com origemTipo 'Extrato' e origemId = chave do item: o que já foi lançado é pulado, nunca substituído.
 var FX_TIPOS = ['Administrativo / escritório', 'Impostos e taxas', 'Tarifas bancárias', 'Folha de pagamento', 'Pró-labore / retirada de sócios', 'Combustível', 'Veículos e equipamentos', 'Aluguel', 'Empréstimo / financiamento', 'Transferência entre contas', 'Recebimento de cliente', 'Outro'];
-var FX_PREF_FUNC = 'Funcionário: ';
 function fEx() { if (!F.ex) F.ex = { sujo: {}, filtro: 'todos', busca: '', salvando: false }; return F.ex; }
 function fExObras() { return (A.cache.listarProjetosParaSelecao || A.cache.listarProjetos || []).map(function (p) { return { id: String(p.id || p.valor), nome: p.titulo || mTitulo(p) }; }); }
-function fExFuncs() { return (A.cache.listarFuncionariosAtivos || []).map(function (f) { return mTitulo(f); }).sort(function (a, b) { return a.localeCompare(b); }); }
+function fExFuncs() { return (A.cache.listarFuncionariosAtivos || []).map(function (f) { return { id: String(f.id), nome: mTitulo(f) }; }).sort(function (a, b) { return a.nome.localeCompare(b.nome); }); }
 function fExCarregarListas() {
   var x = fEx(); if (x.listas) return; x.listas = 1;
   var fnObra = aFn && aFn('listarProjetosParaSelecao') ? 'listarProjetosParaSelecao' : 'listarProjetos';
   Promise.all([aOpcoes(fnObra).catch(function () { return []; }), aOpcoes('listarFuncionariosAtivos').catch(function () { return []; })])
-    .then(function () { if (G.view === 'tFluxo' && F.aba === 'ext') fTela(); });
+    .then(function () { if (G.view === 'tFluxo' && F.aba === 'ext') { fExGuardarBusca(); fTela(); } });
 }
-function fExAtual(l) { // valores atuais (o que já está salvo + o que foi mudado e ainda não salvo)
-  var d = fEx().sujo[l.id] || {}, fc = String(l.fornecedorCliente || ''), ehF = fc.indexOf(FX_PREF_FUNC) === 0;
+function fExSalvo(l) {
   var dest = l.projetoId ? 'o:' + l.projetoId : (l.categoria && l.categoria !== 'A classificar' && l.categoria !== 'Obra' ? 'c:' + l.categoria : '');
-  return { dest: d.dest !== undefined ? d.dest : dest, func: d.func !== undefined ? d.func : (ehF ? fc.slice(FX_PREF_FUNC.length) : ''), fck: d.fck !== undefined ? d.fck : ehF, obs: d.obs !== undefined ? d.obs : ((l.dadosPagamento && l.dadosPagamento.obs) || '') };
+  return { dest: dest, fck: !!l.funcionarioId, func: l.funcionarioId || '', funcNome: l.funcionarioNome || '', obs: l.obs || '' };
 }
+function fExAtual(l) { var a = fExSalvo(l), d = fEx().sujo[l.id] || {}; Object.keys(d).forEach(function (k) { a[k] = d[k]; }); return a; }
 function fExLista() {
   var x = fEx(), b = x.busca.toLowerCase();
   return F.lanc.filter(function (l) {
@@ -525,21 +523,21 @@ function fExLista() {
     if (x.filtro === 'sem' && a.dest) return false;
     if (x.filtro === 'func' && !a.fck) return false;
     if (x.filtro === 'extrato' && l.origemTipo !== 'Extrato') return false;
-    if (b && (String(l.descricao) + ' ' + a.obs + ' ' + a.func + ' ' + (l.nomeProjeto || '') + ' ' + l.valorTotal).toLowerCase().indexOf(b) < 0) return false;
+    if (b && (String(l.descricao) + ' ' + a.obs + ' ' + a.funcNome + ' ' + (l.nomeProjeto || '') + ' ' + l.categoria + ' ' + String(l.valorTotal).replace('.', ',')).toLowerCase().indexOf(b) < 0) return false;
     return true;
   }).sort(function (p, q) { return fData(p) < fData(q) ? -1 : fData(p) > fData(q) ? 1 : String(p.origemId || '').localeCompare(String(q.origemId || '')); });
 }
 function fExOpcoesDest(v) {
-  var obras = fExObras(), tipos = FX_TIPOS.slice(), ja = {};
+  var obras = fExObras(), tipos = FX_TIPOS.slice();
   F.lanc.forEach(function (l) { if (l.categoria && ['A classificar', 'Obra'].indexOf(l.categoria) < 0 && tipos.indexOf(l.categoria) < 0) tipos.push(l.categoria); });
   if (v && v.indexOf('o:') === 0 && !obras.some(function (o) { return 'o:' + o.id === v; })) { var l0 = F.lanc.filter(function (l) { return 'o:' + l.projetoId === v; })[0]; obras.push({ id: v.slice(2), nome: (l0 && l0.nomeProjeto) || 'Obra' }); }
   if (v && v.indexOf('c:') === 0 && tipos.indexOf(v.slice(2)) < 0) tipos.push(v.slice(2));
   var op = function (val, txt) { return '<option value="' + esc(val) + '"' + (val === v ? ' selected' : '') + '>' + esc(txt) + '</option>'; };
-  return op('', '— a classificar —') + '<optgroup label="Obra">' + obras.map(function (o) { return op('o:' + o.id, o.nome); }).join('') + '</optgroup><optgroup label="Outro tipo de despesa">' + tipos.map(function (t) { return op('c:' + t, t); }).join('') + '</optgroup>';
+  return op('', '— obra ou tipo de despesa —') + '<optgroup label="Obra">' + obras.map(function (o) { return op('o:' + o.id, o.nome); }).join('') + '</optgroup><optgroup label="Outro tipo de despesa">' + tipos.map(function (t) { return op('c:' + t, t); }).join('') + '</optgroup>';
 }
 function fExFuncSel(l, a) {
-  var fs = fExFuncs(); if (a.func && fs.indexOf(a.func) < 0) fs.unshift(a.func);
-  return '<select class="ex-func" data-id="' + esc(l.id) + '" style="padding:7px;margin-top:6px"><option value="">— escolha o funcionário —</option>' + fs.map(function (n) { return '<option' + (n === a.func ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('') + '</select>';
+  var fs = fExFuncs(); if (a.func && !fs.some(function (f) { return f.id === a.func; })) fs.unshift({ id: a.func, nome: a.funcNome || 'Funcionário' });
+  return '<select class="ex-func" data-id="' + esc(l.id) + '" style="padding:7px;margin-top:6px"><option value="">— escolha o funcionário —</option>' + fs.map(function (f) { return '<option value="' + esc(f.id) + '"' + (f.id === a.func ? ' selected' : '') + '>' + esc(f.nome) + '</option>'; }).join('') + '</select>';
 }
 function fExLinha(l) {
   var a = fExAtual(l), e = fEnt(l), sujo = !!fEx().sujo[l.id];
@@ -553,10 +551,13 @@ function fExLinha(l) {
 }
 function fHtmlExt() {
   var x = fEx(); fExCarregarListas();
+  if (x.imp) return fExHtmlImp();
   var l = fExLista(), n = Object.keys(x.sujo).length, semDest = 0, tot = { e: 0, s: 0 };
   l.forEach(function (i) { if (!fExAtual(i).dest) semDest++; if (fEnt(i)) tot.e += i.valorTotal; else tot.s += i.valorTotal; });
   var nm = F_NOMES_MES[+F.mes.slice(5, 7) - 1] + ' ' + F.mes.slice(0, 4);
   var h = '<style>@media(min-width:900px){.ex-grid{grid-template-columns:1.3fr 1fr 1.3fr!important;align-items:start}}</style>' +
+    '<div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label class="btn lar" style="width:auto;padding:12px 16px;margin:0;cursor:pointer">📤 Enviar extrato do banco<input type="file" id="ex-arq" accept=".ofx,.csv,.txt,.pdf,.OFX,.CSV,.PDF,text/csv,application/x-ofx,application/pdf" style="display:none"></label>' +
+    '<span class="muted" style="font-size:12px;flex:1;min-width:180px">Arquivo <b>OFX</b> (melhor), <b>CSV</b> ou <b>PDF</b> do internet banking. Os lançamentos entram sozinhos e o que já existe é pulado.</span></div>' +
     '<div class="card"><div style="display:flex;align-items:center;gap:8px"><button class="btn sec" style="width:auto;padding:6px 12px" onclick="fExMes(-1)">‹</button><h2 style="margin:0;flex:1;text-align:center">' + nm + '</h2><button class="btn sec" style="width:auto;padding:6px 12px" onclick="fExMes(1)">›</button></div>' +
     '<p class="muted" style="margin:8px 0 0;font-size:13px">' + l.length + ' lançamentos · entradas ' + fBrl(tot.e) + ' · saídas ' + fBrl(tot.s) + (semDest ? ' · <b style="color:#b26a00">' + semDest + ' sem obra/tipo</b>' : '') + '</p>' +
     '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">' + [['todos', 'Todos'], ['sem', 'Sem obra/tipo'], ['func', 'Funcionários'], ['extrato', 'Só do extrato']].map(function (f) { return '<button class="btn ' + (x.filtro === f[0] ? '' : 'sec') + '" style="width:auto;padding:6px 10px;font-size:12px" onclick="fExFiltro(\'' + f[0] + '\')">' + f[1] + '</button>'; }).join('') + '</div>' +
@@ -569,55 +570,217 @@ function fHtmlExt() {
 function fExMes(n) { fExGuardarBusca(); fMes(n); }
 function fExFiltro(f) { fExGuardarBusca(); fEx().filtro = f; fTela(); }
 function fExGuardarBusca() { if ($('ex-busca')) fEx().busca = $('ex-busca').value; }
-function fExMarca(id, campo, v) {
+function fExMarca(id, campo, v, nome) {
   var x = fEx(), l = F.lanc.filter(function (i) { return String(i.id) === String(id); })[0]; if (!l) return;
-  var d = x.sujo[id] || (x.sujo[id] = {}); d[campo] = v;
-  var a0 = fExAtual(Object.assign({}, l)); // recalcula: se voltou ao valor salvo, deixa de estar "sujo"
-  delete x.sujo[id]; var orig = fExAtual(l); x.sujo[id] = d;
-  if (orig.dest === a0.dest && orig.obs === a0.obs && orig.fck === a0.fck && (orig.func === a0.func || !a0.fck)) delete x.sujo[id];
+  var d = x.sujo[id] || (x.sujo[id] = {}), o = fExSalvo(l); d[campo] = v; if (campo === 'func') d.funcNome = nome || '';
+  var a = fExAtual(l);
+  if (o.dest === a.dest && o.obs === a.obs && o.fck === a.fck && (!a.fck || o.func === a.func)) delete x.sujo[id];
   var n = Object.keys(x.sujo).length, bar = $('ex-barra'), row = document.querySelector('.ex-row[data-id="' + id + '"]');
   if (bar) { bar.style.display = n ? 'block' : 'none'; $('ex-salvar').textContent = 'Salvar ' + n + ' alteraç' + (n === 1 ? 'ão' : 'ões'); }
   if (row) row.style.borderColor = x.sujo[id] ? 'var(--laranja)' : 'var(--borda)';
 }
+function fExLigarFunc(sel) { sel.onchange = function () { fExMarca(sel.dataset.id, 'func', sel.value, sel.value ? sel.options[sel.selectedIndex].text : ''); }; }
 function fExLigar() {
   var each = function (sel, fn) { Array.prototype.forEach.call(document.querySelectorAll(sel), fn); };
   each('.ex-dest', function (el) { el.onchange = function () { fExMarca(el.dataset.id, 'dest', el.value); el.style.borderColor = el.value ? '' : '#e0a100'; el.style.background = el.value ? '' : '#fffaf0'; }; });
   each('.ex-obs', function (el) { el.oninput = function () { fExMarca(el.dataset.id, 'obs', el.value); }; });
-  each('.ex-func', function (el) { el.onchange = function () { fExMarca(el.dataset.id, 'func', el.value); }; });
+  each('.ex-func', fExLigarFunc);
   each('.ex-fck', function (el) { el.onchange = function () {
     fExMarca(el.dataset.id, 'fck', el.checked);
     var box = el.closest('div'), sel = box.querySelector('.ex-func');
-    if (el.checked && !sel) { var l = F.lanc.filter(function (i) { return String(i.id) === el.dataset.id; })[0]; box.insertAdjacentHTML('beforeend', fExFuncSel(l, fExAtual(l))); var s2 = box.querySelector('.ex-func'); s2.onchange = function () { fExMarca(s2.dataset.id, 'func', s2.value); }; s2.focus(); }
+    if (el.checked && !sel) { var l = F.lanc.filter(function (i) { return String(i.id) === el.dataset.id; })[0]; box.insertAdjacentHTML('beforeend', fExFuncSel(l, fExAtual(l))); var s2 = box.querySelector('.ex-func'); fExLigarFunc(s2); s2.focus(); }
     else if (!el.checked && sel) sel.remove();
   }; });
   if ($('ex-busca')) { $('ex-busca').oninput = function () { var v = this.value, pos = this.selectionStart; clearTimeout(F._exT); F._exT = setTimeout(function () { fEx().busca = v; fTela(); var b = $('ex-busca'); if (b) { b.focus(); b.setSelectionRange(pos, pos); } }, 350); }; }
+  if ($('ex-arq')) $('ex-arq').onchange = function () { if (this.files[0]) fExLerArquivo(this.files[0]); this.value = ''; };
+  if ($('ex-imp-ok')) $('ex-imp-ok').onclick = fExImportar;
 }
 function fExSalvar() {
   var x = fEx(); if (x.salvando || !gOnline()) return;
   var ids = Object.keys(x.sujo); if (!ids.length) return;
-  for (var k = 0; k < ids.length; k++) { var l0 = F.lanc.filter(function (i) { return String(i.id) === ids[k]; })[0], a0 = l0 && fExAtual(l0); if (a0 && a0.fck && !a0.func) return aviso('Escolha o funcionário em "' + (l0.descricao || '').slice(0, 40) + '".', 'err'); }
-  x.salvando = true; var b = $('ex-salvar'); if (b) b.disabled = true;
-  var obsLista = [], tarefas = [], feitos = 0, erros = [];
-  ids.forEach(function (id) {
-    var l = F.lanc.filter(function (i) { return String(i.id) === id; })[0]; if (!l) return;
-    var a = fExAtual(l), d = x.sujo[id], dp = l.dadosPagamento || {};
-    if (d.obs !== undefined) obsLista.push({ id: id, metodo: dp.metodo || '', chave: dp.chave || '', favorecido: dp.favorecido || '', documento: dp.documento || '', obs: a.obs });
-    if (d.dest !== undefined || d.fck !== undefined || d.func !== undefined) {
-      var obra = a.dest.indexOf('o:') === 0 ? a.dest.slice(2) : '', cat = obra ? 'Obra' : (a.dest ? a.dest.slice(2) : 'A classificar');
-      var fc = a.fck ? FX_PREF_FUNC + a.func : (String(l.fornecedorCliente || '').indexOf(FX_PREF_FUNC) === 0 ? '' : (l.fornecedorCliente || ''));
-      tarefas.push({ id: id, dd: { id: id, tipo: l.tipo, valor: l.valorTotal, descricao: l.descricao, categoria: cat, projetoId: obra, fornecedorCliente: fc, formaPagamento: l.formaPagamento || '', dataVencimento: l.dataVencimento } });
+  var lista = [];
+  for (var k = 0; k < ids.length; k++) {
+    var id = ids[k], l = F.lanc.filter(function (i) { return String(i.id) === id; })[0]; if (!l) continue;
+    var a = fExAtual(l), d = x.sujo[id], it = { id: id };
+    if (a.fck && !a.func) return aviso('Escolha o funcionário em "' + (l.descricao || '').slice(0, 40) + '".', 'err');
+    if ('dest' in d) { it.projetoId = a.dest.indexOf('o:') === 0 ? a.dest.slice(2) : ''; it.categoria = it.projetoId ? 'Obra' : (a.dest ? a.dest.slice(2) : 'A classificar'); }
+    if ('fck' in d || 'func' in d) { it.funcionarioId = a.fck ? a.func : ''; it.funcionarioNome = a.fck ? a.funcNome : ''; }
+    if ('obs' in d) it.obs = a.obs;
+    lista.push(it);
+  }
+  x.salvando = true; var b = $('ex-salvar'); if (b) b.disabled = true; aviso('Salvando ' + lista.length + '...');
+  sys('fxClassificar', [lista]).then(function () { x.sujo = {}; aviso('Alterações salvas.', 'ok'); fCarregar(true); })
+    .catch(function (e) { aviso(e.message, 'err'); if (b) b.disabled = false; })
+    .then(function () { x.salvando = false; });
+}
+
+// ---------- leitura do arquivo do banco (OFX ou CSV) ----------
+function fExNorm(s) { return String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Z0-9]+/g, ' ').trim(); }
+function fExNum(s) {
+  s = String(s == null ? '' : s).replace(/R\$|\s| /g, ''); if (!s) return NaN;
+  var neg = /^\(.*\)$/.test(s) || /^-/.test(s) || /-$/.test(s) || /D$/i.test(s); s = s.replace(/[()\-+CD]/gi, '');
+  var c = s.lastIndexOf(','), p = s.lastIndexOf('.');
+  if (c >= 0 && p >= 0) s = c > p ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  else if (c >= 0) s = s.replace(/\./g, '').replace(',', '.');
+  else if (p >= 0 && /^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+  var v = parseFloat(s); return isNaN(v) ? NaN : (neg ? -v : v);
+}
+function fExDataTxt(s) {
+  s = String(s || '').trim(); var m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+  if (m) { var a = m[3].length === 2 ? '20' + m[3] : m[3]; return a + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0'); }
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[1] + '-' + m[2] + '-' + m[3] : null;
+}
+function fExChaves(itens, pref) { // mesma data+valor+descrição repetidos no arquivo ganham #1, #2... (re-enviar o mesmo período dá as mesmas chaves)
+  var cont = {};
+  itens.forEach(function (i) { if (i.chave) return; var b = pref + ':' + i.data + '|' + i.valor.toFixed(2) + '|' + fExNorm(i.descricao).slice(0, 80) + (i.doc ? '|' + fExNorm(i.doc) : ''); cont[b] = (cont[b] || 0) + 1; i.chave = b + '#' + cont[b]; });
+  return itens;
+}
+function fExLerOfx(t) {
+  var tag = function (b, n) { var m = b.match(new RegExp('<' + n + '>([^<\\r\\n]*)', 'i')); return m ? m[1].trim() : ''; };
+  var conta = tag(t, 'ACCTID'), itens = [], re = /<STMTTRN>([\s\S]*?)(?=<\/STMTTRN>|<STMTTRN>|<\/BANKTRANLIST>)/gi, m;
+  while ((m = re.exec(t))) {
+    var b = m[1], d = tag(b, 'DTPOSTED'), v = fExNum(tag(b, 'TRNAMT').replace(',', '.')), desc = [tag(b, 'NAME'), tag(b, 'MEMO')].filter(Boolean).filter(function (x, i, a) { return a.indexOf(x) === i; }).join(' · ');
+    if (!/^\d{8}/.test(d) || !v) continue;
+    var fit = tag(b, 'FITID');
+    itens.push({ data: d.slice(0, 4) + '-' + d.slice(4, 6) + '-' + d.slice(6, 8), valor: Math.round(v * 100) / 100, descricao: desc, doc: tag(b, 'CHECKNUM') || tag(b, 'REFNUM'), chave: fit ? 'ofx:' + conta + ':' + fit : '' });
+  }
+  var saldo = null, lb = t.match(/<LEDGERBAL>([\s\S]*?)(<\/LEDGERBAL>|<AVAILBAL>|<\/STMTRS>)/i);
+  if (lb) { var bv = fExNum(tag(lb[1], 'BALAMT').replace(',', '.')), bd = tag(lb[1], 'DTASOF'); if (!isNaN(bv) && /^\d{8}/.test(bd)) saldo = { valor: bv, data: bd.slice(0, 4) + '-' + bd.slice(4, 6) + '-' + bd.slice(6, 8) }; }
+  return { itens: fExChaves(itens, 'ofx:' + conta), saldo: saldo, formato: 'OFX' };
+}
+function fExSplit(linha, sep) {
+  var out = [], cur = '', q = false;
+  for (var i = 0; i < linha.length; i++) { var ch = linha[i]; if (ch === '"') { if (q && linha[i + 1] === '"') { cur += '"'; i++; } else q = !q; } else if (ch === sep && !q) { out.push(cur); cur = ''; } else cur += ch; }
+  out.push(cur); return out.map(function (c) { return c.trim(); });
+}
+function fExLerCsv(t) {
+  var linhas = t.split(/\r?\n/).filter(function (l) { return l.trim(); });
+  var amostra = linhas.slice(0, 30).join('\n'), sep = [';', '\t', ','].sort(function (a, b) { return amostra.split(b).length - amostra.split(a).length; })[0];
+  var rows = linhas.map(function (l) { return fExSplit(l, sep); }), hi = -1, col = {};
+  var acha = function (cab, re) { for (var i = 0; i < cab.length; i++) if (re.test(fExNorm(cab[i]))) return i; return -1; };
+  for (var r = 0; r < Math.min(rows.length, 40); r++) {
+    var cab = rows[r], cd = acha(cab, /^DATA|^DT\b|^DATE/);
+    if (cd < 0) continue;
+    var cv = acha(cab, /^VALOR|^VLR|^MONTANTE|^QUANTIA|^AMOUNT/), cc = acha(cab, /CREDITO|^ENTRADA/), cdb = acha(cab, /DEBITO|^SAIDA/);
+    if (cv < 0 && cc < 0 && cdb < 0) continue;
+    hi = r; col = { d: cd, v: cv, c: cc, db: cdb, h: acha(cab, /HISTORICO|DESCRI|LANCAMENTO|DETALH|MEMO|ESTABELEC|TITULO|^TRANSAC|NOME/), doc: acha(cab, /DOCUMENTO|^DOC\b|^N DOC|IDENTIFICADOR|^ID\b|^REFER/), dc: acha(cab, /^D C$|^C D$|^TIPO$|^NATUREZA|^SINAL/) };
+    if (col.h === col.d) col.h = -1;
+    break;
+  }
+  var itens = [];
+  rows.slice(hi + 1).forEach(function (c) {
+    var d = fExDataTxt(c[hi >= 0 ? col.d : 0]); if (!d) return;
+    var v;
+    if (hi < 0) { var nums = c.map(fExNum); v = NaN; for (var k = c.length - 1; k > 0; k--) if (!isNaN(nums[k]) && /\d[,.]\d{2}\b/.test(c[k])) { v = nums[k]; break; } if (k > 0 && c.length > 2) { var vv = nums[k - 1]; if (!isNaN(vv) && /\d[,.]\d{2}\b/.test(c[k - 1])) v = vv; } }
+    else if (col.v >= 0 && c[col.v] !== '' && c[col.v] != null) v = fExNum(c[col.v]);
+    else { var cr = fExNum(c[col.c]), db = fExNum(c[col.db]); v = (!isNaN(cr) && cr ? Math.abs(cr) : 0) - (!isNaN(db) && db ? Math.abs(db) : 0); }
+    if (hi >= 0 && col.dc >= 0 && /^D/i.test(c[col.dc] || '') && v > 0) v = -v;
+    if (isNaN(v) || !v) return;
+    var desc = hi >= 0 && col.h >= 0 ? c[col.h] : c.filter(function (x, i) { return i !== 0 && isNaN(fExNum(x)); }).join(' ');
+    if (/^SALDO|SALDO ANTERIOR|SALDO DO DIA|SALDO FINAL|S A L D O/.test(fExNorm(desc))) return;
+    itens.push({ data: d, valor: Math.round(v * 100) / 100, descricao: desc, doc: hi >= 0 && col.doc >= 0 ? c[col.doc] : '' });
+  });
+  return { itens: fExChaves(itens, 'csv'), saldo: null, formato: 'CSV' };
+}
+// PDF do banco: lê o texto do PDF (não funciona em PDF escaneado/foto) e monta os lançamentos por linha.
+var FX_PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+function fExPdfLib() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  return new Promise(function (ok, er) {
+    var s = document.createElement('script'); s.src = FX_PDFJS + 'pdf.min.js';
+    s.onload = function () { window.pdfjsLib.GlobalWorkerOptions.workerSrc = FX_PDFJS + 'pdf.worker.min.js'; ok(window.pdfjsLib); };
+    s.onerror = function () { er(new Error('sem internet para abrir o leitor de PDF')); }; document.head.appendChild(s);
+  });
+}
+function fExPdfLinhas(buf) { // devolve linhas [{y, itens:[{x, t}]}] de todas as páginas
+  return fExPdfLib().then(function (lib) { return lib.getDocument({ data: buf }).promise; }).then(function (doc) {
+    var ps = []; for (var p = 1; p <= doc.numPages; p++) ps.push(doc.getPage(p).then(function (pg) { return pg.getTextContent(); }));
+    return Promise.all(ps);
+  }).then(function (pgs) {
+    var linhas = [];
+    pgs.forEach(function (tc, pi) {
+      var its = tc.items.filter(function (i) { return String(i.str).trim(); }).map(function (i) { return { x: i.transform[4], cx: i.transform[4] + (i.width || 0) / 2, y: i.transform[5], t: String(i.str).trim() }; });
+      its.sort(function (a, b) { return b.y - a.y || a.x - b.x; });
+      var cur = null;
+      its.forEach(function (i) { if (!cur || Math.abs(cur.y - i.y) > 2.5) { cur = { y: i.y, pg: pi, itens: [] }; linhas.push(cur); } cur.itens.push(i); });
+      linhas.forEach(function (l) { l.itens.sort(function (a, b) { return a.x - b.x; }); });
+    });
+    return linhas;
+  });
+}
+var FX_RE_VAL = /^\(?-?\s?(R\$\s?)?-?\d{1,3}(\.\d{3})*,\d{2}\)?(\s?-|\s?[DC])?$/i;
+function fExLerPdfLinhas(linhas) {
+  var txt = linhas.map(function (l) { return l.itens.map(function (i) { return i.t; }).join(' '); }).join('\n');
+  var anoM = txt.match(/\b\d{1,2}\/\d{1,2}\/(20\d{2})\b/) || txt.match(/\b(20\d{2})\b/), anoPadrao = anoM ? anoM[1] : fHoje().slice(0, 4);
+  var colC = null, colD = null, colS = null, colV = null; // centro x das colunas, se o PDF tiver cabeçalho
+  linhas.forEach(function (l) { l.itens.forEach(function (i) { var n = fExNorm(i.t); if (colC == null && /^(CREDITO|CREDITOS|ENTRADAS?)( R)?$/.test(n)) colC = i.cx; if (colD == null && /^(DEBITO|DEBITOS|SAIDAS?)( R)?$/.test(n)) colD = i.cx; if (colS == null && /^SALDO( R)?$/.test(n)) colS = i.cx; if (colV == null && /^VALOR( R)?$/.test(n)) colV = i.cx; }); });
+  var perto = function (x, c) { return c == null ? 1e9 : Math.abs(x - c); };
+  var itens = [], ultData = null, ultSaldo = null;
+  linhas.forEach(function (l) {
+    // junta pedaços: "1.234,56" às vezes vem separado do "-" ou do "D"
+    var tk = []; l.itens.forEach(function (i) { var t = i.t; if (tk.length && /^[-DC]$/i.test(t) && FX_RE_VAL.test(tk[tk.length - 1].t + t)) { tk[tk.length - 1].t += t; return; } tk.push({ x: i.cx, t: t }); });
+    var primeiro = tk[0] ? tk[0].t : '', dm = primeiro.match(/^(\d{1,2})\/(\d{1,2})(\/(\d{2,4}))?$/), data = null;
+    if (dm) { var a = dm[4] ? (dm[4].length === 2 ? '20' + dm[4] : dm[4]) : anoPadrao; data = a + '-' + dm[2].padStart(2, '0') + '-' + dm[1].padStart(2, '0'); tk.shift(); }
+    var vals = tk.filter(function (i) { return FX_RE_VAL.test(i.t); });
+    var desc = tk.filter(function (i) { return !FX_RE_VAL.test(i.t); }).map(function (i) { return i.t; }).join(' ').replace(/\s+/g, ' ').trim();
+    var n = fExNorm(desc);
+    if (!vals.length) { if (!data && itens.length && itens[itens.length - 1]._aberto && desc && desc.length < 80 && !/SALDO|PAGINA|EXTRATO|AGENCIA|CONTA/.test(n)) itens[itens.length - 1].descricao += ' ' + desc; return; }
+    if (itens.length) itens[itens.length - 1]._aberto = false;
+    if (!data) { if (!ultData || !desc) return; data = ultData; }
+    ultData = data;
+    var saldoLinha = null, vtk = vals[0];
+    if (vals.length >= 2) { saldoLinha = fExNum(vals[vals.length - 1].t); vtk = vals[0]; }
+    else if (colS != null && (colV != null || colC != null || colD != null) && perto(vals[0].x, colS) < Math.min(perto(vals[0].x, colV), perto(vals[0].x, colC), perto(vals[0].x, colD))) { saldoLinha = fExNum(vals[0].t); vtk = null; }
+    if (/^SALDO|SALDO ANTERIOR|SALDO DO DIA|SALDO FINAL|SDO /.test(n) || !vtk) { if (saldoLinha != null && !isNaN(saldoLinha)) ultSaldo = saldoLinha; return; }
+    var v = fExNum(vtk.t); if (isNaN(v) || !v) return;
+    var temSinal = /-|\(|D$/i.test(vtk.t) || /C$/i.test(vtk.t);
+    if (!temSinal) {
+      if (colC != null && colD != null) v = perto(vtk.x, colD) < perto(vtk.x, colC) ? -Math.abs(v) : Math.abs(v);
+      else if (saldoLinha != null && ultSaldo != null && !isNaN(saldoLinha)) v = saldoLinha < ultSaldo ? -Math.abs(v) : Math.abs(v);
     }
+    if (saldoLinha != null && !isNaN(saldoLinha)) ultSaldo = saldoLinha;
+    itens.push({ data: data, valor: Math.round(v * 100) / 100, descricao: desc || '(sem descrição)', doc: '', _aberto: true });
   });
-  var total = tarefas.length + (obsLista.length ? 1 : 0), prog = function () { aviso('Salvando ' + Math.min(feitos, total) + ' de ' + total + '...'); };
-  prog();
-  var fila = tarefas.slice(), worker = function () { var t = fila.shift(); if (!t) return Promise.resolve(); return sys('fxSalvar', [t.dd]).then(function () { feitos++; prog(); }).catch(function (e) { erros.push(e.message); }).then(worker); };
-  var ps = [worker(), worker(), worker()];
-  if (obsLista.length) ps.push(sys('fxSalvarPagamentos', [obsLista]).then(function () { feitos++; prog(); }).catch(function (e) { erros.push(e.message); }));
-  Promise.all(ps).then(function () {
-    x.salvando = false;
-    if (erros.length) { aviso('Algumas alterações não foram salvas: ' + erros[0], 'err'); fCarregar(true); return; }
-    x.sujo = {}; aviso('Alterações salvas.', 'ok'); fCarregar(true);
-  });
+  itens.forEach(function (i) { delete i._aberto; });
+  return { itens: fExChaves(itens, 'pdf'), saldo: null, formato: 'PDF' };
+}
+function fExLerArquivo(arq) {
+  var ler = function (enc) { return new Promise(function (ok, er) { var r = new FileReader(); r.onload = function () { ok(r.result); }; r.onerror = er; r.readAsText(arq, enc); }); };
+  aviso('Lendo o arquivo...');
+  var mostrar = function (r) {
+    if (!r.itens.length) return aviso('Não encontrei lançamentos nesse arquivo. Se for PDF escaneado (foto), exporte o extrato em OFX, CSV ou PDF do internet banking.', 'err');
+    var ja = {}; F.todos.forEach(function (l) { if (l.origemTipo === 'Extrato') ja[l.origemId] = 1; });
+    r.novos = r.itens.filter(function (i) { return !ja[i.chave]; }).length;
+    r.nome = arq.name; r.usarSaldo = false; fEx().imp = r; fTela();
+  };
+  if (/\.pdf$/i.test(arq.name) || arq.type === 'application/pdf') {
+    return arq.arrayBuffer().then(fExPdfLinhas).then(function (ls) { mostrar(fExLerPdfLinhas(ls)); }).catch(function (e) { aviso('Não consegui ler o PDF: ' + e.message, 'err'); });
+  }
+  ler('utf-8').then(function (t) { return /�/.test(t) ? ler('windows-1252') : t; }).then(function (t) {
+    mostrar(/<OFX>|OFXHEADER|<STMTTRN>/i.test(t) ? fExLerOfx(t) : fExLerCsv(t));
+  }).catch(function (e) { aviso('Não consegui ler o arquivo: ' + e.message, 'err'); });
+}
+function fExHtmlImp() {
+  var r = fEx().imp, ds = r.itens.map(function (i) { return i.data; }).sort(), e = 0, s = 0;
+  r.itens.forEach(function (i) { if (i.valor > 0) e += i.valor; else s -= i.valor; });
+  var h = '<div class="card"><h2 style="margin-top:0">📤 Enviar extrato</h2><p><b>' + esc(r.nome) + '</b> (' + r.formato + ')</p>' +
+    '<ul class="lista"><li><span>Período</span><b>' + fDia(ds[0]) + '/' + ds[0].slice(0, 4) + ' a ' + fDia(ds[ds.length - 1]) + '/' + ds[ds.length - 1].slice(0, 4) + '</b></li>' +
+    '<li><span>Lançamentos no arquivo</span><b>' + r.itens.length + '</b></li><li><span>Novos (serão lançados)</span><b style="color:#1b7f3b">' + r.novos + '</b></li><li><span>Já lançados (serão pulados)</span><b>' + (r.itens.length - r.novos) + '</b></li>' +
+    '<li><span>Entradas no arquivo</span><b style="color:#1b7f3b">' + fBrl(e) + '</b></li><li><span>Saídas no arquivo</span><b style="color:#c62828">' + fBrl(s) + '</b></li></ul>';
+  if (r.saldo) h += '<label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-weight:400"><input type="checkbox" id="ex-imp-saldo" style="width:auto"' + (r.usarSaldo ? ' checked' : '') + ' onchange="fEx().imp.usarSaldo=this.checked"> Ajustar o saldo do fluxo pelo extrato: ' + fBrl(r.saldo.valor) + ' em ' + r.saldo.data.split('-').reverse().join('/') + '</label>';
+  h += '<div style="max-height:260px;overflow:auto;margin-top:10px;border:1px solid var(--borda);border-radius:8px;padding:6px 8px"><ul class="lista">' + r.itens.slice(0, 300).map(function (i) { return '<li><span style="font-size:12px"><span class="muted">' + fDia(i.data) + '</span> ' + esc(i.descricao) + '</span><b style="white-space:nowrap;color:' + (i.valor > 0 ? '#1b7f3b' : '#c62828') + '">' + (i.valor > 0 ? '+' : '−') + fBrl(Math.abs(i.valor)) + '</b></li>'; }).join('') + (r.itens.length > 300 ? '<li class="muted">… e mais ' + (r.itens.length - 300) + '</li>' : '') + '</ul></div>' +
+    '<div style="height:12px"></div><button class="btn lar" id="ex-imp-ok" style="padding:14px;font-size:16px"' + (r.novos || r.saldo ? '' : ' disabled') + '>' + (r.novos ? 'Lançar ' + r.novos + ' lançamento' + (r.novos === 1 ? '' : 's') : 'Nada novo para lançar') + '</button>' +
+    '<button class="btn sec" style="margin-top:8px" onclick="fEx().imp=null;fTela()">Cancelar</button></div>';
+  return h;
+}
+function fExImportar() {
+  var x = fEx(), r = x.imp; if (!r || !gOnline()) return;
+  var b = $('ex-imp-ok'); b.disabled = true; aviso('Lançando ' + r.novos + '...');
+  var itens = r.itens.map(function (i) { return { data: i.data, valor: i.valor, descricao: i.descricao + (i.doc && String(i.descricao).indexOf(i.doc) < 0 ? ' · doc ' + i.doc : ''), chave: i.chave }; });
+  sys('fxImportarExtrato', [itens, r.usarSaldo && r.saldo ? r.saldo : null]).then(function (res) {
+    aviso(res.novos + ' lançamento' + (res.novos === 1 ? '' : 's') + ' novo' + (res.novos === 1 ? '' : 's') + (res.duplicados ? ' · ' + res.duplicados + ' já existia' + (res.duplicados === 1 ? '' : 'm') : '') + (res.saldo ? ' · saldo ajustado' : '') + '. Agora é só completar.', 'ok');
+    var ds = r.itens.map(function (i) { return i.data; }).sort(); F.mes = ds[0].slice(0, 7); x.imp = null; x.filtro = 'sem'; fCarregar(true); fTela();
+  }).catch(function (e) { aviso(e.message, 'err'); b.disabled = false; });
 }
 
 var _fRota = gRotaExtra;
