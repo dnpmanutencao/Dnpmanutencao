@@ -67,12 +67,12 @@ function fTotDia(d) { var e = 0, s = 0; fDoDia(d).forEach(function (l) { if (fEn
 function fTela() {
   var main = document.querySelector('main'); if (main) main.style.maxWidth = '1180px';
   if (!F.lanc) { $('tela').innerHTML = gVoltar('auto') + '<div class="card muted">Carregando o financeiro...</div>'; fCarregar(); return; }
-  var abas = [['cal', '📅 Calendário'], ['aprov', '📥 Aprovações' + (F.nAprov ? ' (' + F.nAprov + ')' : '')], ['pagar', '🧾 Contas a pagar'], ['pend', '⚠️ Pendências'], ['rel', '📊 Relatórios']];
+  var abas = [['cal', '📅 Calendário'], ['ext', '🏦 Extrato'], ['aprov', '📥 Aprovações' + (F.nAprov ? ' (' + F.nAprov + ')' : '')], ['pagar', '🧾 Contas a pagar'], ['pend', '⚠️ Pendências'], ['rel', '📊 Relatórios']];
   var h = '<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap"><button class="btn sec" style="width:auto;padding:8px 12px;font-size:13px" onclick="gIr(\'auto\')">←</button>' +
     abas.map(function (a) { return '<button class="btn ' + (F.aba === a[0] ? '' : 'sec') + '" style="width:auto;padding:8px 12px;font-size:13px" onclick="F.aba=\'' + a[0] + '\';fTela()">' + a[1] + '</button>'; }).join('') +
     '<button class="btn sec" style="width:auto;padding:8px 10px;font-size:13px;margin-left:auto" onclick="fCarregar(true)" title="Atualizar">🔄</button></div>';
-  if (F.aba === 'aprov') h += fHtmlAprov(); else if (F.aba === 'pagar') h += fHtmlPagar(); else if (F.aba === 'pend') h += fHtmlPend(); else if (F.aba === 'rel') h += fHtmlRel(); else h += fHtmlCal();
-  h += '<button onclick="fNovo()" style="position:fixed;right:18px;bottom:84px;width:58px;height:58px;border-radius:50%;background:var(--laranja);color:#fff;font-size:30px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:6">+</button>';
+  if (F.aba === 'ext') h += fHtmlExt(); else if (F.aba === 'aprov') h += fHtmlAprov(); else if (F.aba === 'pagar') h += fHtmlPagar(); else if (F.aba === 'pend') h += fHtmlPend(); else if (F.aba === 'rel') h += fHtmlRel(); else h += fHtmlCal();
+  if (F.aba !== 'ext') h += '<button onclick="fNovo()" style="position:fixed;right:18px;bottom:84px;width:58px;height:58px;border-radius:50%;background:var(--laranja);color:#fff;font-size:30px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:6">+</button>';
   $('tela').innerHTML = h;
   fLigar();
 }
@@ -211,6 +211,7 @@ function fLigar() {
   if ($('f-cat')) $('f-cat').onchange = function () { if (F.aba === 'pagar') fPgCap(); F.cat = this.value; fTela(); };
   Array.prototype.forEach.call(document.querySelectorAll('.f-ck'), function (c) { c.onchange = function () { F.sel[c.dataset.id] = c.checked ? 1 : 0; }; });
   if (F.aba === 'pagar') fPgLigar();
+  if (F.aba === 'ext') fExLigar();
 }
 function fMes(n) { var d = new Date(+F.mes.slice(0, 4), +F.mes.slice(5, 7) - 1 + n, 1); F.mes = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); F.dia = null; fTela(); }
 function fAcao(fn, args, ok) { if (!gOnline()) return; aviso('Salvando...'); return sys(fn, args).then(function () { aviso(ok || 'Feito.', 'ok'); fCarregar(true); }).catch(function (e) { aviso(e.message, 'err'); }); }
@@ -497,6 +498,128 @@ function fPgRelFinanceiro() {
 (function () { var st = document.createElement('style'); st.textContent = '.fx-grid{display:grid;grid-template-columns:1fr;gap:0 12px}@media(min-width:900px){.fx-grid{grid-template-columns:3fr 2fr}}'; document.head.appendChild(st); })();
 
 // rotas: Financeiro abre o fluxo; ao sair, a largura volta ao normal
+// ---------- extrato: classificar cada lançamento em lista (obra/tipo, funcionário, observação) ----------
+// Sem mudar o servidor: obra → projetoId; outro tipo de despesa → categoria; funcionário → fornecedorCliente "Funcionário: Nome";
+// observação → dadosPagamento.obs. Os lançamentos do extrato vêm com origemTipo 'Extrato' e origemId = chave do item (evita duplicar).
+var FX_TIPOS = ['Administrativo / escritório', 'Impostos e taxas', 'Tarifas bancárias', 'Folha de pagamento', 'Pró-labore / retirada de sócios', 'Combustível', 'Veículos e equipamentos', 'Aluguel', 'Empréstimo / financiamento', 'Transferência entre contas', 'Recebimento de cliente', 'Outro'];
+var FX_PREF_FUNC = 'Funcionário: ';
+function fEx() { if (!F.ex) F.ex = { sujo: {}, filtro: 'todos', busca: '', salvando: false }; return F.ex; }
+function fExObras() { return (A.cache.listarProjetosParaSelecao || A.cache.listarProjetos || []).map(function (p) { return { id: String(p.id || p.valor), nome: p.titulo || mTitulo(p) }; }); }
+function fExFuncs() { return (A.cache.listarFuncionariosAtivos || []).map(function (f) { return mTitulo(f); }).sort(function (a, b) { return a.localeCompare(b); }); }
+function fExCarregarListas() {
+  var x = fEx(); if (x.listas) return; x.listas = 1;
+  var fnObra = aFn && aFn('listarProjetosParaSelecao') ? 'listarProjetosParaSelecao' : 'listarProjetos';
+  Promise.all([aOpcoes(fnObra).catch(function () { return []; }), aOpcoes('listarFuncionariosAtivos').catch(function () { return []; })])
+    .then(function () { if (G.view === 'tFluxo' && F.aba === 'ext') fTela(); });
+}
+function fExAtual(l) { // valores atuais (o que já está salvo + o que foi mudado e ainda não salvo)
+  var d = fEx().sujo[l.id] || {}, fc = String(l.fornecedorCliente || ''), ehF = fc.indexOf(FX_PREF_FUNC) === 0;
+  var dest = l.projetoId ? 'o:' + l.projetoId : (l.categoria && l.categoria !== 'A classificar' && l.categoria !== 'Obra' ? 'c:' + l.categoria : '');
+  return { dest: d.dest !== undefined ? d.dest : dest, func: d.func !== undefined ? d.func : (ehF ? fc.slice(FX_PREF_FUNC.length) : ''), fck: d.fck !== undefined ? d.fck : ehF, obs: d.obs !== undefined ? d.obs : ((l.dadosPagamento && l.dadosPagamento.obs) || '') };
+}
+function fExLista() {
+  var x = fEx(), b = x.busca.toLowerCase();
+  return F.lanc.filter(function (l) {
+    if (fData(l).slice(0, 7) !== F.mes || !fFiltra(l)) return false;
+    var a = fExAtual(l);
+    if (x.filtro === 'sem' && a.dest) return false;
+    if (x.filtro === 'func' && !a.fck) return false;
+    if (x.filtro === 'extrato' && l.origemTipo !== 'Extrato') return false;
+    if (b && (String(l.descricao) + ' ' + a.obs + ' ' + a.func + ' ' + (l.nomeProjeto || '') + ' ' + l.valorTotal).toLowerCase().indexOf(b) < 0) return false;
+    return true;
+  }).sort(function (p, q) { return fData(p) < fData(q) ? -1 : fData(p) > fData(q) ? 1 : String(p.origemId || '').localeCompare(String(q.origemId || '')); });
+}
+function fExOpcoesDest(v) {
+  var obras = fExObras(), tipos = FX_TIPOS.slice(), ja = {};
+  F.lanc.forEach(function (l) { if (l.categoria && ['A classificar', 'Obra'].indexOf(l.categoria) < 0 && tipos.indexOf(l.categoria) < 0) tipos.push(l.categoria); });
+  if (v && v.indexOf('o:') === 0 && !obras.some(function (o) { return 'o:' + o.id === v; })) { var l0 = F.lanc.filter(function (l) { return 'o:' + l.projetoId === v; })[0]; obras.push({ id: v.slice(2), nome: (l0 && l0.nomeProjeto) || 'Obra' }); }
+  if (v && v.indexOf('c:') === 0 && tipos.indexOf(v.slice(2)) < 0) tipos.push(v.slice(2));
+  var op = function (val, txt) { return '<option value="' + esc(val) + '"' + (val === v ? ' selected' : '') + '>' + esc(txt) + '</option>'; };
+  return op('', '— a classificar —') + '<optgroup label="Obra">' + obras.map(function (o) { return op('o:' + o.id, o.nome); }).join('') + '</optgroup><optgroup label="Outro tipo de despesa">' + tipos.map(function (t) { return op('c:' + t, t); }).join('') + '</optgroup>';
+}
+function fExFuncSel(l, a) {
+  var fs = fExFuncs(); if (a.func && fs.indexOf(a.func) < 0) fs.unshift(a.func);
+  return '<select class="ex-func" data-id="' + esc(l.id) + '" style="padding:7px;margin-top:6px"><option value="">— escolha o funcionário —</option>' + fs.map(function (n) { return '<option' + (n === a.func ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('') + '</select>';
+}
+function fExLinha(l) {
+  var a = fExAtual(l), e = fEnt(l), sujo = !!fEx().sujo[l.id];
+  return '<div class="ex-row" data-id="' + esc(l.id) + '" style="border:1px solid ' + (sujo ? 'var(--laranja)' : 'var(--borda)') + ';border-radius:10px;padding:10px;margin-bottom:8px;background:#fff">' +
+    '<div style="display:flex;gap:8px;align-items:flex-start"><span class="muted" style="font-size:12px;min-width:38px">' + fDia(fData(l)) + '</span><div style="flex:1;min-width:0;font-size:13px">' + (l.origemTipo === 'Extrato' ? '🏦 ' : '') + esc(l.descricao || '') + '</div><b style="white-space:nowrap;color:' + (e ? '#1b7f3b' : '#c62828') + '">' + (e ? '+' : '−') + fBrl(l.valorTotal) + '</b></div>' +
+    '<div class="ex-grid" style="display:grid;grid-template-columns:1fr;gap:6px;margin-top:8px">' +
+    '<select class="ex-dest" data-id="' + esc(l.id) + '" style="padding:7px' + (a.dest ? '' : ';border-color:#e0a100;background:#fffaf0') + '">' + fExOpcoesDest(a.dest) + '</select>' +
+    '<div><label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:400;font-size:13px"><input type="checkbox" class="ex-fck" data-id="' + esc(l.id) + '"' + (a.fck ? ' checked' : '') + ' style="width:auto;margin:0"> Pago a funcionário</label>' + (a.fck ? fExFuncSel(l, a) : '') + '</div>' +
+    '<input class="ex-obs" data-id="' + esc(l.id) + '" value="' + esc(a.obs) + '" placeholder="Observação" style="padding:7px">' +
+    '</div></div>';
+}
+function fHtmlExt() {
+  var x = fEx(); fExCarregarListas();
+  var l = fExLista(), n = Object.keys(x.sujo).length, semDest = 0, tot = { e: 0, s: 0 };
+  l.forEach(function (i) { if (!fExAtual(i).dest) semDest++; if (fEnt(i)) tot.e += i.valorTotal; else tot.s += i.valorTotal; });
+  var nm = F_NOMES_MES[+F.mes.slice(5, 7) - 1] + ' ' + F.mes.slice(0, 4);
+  var h = '<style>@media(min-width:900px){.ex-grid{grid-template-columns:1.3fr 1fr 1.3fr!important;align-items:start}}</style>' +
+    '<div class="card"><div style="display:flex;align-items:center;gap:8px"><button class="btn sec" style="width:auto;padding:6px 12px" onclick="fExMes(-1)">‹</button><h2 style="margin:0;flex:1;text-align:center">' + nm + '</h2><button class="btn sec" style="width:auto;padding:6px 12px" onclick="fExMes(1)">›</button></div>' +
+    '<p class="muted" style="margin:8px 0 0;font-size:13px">' + l.length + ' lançamentos · entradas ' + fBrl(tot.e) + ' · saídas ' + fBrl(tot.s) + (semDest ? ' · <b style="color:#b26a00">' + semDest + ' sem obra/tipo</b>' : '') + '</p>' +
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">' + [['todos', 'Todos'], ['sem', 'Sem obra/tipo'], ['func', 'Funcionários'], ['extrato', 'Só do extrato']].map(function (f) { return '<button class="btn ' + (x.filtro === f[0] ? '' : 'sec') + '" style="width:auto;padding:6px 10px;font-size:12px" onclick="fExFiltro(\'' + f[0] + '\')">' + f[1] + '</button>'; }).join('') + '</div>' +
+    '<div style="display:flex;gap:6px;margin-top:8px">' + fFiltrosHtml() + '</div>' +
+    '<input id="ex-busca" value="' + esc(x.busca) + '" placeholder="🔎 Buscar descrição, valor, observação" style="margin-top:8px"></div>';
+  h += '<div class="card" style="padding:10px">' + (l.length ? l.map(fExLinha).join('') : '<p class="muted">Nenhum lançamento neste mês com esse filtro.</p>') + '</div>';
+  h += '<div id="ex-barra" style="position:sticky;bottom:70px;z-index:5;display:' + (n ? 'block' : 'none') + '"><button class="btn lar" id="ex-salvar" style="padding:14px;font-size:16px;box-shadow:0 4px 14px rgba(0,0,0,.25)" onclick="fExSalvar()">Salvar ' + n + ' alteraç' + (n === 1 ? 'ão' : 'ões') + '</button></div>';
+  return h;
+}
+function fExMes(n) { fExGuardarBusca(); fMes(n); }
+function fExFiltro(f) { fExGuardarBusca(); fEx().filtro = f; fTela(); }
+function fExGuardarBusca() { if ($('ex-busca')) fEx().busca = $('ex-busca').value; }
+function fExMarca(id, campo, v) {
+  var x = fEx(), l = F.lanc.filter(function (i) { return String(i.id) === String(id); })[0]; if (!l) return;
+  var d = x.sujo[id] || (x.sujo[id] = {}); d[campo] = v;
+  var a0 = fExAtual(Object.assign({}, l)); // recalcula: se voltou ao valor salvo, deixa de estar "sujo"
+  delete x.sujo[id]; var orig = fExAtual(l); x.sujo[id] = d;
+  if (orig.dest === a0.dest && orig.obs === a0.obs && orig.fck === a0.fck && (orig.func === a0.func || !a0.fck)) delete x.sujo[id];
+  var n = Object.keys(x.sujo).length, bar = $('ex-barra'), row = document.querySelector('.ex-row[data-id="' + id + '"]');
+  if (bar) { bar.style.display = n ? 'block' : 'none'; $('ex-salvar').textContent = 'Salvar ' + n + ' alteraç' + (n === 1 ? 'ão' : 'ões'); }
+  if (row) row.style.borderColor = x.sujo[id] ? 'var(--laranja)' : 'var(--borda)';
+}
+function fExLigar() {
+  var each = function (sel, fn) { Array.prototype.forEach.call(document.querySelectorAll(sel), fn); };
+  each('.ex-dest', function (el) { el.onchange = function () { fExMarca(el.dataset.id, 'dest', el.value); el.style.borderColor = el.value ? '' : '#e0a100'; el.style.background = el.value ? '' : '#fffaf0'; }; });
+  each('.ex-obs', function (el) { el.oninput = function () { fExMarca(el.dataset.id, 'obs', el.value); }; });
+  each('.ex-func', function (el) { el.onchange = function () { fExMarca(el.dataset.id, 'func', el.value); }; });
+  each('.ex-fck', function (el) { el.onchange = function () {
+    fExMarca(el.dataset.id, 'fck', el.checked);
+    var box = el.closest('div'), sel = box.querySelector('.ex-func');
+    if (el.checked && !sel) { var l = F.lanc.filter(function (i) { return String(i.id) === el.dataset.id; })[0]; box.insertAdjacentHTML('beforeend', fExFuncSel(l, fExAtual(l))); var s2 = box.querySelector('.ex-func'); s2.onchange = function () { fExMarca(s2.dataset.id, 'func', s2.value); }; s2.focus(); }
+    else if (!el.checked && sel) sel.remove();
+  }; });
+  if ($('ex-busca')) { $('ex-busca').oninput = function () { var v = this.value, pos = this.selectionStart; clearTimeout(F._exT); F._exT = setTimeout(function () { fEx().busca = v; fTela(); var b = $('ex-busca'); if (b) { b.focus(); b.setSelectionRange(pos, pos); } }, 350); }; }
+}
+function fExSalvar() {
+  var x = fEx(); if (x.salvando || !gOnline()) return;
+  var ids = Object.keys(x.sujo); if (!ids.length) return;
+  for (var k = 0; k < ids.length; k++) { var l0 = F.lanc.filter(function (i) { return String(i.id) === ids[k]; })[0], a0 = l0 && fExAtual(l0); if (a0 && a0.fck && !a0.func) return aviso('Escolha o funcionário em "' + (l0.descricao || '').slice(0, 40) + '".', 'err'); }
+  x.salvando = true; var b = $('ex-salvar'); if (b) b.disabled = true;
+  var obsLista = [], tarefas = [], feitos = 0, erros = [];
+  ids.forEach(function (id) {
+    var l = F.lanc.filter(function (i) { return String(i.id) === id; })[0]; if (!l) return;
+    var a = fExAtual(l), d = x.sujo[id], dp = l.dadosPagamento || {};
+    if (d.obs !== undefined) obsLista.push({ id: id, metodo: dp.metodo || '', chave: dp.chave || '', favorecido: dp.favorecido || '', documento: dp.documento || '', obs: a.obs });
+    if (d.dest !== undefined || d.fck !== undefined || d.func !== undefined) {
+      var obra = a.dest.indexOf('o:') === 0 ? a.dest.slice(2) : '', cat = obra ? 'Obra' : (a.dest ? a.dest.slice(2) : 'A classificar');
+      var fc = a.fck ? FX_PREF_FUNC + a.func : (String(l.fornecedorCliente || '').indexOf(FX_PREF_FUNC) === 0 ? '' : (l.fornecedorCliente || ''));
+      tarefas.push({ id: id, dd: { id: id, tipo: l.tipo, valor: l.valorTotal, descricao: l.descricao, categoria: cat, projetoId: obra, fornecedorCliente: fc, formaPagamento: l.formaPagamento || '', dataVencimento: l.dataVencimento } });
+    }
+  });
+  var total = tarefas.length + (obsLista.length ? 1 : 0), prog = function () { aviso('Salvando ' + Math.min(feitos, total) + ' de ' + total + '...'); };
+  prog();
+  var fila = tarefas.slice(), worker = function () { var t = fila.shift(); if (!t) return Promise.resolve(); return sys('fxSalvar', [t.dd]).then(function () { feitos++; prog(); }).catch(function (e) { erros.push(e.message); }).then(worker); };
+  var ps = [worker(), worker(), worker()];
+  if (obsLista.length) ps.push(sys('fxSalvarPagamentos', [obsLista]).then(function () { feitos++; prog(); }).catch(function (e) { erros.push(e.message); }));
+  Promise.all(ps).then(function () {
+    x.salvando = false;
+    if (erros.length) { aviso('Algumas alterações não foram salvas: ' + erros[0], 'err'); fCarregar(true); return; }
+    x.sujo = {}; aviso('Alterações salvas.', 'ok'); fCarregar(true);
+  });
+}
+
 var _fRota = gRotaExtra;
 gRotaExtra = function (v) {
   var main = document.querySelector('main'); if (main && v !== 'tFluxo') main.style.maxWidth = '';
