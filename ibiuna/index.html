@@ -37,7 +37,15 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(90deg,var(--g
 .omr-st{display:grid;gap:10px;margin:4px 0 12px}.omr-st div{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start;font-size:15px;line-height:1.4}.omr-st i{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#0f4f2b;color:#fff;font-style:normal;font-weight:700}
 .omr-prev{width:100%;border-radius:10px;border:1px solid var(--line);margin:6px 0 10px}.duv{outline:3px solid #ef7d1a!important;outline-offset:1px;background:#fff6ec!important}
 .omr-t td,.omr-t th{padding:5px 6px}.omr-t input{width:84px;font-size:16px;padding:6px}
-#pnlModo{grid-template-columns:1fr 1fr;margin-bottom:10px}
+#pnlModo{grid-template-columns:1fr 1fr 1fr;margin-bottom:10px}
+.fd{display:grid;gap:12px}
+.fd-h{display:flex;align-items:center;gap:14px;border-radius:14px;padding:14px 16px;color:#fff;background:linear-gradient(100deg,#3a2c08,#b07d1a 70%,#e0a326)}.fd-h b{display:block;font:700 28px/1 "Barlow Condensed";letter-spacing:.04em}.fd-h small{font-size:12px;opacity:.92;letter-spacing:.05em;text-transform:uppercase}.fd-h svg{flex:none}
+.fd-k{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.fd-k>div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;position:relative;overflow:hidden}.fd-k>div:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c,#b07d1a)}.fd-k small{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}.fd-k b{display:block;font:700 30px/1.1 "Barlow Condensed";color:var(--c,#14211a)}.fd-k i{display:block;font-style:normal;font-size:11px;color:var(--muted)}
+.fd-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.fd-e{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;border-top:5px solid var(--c);display:grid;gap:4px}.fd-e .tp{display:flex;justify-content:space-between;align-items:center;gap:6px}.fd-e .tp b{font:700 20px/1 "Barlow Condensed"}.fd-e .st{font-size:11px}.fd-e small{color:var(--muted);font-size:12px}.fd-e .ln{display:flex;justify-content:space-between;font-size:12px}.fd-e .bar{height:6px;border-radius:4px;background:#e6ebe8;overflow:hidden}.fd-e .bar i{display:block;height:100%;background:var(--c)}
+@media(max-width:560px){.fd-g{grid-template-columns:1fr 1fr;gap:6px}.fd-e{padding:8px 9px}.fd-e .tp{flex-wrap:wrap}.fd-e .tp b{font-size:18px}.fd-e .st{font-size:9.5px;padding:2px 6px}.fd-e small,.fd-e .ln{font-size:11px}}
+.fd-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:900px){.fd-k{grid-template-columns:repeat(3,1fr)}.fd-2{grid-template-columns:1fr}}
 .md{display:grid;gap:14px}@media(min-width:1100px){.md{grid-template-columns:1fr 1fr}}
 .md-p{display:grid;gap:10px;align-content:start}
 .md-h{display:flex;align-items:center;gap:12px;border-radius:12px;padding:12px 14px;color:#fff}.md-h b{display:block;font:700 26px/1 "Barlow Condensed";letter-spacing:.03em}.md-h small{font-size:12px;opacity:.9;letter-spacing:.04em;text-transform:uppercase}
@@ -51,8 +59,8 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(90deg,var(--g
 .pri.Alta,.st.Atrasada{background:var(--red-l);color:var(--red)}.pri.Média,.st.Pendente{background:var(--amber-l);color:#7a5600}.pri.Baixa{background:#eef1ef;color:#5b6a61}.st{display:inline-block;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700}.st.Em.andamento,.st.andamento{background:#e3effd;color:#1f5fbf}.st.Concluída{background:#e5f5ea;color:#178041}
 @media(max-width:600px){.md-k{grid-template-columns:repeat(3,1fr)}.md-r{grid-template-columns:1fr}}
 .pnl-h{display:flex;align-items:center;gap:12px;background:linear-gradient(90deg,var(--g950),var(--g800));color:#fff;border-radius:12px;padding:10px 14px;margin:10px 0}
-.pnl-h img{height:40px;background:#fff;border-radius:8px;padding:3px 7px}.pnl-h b{display:block;font:700 22px/1 "Barlow Condensed";letter-spacing:.03em}.pnl-h small{opacity:.85;font-size:12px}
-.brand .lg{flex:none;height:38px;background:#fff;border-radius:8px;padding:3px 7px;display:flex;align-items:center}.brand .lg img{height:32px;display:block}
+.pnl-h img{height:40px}.pnl-h b{display:block;font:700 22px/1 "Barlow Condensed";letter-spacing:.03em}.pnl-h small{opacity:.85;font-size:12px}
+.brand .lg{flex:none;height:38px;display:flex;align-items:center}.brand .lg img{height:32px;display:block}
 .brand>div{min-width:0}
 .brand b{display:block;font-family:"Barlow Condensed";font-size:20px;line-height:1;font-weight:700;letter-spacing:.03em}
 .brand small{display:block;font-size:12px;opacity:.8;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -311,7 +319,7 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
 <body>
 <header>
   <div class="brand">
-    <span class="lg"><img src="logo.png" alt="Pedreira Ibiúna"></span>
+    <span class="lg"><img src="logo-branco.png" alt="Pedreira Ibiúna"></span>
     <div><b>GESTÃO OPERACIONAL</b><small id="hSub">Produção e manutenção</small></div>
   </div>
   <div class="month">
@@ -434,11 +442,12 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
 
   <!-- ===================== PAINEL ===================== -->
   <section id="v-painel" class="hidden">
-    <div class="seg" id="pnlModo"><button data-m="op" class="on">Operação</button><button data-m="mnt">Manutenção</button></div>
+    <div class="seg" id="pnlModo"><button data-m="op" class="on">Operação</button><button data-m="mnt">Manutenção</button><button data-m="frota">Frota</button></div>
     <div id="pnlMnt" class="hidden"></div>
+    <div id="pnlFrota" class="hidden"></div>
     <div id="pnlOp">
     <div class="seg" id="linhaSeg"><button data-l="primaria" class="on">Britagem</button><button data-l="rebritagem">Rebritagem</button></div>
-    <div class="pnl-h"><img src="logo.png" alt=""><div><b id="pnlTit">BRITAGEM</b><small>Painel gerencial · indicadores de performance</small></div></div>
+    <div class="pnl-h"><img src="logo-branco.png" alt=""><div><b id="pnlTit">BRITAGEM</b><small>Painel gerencial · indicadores de performance</small></div></div>
     <div class="banner hidden" id="pnlNota" style="margin-bottom:10px"></div>
     <div class="kpis" id="kpis"></div>
     <div class="grid2">
@@ -670,7 +679,7 @@ function setForm(f){S.form=f;$$('#formSeg button').forEach(b=>b.classList.toggle
 function renderAll(){
   $('#mLabel').textContent=monthLabel(S.month);
   if(S.view==='lancar')renderToday();
-  if(S.view==='painel'){const mm=S.pmodo==='mnt';$$('#pnlModo button').forEach(b=>b.classList.toggle('on',b.dataset.m===(mm?'mnt':'op')));$('#pnlOp').classList.toggle('hidden',mm);$('#pnlMnt').classList.toggle('hidden',!mm);if(mm)renderMntDash();else renderPainel();}
+  if(S.view==='painel'){const pm=['mnt','frota'].includes(S.pmodo)?S.pmodo:'op';$$('#pnlModo button').forEach(b=>b.classList.toggle('on',b.dataset.m===pm));$('#pnlOp').classList.toggle('hidden',pm!=='op');$('#pnlMnt').classList.toggle('hidden',pm!=='mnt');$('#pnlFrota').classList.toggle('hidden',pm!=='frota');if(pm==='mnt')renderMntDash();else if(pm==='frota')renderFrotaDash();else renderPainel();}
   if(S.view==='reg')renderReg();
   if(S.view==='ajustes'){renderAjustes();renderTeam();}
   if(S.view==='mnt')renderMnt();
@@ -888,6 +897,81 @@ function mdDados(g){
   D.eqs=uniq([...(S.cfg.equipes||[]),...mes.map(o=>o.equipe||'')]).map(e=>{const os=mes.filter(o=>(o.equipe||'')===e);return[e||'Sem equipe',os.length,os.filter(o=>o.status==='Aberta').length,os.filter(o=>ymOf(o.data)===ym).reduce((a,o)=>a+h(o),0)];}).filter(x=>x[1]||x[0]!=='Sem equipe');
   const PO={Alta:0,Média:1,Baixa:2};D.prior=mes.filter(o=>o.status==='Aberta').sort((a,b)=>(PO[a.prioridade||'Média']-PO[b.prioridade||'Média'])||(osSit(a)==='Atrasada'?-1:0)-(osSit(b)==='Atrasada'?-1:0)||String(a.data).localeCompare(b.data)).slice(0,8);
   return D;}
+
+/* ---------- painel de gestão de frota ---------- */
+// Frota = equipamentos que não são das linhas de britagem (caminhões, escavadeiras, carregadeiras, apoio).
+const FD_ICO='<svg width="46" height="40" viewBox="0 0 46 40" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"><path d="M2 28V10h22v18M24 15h10l8 8v5H24"/><circle cx="11" cy="30" r="4.5" fill="#b07d1a"/><circle cx="34" cy="30" r="4.5" fill="#b07d1a"/></svg>';
+const FD_COR={op:'#178041',man:'#d63b2b',prev:'#e09b00',par:'#8a948f'};
+function frotaAtivos(){return S.ativos.filter(a=>!a.inativo&&!ativoLinha(a)).sort(byCod);}
+function frotaDados(){
+  const ym=S.month,hoje=todayStr(),N=daysIn(ym),diasPass=ym<ymOf(hoje)?N:ym===ymOf(hoje)?+hoje.slice(8,10):0;
+  const hDia=fin(S.cfg.horasDia)&&S.cfg.horasDia>0?S.cfg.horasDia:8,base=diasPass*hDia;
+  const veh=compute('primaria').veh,os=allOS(),h=o=>fin(o.horas)?o.horas:0;
+  const L=frotaAtivos().map(a=>{
+    const doMes=os.filter(o=>o.ativoId===a._id&&ymOf(String(o.data||''))===ym),abertas=os.filter(o=>o.ativoId===a._id&&o.status==='Aberta');
+    const corr=doMes.filter(o=>osTipo(o)==='Corretiva'),prevs=doMes.filter(o=>osTipo(o)==='Preventiva');
+    const hCor=corr.reduce((x,o)=>x+h(o),0),hPrev=prevs.reduce((x,o)=>x+h(o),0),hOut=doMes.reduce((x,o)=>x+h(o),0)-hCor-hPrev;
+    const parada=hCor+hPrev+hOut,disp=base>0?Math.max(0,1-parada/base):null;
+    const pls=S.planos.filter(p=>p.ativoId===a._id&&!p.inativo).map(p=>({p,s:planStatus(p)})).sort((x,y)=>ORD[x.s.st]-ORD[y.s.st]);
+    const v=veh[a.tag]||null,custo=doMes.reduce((x,o)=>x+(+o.custoPecas||0),0);
+    let st='op',stT='Operando';
+    if(abertas.some(o=>osTipo(o)==='Corretiva'||o.andamento==='Em andamento')){st='man';stT='Em manutenção';}
+    else if(pls.some(x=>x.s.st==='Vencido')){st='prev';stT='Preventiva vencida';}
+    else if(abertas.length){st='prev';stT='OS aberta';}
+    return{a,doMes,abertas,corr,hCor,hPrev,hOut,parada,disp,pls,v,custo,st,stT,hor:horAtual(a)};});
+  const D={L,base,hDia,diasPass};
+  D.op=L.filter(x=>x.st==='op').length;D.man=L.filter(x=>x.st==='man').length;D.prev=L.filter(x=>x.st==='prev').length;
+  const ds=L.filter(x=>x.disp!=null);D.disp=ds.length?ds.reduce((x,y)=>x+y.disp,0)/ds.length:null;
+  const corr=L.flatMap(x=>x.corr);D.falhas=corr.length;D.mttr=corr.length?corr.reduce((x,o)=>x+h(o),0)/corr.length:null;
+  D.custo=L.reduce((x,y)=>x+y.custo,0);D.hPar=L.reduce((x,y)=>x+y.parada,0);
+  const all=L.flatMap(x=>x.pls);D.plV=all.filter(x=>x.s.st==='Vencido').length;D.plP=all.filter(x=>x.s.st==='Próximo').length;D.plOk=all.filter(x=>x.s.st==='Em dia').length;D.pls=all.filter(x=>x.s.st!=='Em dia'&&x.s.st!=='Inativo').slice(0,10);
+  D.viag=Object.values(veh).reduce((x,y)=>x+y.viag,0);D.prod=Object.values(veh).reduce((x,y)=>x+y.prod,0);D.veh=veh;
+  return D;}
+function renderFrotaDash(){
+  const box=$('#pnlFrota');if(!box)return;
+  if(!box.dataset.ok){box.dataset.ok='1';box.innerHTML=`<div class="fd">
+    <div class="fd-h">${FD_ICO}<div><b>GESTÃO DE FROTA</b><small>Caminhões, escavadeiras, carregadeiras e apoio · <span id="fdMes"></span></small></div></div>
+    <div class="fd-k" id="fdK"></div>
+    <div class="card"><h3>Situação dos equipamentos</h3><div class="bd"><div class="fd-g" id="fdG"></div></div></div>
+    <div class="fd-2">
+      <div class="card"><h3>Disponibilidade física no mês</h3><div class="bd"><div class="chartbox" id="fdDispBox"><canvas id="fdDisp"></canvas></div></div></div>
+      <div class="card"><h3>Horas paradas em manutenção</h3><div class="bd"><div class="chartbox" id="fdParBox"><canvas id="fdPar"></canvas></div></div></div>
+    </div>
+    <div class="fd-2">
+      <div class="card"><h3>Viagens e produção por caminhão</h3><div class="bd"><div class="chartbox"><canvas id="fdVia"></canvas></div></div></div>
+      <div class="card"><h3>Preventivas da frota</h3><div class="bd" id="fdPl"></div></div>
+    </div>
+    <div class="card"><h3>Resumo por equipamento</h3><div class="bd tscroll" id="fdT" style="padding:0"></div></div>
+  </div>`;}
+  const D=frotaDados(),L=D.L,rs=v=>'R$ '+nf(v,2);
+  $('#fdMes').textContent=monthLabel(S.month);
+  const k=(t,v,c,sub)=>`<div style="--c:${c}"><small>${t}</small><b>${v}</b>${sub?`<i>${sub}</i>`:''}</div>`;
+  $('#fdK').innerHTML=k('Equipamentos',L.length,'#14211a',L.length?'na frota':'cadastre em Manutenção → Ativos')+k('Operando',D.op,FD_COR.op,L.length?pf(D.op/L.length,0)+' da frota':'')+k('Em manutenção',D.man,D.man?FD_COR.man:'#14211a',D.prev?D.prev+' com pendência':'')+
+    k('Disponibilidade',D.disp!=null?pf(D.disp,1):'—',D.disp==null?'#14211a':D.disp>=0.9?FD_COR.op:D.disp>=0.8?FD_COR.prev:FD_COR.man,'média física do mês')+
+    k('MTTR',D.mttr!=null?nf(D.mttr,1)+' h':'—','#1f6fd6',D.falhas+' falha(s) no mês')+k('Custo de peças',rs(D.custo),'#8b3fd9',nf(D.hPar,1)+' h paradas');
+  $('#fdG').innerHTML=L.length?L.map(x=>{const c=FD_COR[x.st],pl=x.pls[0];
+    return`<div class="fd-e" style="--c:${c}" data-open="ativo|${esc(x.a._id)}"><div class="tp"><b>${esc(x.a.tag||x.a.codigo||'')}</b>${stBadge(x.stT,c)}</div>
+      <small>${esc(x.a.nome||'')}${x.a.categoria?' · '+esc(x.a.categoria):''}</small>
+      <div class="ln"><span>Horímetro</span><b>${x.hor!=null?nf(x.hor)+' h':'—'}</b></div>
+      <div class="ln"><span>Disponibilidade</span><b>${x.disp!=null?pf(x.disp,0):'—'}</b></div><div class="bar"><i style="width:${x.disp!=null?Math.round(x.disp*100):0}%"></i></div>
+      ${x.v?`<div class="ln"><span>Viagens no mês</span><b>${nf(x.v.viag)} · ${nf(x.v.prod)} t</b></div>`:''}
+      <div class="ln"><span>OS no mês</span><b>${x.doMes.length}${x.abertas.length?' · '+x.abertas.length+' aberta(s)':''}</b></div>
+      ${pl?`<small style="color:${pl.s.col}">● ${esc(pl.p.nome)}: ${esc(planWhen(pl.p,pl.s))}</small>`:'<small>Sem plano de preventiva</small>'}</div>`;}).join(''):'<p class="note">Nenhum equipamento de frota cadastrado. Em Manutenção → Ativos, cadastre caminhões, escavadeiras e carregadeiras (sem linha de britagem).</p>';
+  const nomes=L.map(x=>x.a.tag||x.a.codigo||x.a.nome||'?'),hgt=Math.max(160,L.length*26+40);
+  $('#fdDispBox').style.height=hgt+'px';$('#fdParBox').style.height=hgt+'px';
+  const hb={indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'#eef1ef'}},y:{grid:{display:false},ticks:{color:'#14211a',font:{weight:600}}}}};
+  upsert('fdDisp',{type:'bar',data:{labels:nomes,datasets:[{data:L.map(x=>x.disp!=null?+(x.disp*100).toFixed(1):0),backgroundColor:L.map(x=>x.disp==null?'#c9d1cc':x.disp>=0.9?FD_COR.op:x.disp>=0.8?FD_COR.prev:FD_COR.man),borderRadius:4,barThickness:16}]},
+    options:{...hb,scales:{...hb.scales,x:{...hb.scales.x,max:100,ticks:{callback:v=>v+'%'}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>nf(c.raw,1)+'%'}}}}});
+  upsert('fdPar',{type:'bar',data:{labels:nomes,datasets:[{label:'Corretiva',data:L.map(x=>+x.hCor.toFixed(1)),backgroundColor:'#d63b2b',borderRadius:3,barThickness:16},{label:'Preventiva',data:L.map(x=>+x.hPrev.toFixed(1)),backgroundColor:'#1f6fd6',borderRadius:3,barThickness:16},{label:'Outras',data:L.map(x=>+x.hOut.toFixed(1)),backgroundColor:'#8a948f',borderRadius:3,barThickness:16}]},
+    options:{...hb,scales:{x:{...hb.scales.x,stacked:true,ticks:{callback:v=>v+' h'}},y:{...hb.scales.y,stacked:true}},plugins:{legend:{display:true,labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+nf(c.raw,1)+' h'}}}}});
+  const fr=uniq([...(S.cfg.frota||[]),...Object.keys(D.veh)]).filter(f=>f&&f!=='?');
+  upsert('fdVia',{type:'bar',data:{labels:fr,datasets:[{label:'Viagens',data:fr.map(f=>(D.veh[f]||{}).viag||0),backgroundColor:'#b07d1a',borderRadius:4,yAxisID:'y'},{label:'Produção (t)',data:fr.map(f=>Math.round((D.veh[f]||{}).prod||0)),backgroundColor:'#178041',borderRadius:4,yAxisID:'y1'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:10,font:{size:11}}}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,position:'left',title:{display:true,text:'viagens'},grid:{color:'#eef1ef'}},y1:{beginAtZero:true,position:'right',title:{display:true,text:'t'},grid:{display:false}}}}});
+  $('#fdPl').innerHTML=`<div class="fd-k" style="grid-template-columns:repeat(3,1fr);margin-bottom:8px">${k('Vencidas',D.plV,D.plV?FD_COR.man:'#14211a')}${k('Próximas',D.plP,D.plP?FD_COR.prev:'#14211a')}${k('Em dia',D.plOk,FD_COR.op)}</div>`+
+    (D.pls.length?D.pls.map(({p,s})=>`<div class="li" data-open="plano|${esc(p._id)}" style="cursor:pointer"><div class="lt"><b>${esc((s.a&&(s.a.tag||s.a.nome))||'')} · ${esc(p.nome)}</b>${stBadge(s.st,s.col)}</div><small class="note">${esc(planWhen(p,s))}</small></div>`).join(''):'<p class="note">Nenhuma preventiva vencida ou próxima.</p>');
+  $('#fdT').innerHTML=L.length?`<table class="t md-t"><tr><th class="l">Equipamento</th><th class="l">Situação</th><th>Horímetro</th><th>OS no mês</th><th>Corretivas</th><th>Horas paradas</th><th>Disponib.</th><th>Viagens</th><th>Custo peças</th></tr>${L.map(x=>`<tr data-open="ativo|${esc(x.a._id)}" style="cursor:pointer"><td class="l"><b>${esc(x.a.tag||'')}</b> ${esc(x.a.nome||'')}</td><td class="l">${stBadge(x.stT,FD_COR[x.st])}</td><td>${x.hor!=null?nf(x.hor):'—'}</td><td>${x.doMes.length}</td><td>${x.corr.length}</td><td>${nf(x.parada,1)} h</td><td>${x.disp!=null?pf(x.disp,0):'—'}</td><td>${x.v?nf(x.v.viag):'—'}</td><td>${rs(x.custo)}</td></tr>`).join('')}<tr class="tot"><td class="l">Total</td><td></td><td></td><td>${L.reduce((a,x)=>a+x.doMes.length,0)}</td><td>${D.falhas}</td><td>${nf(D.hPar,1)} h</td><td>${D.disp!=null?pf(D.disp,0):'—'}</td><td>${nf(D.viag)}</td><td>${rs(D.custo)}</td></tr></table>
+    <p class="note" style="padding:6px 10px;margin:0">Disponibilidade física = 1 − horas paradas em OS ÷ (${nf(D.hDia,1)} h × ${D.diasPass} dia(s) do mês).</p>`:'';
+}
 function osNum(o,g){return(g.k==='brit'?'BR':g.k==='rebrit'?'RB':'FM')+'-'+String(o._id).replace(/[^a-z0-9]/gi,'').slice(-4).toUpperCase();}
 function renderMntDash(){
   const box=$('#pnlMnt');if(!box)return;
