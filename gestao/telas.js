@@ -479,11 +479,15 @@ function tTelaRdoEd() {
   var h = '<button class="btn sec" style="margin-bottom:10px" onclick="tRdoVoltar()">← Voltar</button>' + tH('📒 RDO nº ' + esc(r.numero) + ' · ' + mdData(r.dataIso || r.data), esc(T.proj.nome) + (r.medido ? ' · já medido: só fotos podem ser adicionadas' : ''));
   // fotos
   var fotos = r.fotos || [];
+  var naMed = fotos.filter(function (f) { return f.medicao !== false; }).length;
   h += '<div class="card"><h2 style="font-size:15px">📷 Fotos (' + fotos.length + ')</h2>' +
-    (fotos.length ? '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">' + fotos.map(function (f, i) {
-      return '<div style="position:relative"><a href="' + esc(f.url || '#') + '" target="_blank"><img src="' + esc(tRdoFotoUrl(f)) + '" alt="' + esc(f.nome || 'foto') + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#ddd" onerror="this.style.opacity=.3"></a>' +
-        '<button onclick="tRdoFotoExcluir(' + i + ')" title="Remover foto" style="position:absolute;top:4px;right:4px;border:0;border-radius:50%;width:28px;height:28px;background:rgba(0,0,0,.6);color:#fff;font-size:14px">✕</button></div>';
-    }).join('') + '</div>' : '<p class="muted">Nenhuma foto neste RDO.</p>') +
+    (fotos.length ? '<label style="display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:14px"><input type="checkbox" style="width:22px;height:22px;margin:0"' + (naMed === fotos.length ? ' checked' : '') + ' onchange="tRdoFotoMedTodas(this.checked)"> <b>Todas na medição</b> <span class="muted">(' + naMed + ' de ' + fotos.length + ')</span></label>' +
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">' + fotos.map(function (f, i) {
+      var fora = f.medicao === false;
+      return '<div style="position:relative"><a href="' + esc(f.url || '#') + '" target="_blank"><img src="' + esc(tRdoFotoUrl(f)) + '" alt="' + esc(f.nome || 'foto') + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#ddd' + (fora ? ';opacity:.45' : '') + '" onerror="this.style.opacity=.3"></a>' +
+        '<button onclick="tRdoFotoExcluir(' + i + ')" title="Remover foto" style="position:absolute;top:4px;right:4px;border:0;border-radius:50%;width:28px;height:28px;background:rgba(0,0,0,.6);color:#fff;font-size:14px">✕</button>' +
+        '<label style="display:flex;align-items:center;gap:6px;margin:4px 0 0;font-size:13px"><input type="checkbox" style="width:20px;height:20px;margin:0"' + (fora ? '' : ' checked') + ' onchange="tRdoFotoMed(' + i + ',this.checked)"> Medição</label></div>';
+    }).join('') + '</div><p class="muted" style="font-size:12px;margin:6px 0 0">Desmarcadas continuam salvas no RDO, mas não entram no PDF da medição.</p>' : '<p class="muted">Nenhuma foto neste RDO.</p>') +
     '<input type="file" id="re-fotos" accept="image/*" multiple style="display:none" onchange="tRdoFotosEnviar(this)">' +
     tBtn('📷 Adicionar fotos', "$('re-fotos').click()", 'lar') + '<p class="muted" style="font-size:12px;margin:6px 0 0">As fotos são salvas no RDO assim que enviadas (pasta "Diario de Obra" da obra no Drive).</p></div>';
   if (!r.medido) {
@@ -540,6 +544,24 @@ function tRdoFotosEnviar(inp) {
     tLimpa('diar_'); // a lista volta atualizada
     aviso(n + ' foto(s) adicionada(s)' + (falhas ? ', ' + falhas + ' com erro' : '') + '.', falhas ? 'err' : 'ok');
   });
+}
+// Escolhe quais fotos vão para o PDF da medição (as desmarcadas continuam no RDO).
+function tRdoFotoMedSalvar(ids) {
+  var r = T.rdo, antes = JSON.stringify(r.fotos || []), marc = {};
+  ids.forEach(function (id) { marc[id] = 1; });
+  (r.fotos || []).forEach(function (f) { if (marc[String(f.id)]) delete f.medicao; else f.medicao = false; });
+  render();
+  sys('marcarFotosMedicaoDiarioObra', [T.proj.id, r.id, ids])
+    .then(function (res) { if (res && res.fotos) r.fotos = res.fotos; tLimpa('diar_'); if (G.view === 'tRdoEd' && T.rdo === r) render(); })
+    .catch(function (e) { r.fotos = JSON.parse(antes); if (G.view === 'tRdoEd' && T.rdo === r) render(); aviso(e.message, 'err'); });
+}
+function tRdoFotoMed(i, marcada) {
+  var fotos = T.rdo.fotos || [], ids = [];
+  fotos.forEach(function (f, k) { if (k === i ? marcada : f.medicao !== false) ids.push(String(f.id)); });
+  tRdoFotoMedSalvar(ids);
+}
+function tRdoFotoMedTodas(marcada) {
+  tRdoFotoMedSalvar(marcada ? (T.rdo.fotos || []).map(function (f) { return String(f.id); }) : []);
 }
 function tRdoFotoExcluir(i) {
   var r = T.rdo, f = (r.fotos || [])[i]; if (!f || !confirm('Remover esta foto do RDO? Ela vai para a lixeira do Drive.')) return;
