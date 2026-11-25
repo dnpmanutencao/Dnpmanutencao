@@ -19,7 +19,7 @@ function gOpts(lista, sel, rot, vazio) { return (vazio ? '<option value="">' + v
 function gCarregarCatalogo(forcar) {
   return DB.get('g_cat').then(function (c) {
     if (c) G.cat = c;
-    if (!navigator.onLine || (c && !forcar && Date.now() - c.em < 6 * 3600000)) return G.cat;
+    if (!navigator.onLine || (c && !forcar && Date.now() - c.em < 6 * 3600000 && c.clientes && c.clientes.length)) return G.cat;
     var pedidos = {};
     if (gPode('orcamentos', 'ver')) { pedidos.maoDeObra = sys('listarItensMaoDeObra'); pedidos.materiais = sys('listarItensMaterial'); pedidos.composicoes = sys('listarComposicoes'); }
     if (gPode('crm', 'ver')) pedidos.clientes = sys('listarClientes');
@@ -156,7 +156,10 @@ function gTelaOrcamento() {
     '<div class="row" style="margin-top:8px">' + (cr ? '<button class="btn sec" id="g-dup">⧉ Duplicar</button>' : '') + (ex ? '<button class="btn sec" id="g-exc" style="color:#b91c1c">🗑 Excluir</button>' : '') + '</div>' +
     (o.status === 'Aprovado' && gPode('projetos', 'criar') ? '<div style="height:8px"></div><button class="btn lar" id="g-conv">🏗 Converter em projeto</button><div id="g-conv-f"></div>' : '') + '</div>';
 
-  html += gSec('dados', 'Dados do orçamento', '<label>Cliente</label><select id="od-cli"' + dis + '>' + gOpts(c.clientes, o.clienteId, function (x) { return x.nomeEmpresa; }, '— escolha —') + '</select>' +
+  var cliL = (c.clientes || []).slice();
+  if (o.clienteId && !cliL.some(function (x) { return String(x.id) === String(o.clienteId); })) cliL.unshift({ id: o.clienteId, nomeEmpresa: o.nomeCliente || 'Cliente atual' });
+  if (!(c.clientes || []).length && !G._cliRecarga && navigator.onLine) { G._cliRecarga = true; gCarregarCatalogo(true).then(function () { if (G.view === 'orc') render(); }).catch(function () {}); }
+  html += gSec('dados', 'Dados do orçamento', '<label>Cliente</label><select id="od-cli"' + dis + '>' + gOpts(cliL, o.clienteId, function (x) { return x.nomeEmpresa; }, '— escolha —') + '</select>' +
     '<label>Título</label><input id="od-tit" value="' + esc(o.titulo) + '"' + dis + '>' + (ed ? '<div style="height:10px"></div><button class="btn sec" id="od-ok">Salvar dados</button>' : ''));
 
   html += gSec('cond', 'Escopo e condições comerciais', '<label>Escopo</label><select id="oc-tipo"' + dis + '><option value="tabela"' + (o.escopoTipo !== 'manual' ? ' selected' : '') + '>Copiar tabela do orçamento (sem valores)</option><option value="manual"' + (o.escopoTipo === 'manual' ? ' selected' : '') + '>Escrever manualmente</option></select>' +
@@ -209,7 +212,7 @@ function gTelaOrcamento() {
     $('g-conv-f').innerHTML = '<div class="mdo"><label>Responsável técnico</label><input id="cv-resp"><label>Data de início</label><input type="date" id="cv-ini" value="' + dataIso(Date.now()) + '"><div style="height:8px"></div><button class="btn" id="cv-ok">Criar projeto</button></div>';
     $('cv-ok').onclick = function () { gAcao('converterOrcamentoEmProjeto', [o.id, { responsavelTecnico: $('cv-resp').value.trim(), dataInicio: $('cv-ini').value }], 'Projeto criado a partir do orçamento.', function () { gAbrirOrc(o.id); }); };
   };
-  if ($('od-ok')) $('od-ok').onclick = function () { gAcao('editarDadosOrcamento', [o.id, { clienteId: $('od-cli').value, titulo: $('od-tit').value }], 'Dados salvos.'); };
+  if ($('od-ok')) $('od-ok').onclick = function () { gAcao('editarDadosOrcamento', [o.id, { clienteId: $('od-cli').value || o.clienteId, titulo: $('od-tit').value }], 'Dados salvos.'); };
   if ($('oc-tipo')) $('oc-tipo').onchange = function () { $('oc-texto').placeholder = this.value === 'manual' ? 'Descreva o escopo do fornecimento...' : 'Observações (opcional) — a tabela de itens sem valores entra automaticamente.'; };
   if ($('oc-ok')) $('oc-ok').onclick = function () {
     gAcao('atualizarCondicoesOrcamento', [o.id, { escopoTipo: $('oc-tipo').value, escopoTexto: $('oc-texto').value, formaPagamento: $('oc-pag').value.trim(), prazoExecucao: $('oc-prazo').value.trim(), validadeProposta: $('oc-val').value, exclusoes: $('oc-exc').value }], 'Escopo e condições salvos.');
