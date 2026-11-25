@@ -175,7 +175,7 @@ c = canvas.Canvas('folha_britagem.pdf', pagesize=A4)
 f = Folha(c, 'britagem', 'Folha de britagem', passos=[('1', 'Marque britagem', 'e turno.'), ('2', 'Hora que ligou', 'e que desligou.'), ('3', 'Paradas: uma', 'bolinha por motivo.')],
           linhas=['Caneta preta ou azul escura. Depois tire a foto no app: Lançar → Britagem.', 'Errou? Corrija no app na hora de conferir.'], exemplo=False)
 f.passo(1, 'QUAL BRITAGEM?', 56)
-f.escolha('linha', '', [('primaria', 'Primária'), ('secundaria', 'Secundária'), ('rebritagem', 'Rebritagem')], 80, 55.5, larg=34)
+f.escolha('linha', '', [('primaria', 'Britagem'), ('rebritagem', 'Rebritagem')], 80, 55.5, larg=40)
 f.passo(2, 'DATA E TURNO', 65)
 f.rotulo(26, 72.5, 'Data:  ____ / ____', 10, bold=False)
 f.escolha('turno', '', [(1, '1º turno'), (2, '2º turno'), (3, '3º turno')], 80, 71.5, larg=30)

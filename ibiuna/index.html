@@ -365,14 +365,14 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
 
     <!-- BRITAGEM -->
     <div class="card hidden" id="f-brit">
-      <h3 id="fbTitulo">Britagem primária · horário e paradas</h3>
+      <h3 id="fbTitulo">Britagem · horário e paradas</h3>
       <div class="bd">
         <form class="f" id="fb" autocomplete="off">
           <div class="omrbar"><div class="omrtx"><b>Anotou no papel?</b><span>Tire a foto da folha de britagem e o app preenche para você.</span></div>
           <label class="btn omrbtn">📷 Tirar foto da folha<input type="file" accept="image/*" hidden data-omr="britagem"></label>
           <div class="omrlk"><a href="#" data-omrajuda="britagem">Como preencher a folha</a><a href="folhas/folha_britagem.pdf" target="_blank" rel="noopener">Baixar folha para imprimir</a></div></div>
           <div class="editbar hidden" data-editbar><span>Editando lançamento</span><button type="button" class="btn ghost sm" data-cancel>Cancelar</button></div>
-          <div><label class="fl">Linha</label><div class="chips" data-radio="linha" id="fbLinha"><button type="button" class="chip on" data-v="primaria">Britagem primária</button><button type="button" class="chip" data-v="secundaria">Britagem secundária</button><button type="button" class="chip" data-v="rebritagem">Rebritagem</button></div></div>
+          <div><label class="fl">Linha</label><div class="chips" data-radio="linha" id="fbLinha"><button type="button" class="chip on" data-v="primaria">Britagem</button><button type="button" class="chip" data-v="rebritagem">Rebritagem</button></div></div>
           <div class="row2">
             <div><label class="fl">Data</label><input class="inp" type="date" name="data" required></div>
             <div><label class="fl">Turno</label><select class="inp" name="turno"><option>1</option><option>2</option><option>3</option></select></div>
@@ -411,7 +411,7 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
           <div class="row2"><div><label class="fl">Equipe</label><div class="chips" data-radio="equipe" id="fmEquipe"></div></div>
             <div><label class="fl">Responsável</label><select class="inp" name="resp" id="fmResp" style="font-size:16px"></select><input class="inp hidden" name="respTxt" placeholder="Nome de quem vai executar" style="margin-top:6px"></div></div>
           <div><label class="fl">Parou a britagem?</label><div class="chips" data-radio="para"><button type="button" class="chip sm on" data-v="sim">Sim</button><button type="button" class="chip sm" data-v="nao">Não</button></div></div>
-          <div id="fmLinhaBox"><label class="fl">Qual linha parou</label><div class="chips" data-radio="linha"><button type="button" class="chip sm on" data-v="primaria">Britagem primária</button><button type="button" class="chip sm" data-v="secundaria">Britagem secundária</button><button type="button" class="chip sm" data-v="rebritagem">Rebritagem</button></div></div>
+          <div id="fmLinhaBox"><label class="fl">Qual linha parou</label><div class="chips" data-radio="linha"><button type="button" class="chip sm on" data-v="primaria">Britagem</button><button type="button" class="chip sm" data-v="rebritagem">Rebritagem</button></div></div>
           <div class="row3">
             <div><label class="fl">Início</label><input class="inp" type="time" name="hIni"></div>
             <div><label class="fl">Fim</label><input class="inp" type="time" name="hFim"></div>
@@ -437,8 +437,8 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
     <div class="seg" id="pnlModo"><button data-m="op" class="on">Operação</button><button data-m="mnt">Manutenção</button></div>
     <div id="pnlMnt" class="hidden"></div>
     <div id="pnlOp">
-    <div class="seg" id="linhaSeg"><button data-l="primaria" class="on">Primária</button><button data-l="secundaria">Secundária</button><button data-l="rebritagem">Rebritagem</button></div>
-    <div class="pnl-h"><img src="logo.png" alt=""><div><b id="pnlTit">BRITAGEM PRIMÁRIA</b><small>Painel gerencial · indicadores de performance</small></div></div>
+    <div class="seg" id="linhaSeg"><button data-l="primaria" class="on">Britagem</button><button data-l="rebritagem">Rebritagem</button></div>
+    <div class="pnl-h"><img src="logo.png" alt=""><div><b id="pnlTit">BRITAGEM</b><small>Painel gerencial · indicadores de performance</small></div></div>
     <div class="banner hidden" id="pnlNota" style="margin-bottom:10px"></div>
     <div class="kpis" id="kpis"></div>
     <div class="grid2">
@@ -491,7 +491,7 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
           <div><label class="fl">Dias programados</label><input class="inp" name="diasProgramados" inputmode="numeric"></div>
         </div>
         <div class="calc"><div><small>Meta diária</small><b data-o="md">—</b></div><div><small>Necessidade</small><b data-o="nec">—</b></div></div>
-        <div class="row2"><div><label class="fl">Meta da secundária (t)</label><input class="inp" name="scMetaMensal" inputmode="decimal" placeholder="usa o padrão"></div><div><label class="fl">Meta da rebritagem (t)</label><input class="inp" name="rbMetaMensal" inputmode="decimal" placeholder="usa o padrão"></div></div>
+        <div class="row2"><div class="hidden"><label class="fl">Meta da secundária (t)</label><input class="inp" name="scMetaMensal" inputmode="decimal" placeholder="usa o padrão"></div><div><label class="fl">Meta da rebritagem (t)</label><input class="inp" name="rbMetaMensal" inputmode="decimal" placeholder="usa o padrão"></div></div>
         <button class="btn" type="submit">Salvar metas do mês</button>
       </form>
     </div></div>
@@ -509,7 +509,7 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
           <div><label class="fl">Peso padrão por viagem (t)</label><input class="inp" name="pesoPadrao" inputmode="decimal"></div>
           <div><label class="fl">Meta OEE (%)</label><input class="inp" name="metaOEE" inputmode="decimal"></div>
         </div>
-        <h4 class="h4" style="margin:6px 0 0">Britagem secundária</h4>
+        <div class="hidden"><h4 class="h4" style="margin:6px 0 0">Britagem secundária</h4>
         <div class="row2">
           <div><label class="fl">Meta mensal padrão (t)</label><input class="inp" name="scMetaMensal" inputmode="decimal"></div>
           <div><label class="fl">Horas programadas / dia</label><input class="inp" name="scHorasDia" inputmode="decimal"></div>
@@ -517,6 +517,7 @@ ol.tasks{margin:0;padding-left:22px;font-size:14px;line-height:1.5}
         <div class="row2">
           <div><label class="fl">Produtividade planejada (t/h)</label><input class="inp" name="scProdPlanejada" inputmode="decimal"></div>
           <div><label class="fl">Meta OEE (%)</label><input class="inp" name="scMetaOEE" inputmode="decimal"></div>
+        </div>
         </div>
         <h4 class="h4" style="margin:6px 0 0">Rebritagem</h4>
         <div class="row2">
@@ -583,11 +584,13 @@ const DEFAULT_CFG={metaMensal:99176,diasProgramados:28,horasDia:9,prodPlanejada:
   frota:['CB01','CB02','CB03','CB04'],
   equipamentos:['Britador de mandíbulas','Alimentador vibratório','Grelha','Transportador de correia','Peneira vibratória','Painel elétrico / motores','Rebritador cônico HP300','Outro'],
   paradasOp:['Gaiola / engaiolamento','Pulmão cheio','Falta de energia','Falta máq./caminhão','Pesagem caminhão','Início / fim de turno','Arrumando frente','DDS'],alcada:5000,equipes:['Equipe própria','DNP (terceirizada)']};
-const LINHAS={primaria:'Britagem primária',secundaria:'Britagem secundária',rebritagem:'Rebritagem'};
-const LPFX={secundaria:'sc',rebritagem:'rb'},LSUF={secundaria:'SC',rebritagem:'RB'},LEQ={primaria:'britador primário',secundaria:'britador secundário',rebritagem:'rebritador'};
-const linhaDe=r=>r&&LINHAS[r.linha]?r.linha:'primaria';
-function ativoLinha(a){if(!a)return '';if(a.linha)return a.linha;const t=norm((a.local||'')+' '+(a.nome||''));if(/rebrit|hp ?300/.test(t))return 'rebritagem';if(/secund/.test(t))return 'secundaria';if(/britagem|primar/.test(t))return 'primaria';return '';}
-const osLinha=m=>m.linha||ativoLinha(ativoById(m.ativoId))||'primaria';
+// Secundária e rebritagem são a mesma linha (HP300): lançamentos antigos marcados "secundaria" contam como rebritagem.
+const LINHAS={primaria:'Britagem',rebritagem:'Rebritagem'};
+const LPFX={rebritagem:'rb'},LSUF={rebritagem:'RB'},LEQ={primaria:'britador primário',rebritagem:'rebritador'};
+const linhaNorm=l=>l==='secundaria'?'rebritagem':l;
+const linhaDe=r=>r&&LINHAS[linhaNorm(r.linha)]?linhaNorm(r.linha):'primaria';
+function ativoLinha(a){if(!a)return '';if(a.linha)return linhaNorm(a.linha);const t=norm((a.local||'')+' '+(a.nome||''));if(/rebrit|hp ?300/.test(t))return 'rebritagem';if(/secund/.test(t))return 'rebritagem';if(/britagem|primar/.test(t))return 'primaria';return '';}
+const osLinha=m=>linhaNorm(m.linha)||ativoLinha(ativoById(m.ativoId))||'primaria';
 // parâmetros de cada linha (secundária e rebritagem usam os da primária enquanto não forem definidos)
 function cfgLinha(l){const c=S.cfg,p=LPFX[l];if(!p)return{metaMensal:c.metaMensal,horasDia:c.horasDia,prodPlanejada:c.prodPlanejada,metaOEE:c.metaOEE};
   const g=k=>fin(c[p+k])&&c[p+k]>0?c[p+k]:null;
@@ -814,7 +817,7 @@ async function lerFolhaUI(file,tipo){
   if(tipo==='viagens')return omrViagensUI(sh,r,prev+aviso,data);
   // britagem: preenche o formulário e a pessoa confere e salva
   sh.close();setView('lancar');setForm('brit');resetForm('#fb');const f=$('#fb');
-  if(c.linha.valor){setRadio(f,'linha',c.linha.valor);fbLinhaUI();}
+  if(c.linha.valor){c.linha.valor=linhaNorm(c.linha.valor);setRadio(f,'linha',c.linha.valor);fbLinhaUI();}
   if(data)f.data.value=data;if(c.turno.valor)f.turno.value=c.turno.valor;
   const put=(campo,el)=>{const v=c[campo];if(!v||v.valor==null)return;el.value=nf(v.valor,campo==='prodRb'?0:1);};
   const hhmm=n=>c[n+'_h']&&c[n+'_h'].valor!=null?pad(c[n+'_h'].valor)+':'+pad((c[n+'_m']&&c[n+'_m'].valor)||0):'';f.liga.value=hhmm('liga');f.desl.value=hhmm('desl');
@@ -862,7 +865,7 @@ function osSit(o){if(o.status!=='Aberta')return'Concluída';if(osPrazo(o)<todayS
 function osTipo(o){return['Preventiva','Corretiva','Preditiva','Melhoria'].includes(o.natureza)?o.natureza:'Corretiva';}
 function osOcor(o){return o.area==='Elétrica'?'Elétrica':o.area==='Operacional'?'Operacional':'Mecânica';}
 function osCritica(o){if(o.status!=='Aberta')return false;if(o.prioridade)return o.prioridade==='Alta';const a=ativoById(o.ativoId);return osTipo(o)==='Corretiva'&&a&&a.criticidade==='A';}
-const MD_GR=[{k:'brit',t:'BRITAGEM',s:'Britagem primária',c:'g1',cor:'#178041',l:['primaria']},{k:'rebrit',t:'REBRITAGEM',s:'Secundária e rebritagem · HP300',c:'g2',cor:'#1f6fd6',l:['secundaria','rebritagem']},{k:'mina',t:'FROTA E MINA',s:'Caminhões, escavadeiras, carregadeiras e apoio',c:'g3',cor:'#b07d1a',l:['']}];
+const MD_GR=[{k:'brit',t:'BRITAGEM',s:'Britagem',c:'g1',cor:'#178041',l:['primaria']},{k:'rebrit',t:'REBRITAGEM',s:'Rebritagem · HP300',c:'g2',cor:'#1f6fd6',l:['secundaria','rebritagem']},{k:'mina',t:'FROTA E MINA',s:'Caminhões, escavadeiras, carregadeiras e apoio',c:'g3',cor:'#b07d1a',l:['']}];
 function osGrupo(o){const a=ativoById(o.ativoId);let l=a?ativoLinha(a):(o.paraBritagem===false?'':(o.linha||'primaria'));return l==='secundaria'||l==='rebritagem'?'rebrit':l==='primaria'?'brit':'mina';}
 const MD_ICO='<svg width="44" height="40" viewBox="0 0 44 40"><g fill="#fff"><circle cx="22" cy="7" r="5"/><circle cx="15" cy="17" r="5"/><circle cx="29" cy="17" r="5"/><circle cx="8" cy="28" r="5"/><circle cx="22" cy="28" r="5"/><circle cx="36" cy="28" r="5"/></g></svg>';
 function mdDados(g){
@@ -1034,7 +1037,7 @@ async function prefillHor(){ // horímetro inicial = último final
 function janelaH(a,b){if(!a||!b)return null;const[h1,m1]=a.split(':').map(Number),[h2,m2]=b.split(':').map(Number);let m=(h2*60+m2)-(h1*60+m1);if(m<=0)m+=1440;return m/60;}
 function britHT(f,po){if(f.dataset.htOld&&!f.liga.value&&!f.desl.value)return +f.dataset.htOld;const j=janelaH(f.liga.value,f.desl.value);return j==null?null:Math.max(0,j-po);}
 const dMin=d=>Date.parse(d+'T00:00:00Z')/6e4,hmMin=t=>{const[a,b]=String(t).split(':').map(Number);return a*60+b;};
-const HFL={britador:'primaria',secundario:'secundaria',rebritador:'rebritagem'};
+const HFL={britador:'primaria',secundario:'rebritagem',rebritador:'rebritagem'};
 function britOp(b){ // horas com a britagem rodando, antes de descontar manutenção
   if(b.liga&&b.desl){const po=parList(b).reduce((a,e)=>a+(fin(e[1])?e[1]:0),0);return Math.max(0,janelaH(b.liga,b.desl)-po);}
   return fin(b.horIni)&&fin(b.horFim)&&b.horFim>=b.horIni?b.horFim-b.horIni:0;}
@@ -1236,7 +1239,7 @@ const empty=t=>`<div class="empty">${t}</div>`;
 const ROLES=[['manutencao','Manutenção','Cadastra ativos e abre OS'],['almoxarife','Almoxarife','Controla o estoque e recebe compras'],['compras','Compras','Emite pedidos aos fornecedores'],['supervisor','Supervisor','Aprova compras até a alçada'],['gerente','Gerente','Aprova qualquer valor e altera ajustes']];
 const UNID=['un','pç','jg','kit','m','kg','L','cx','par','rolo'];
 const CAT_PECA=['Mecânica','Elétrica','Desgaste','Lubrificante','Pneu / rodante','Filtro','Consumível','Outro'];
-const CAT_ATIVO=['Britagem','Britagem secundária','Rebritagem','Alimentação','Transportador','Peneiramento','Elétrico','Escavadeira','Carregadeira','Caminhão','Perfuratriz','Rompedor','Motoniveladora','Carregamento','Transporte','Utilidades','Outro'];
+const CAT_ATIVO=['Britagem','Rebritagem','Alimentação','Transportador','Peneiramento','Elétrico','Escavadeira','Carregadeira','Caminhão','Perfuratriz','Rompedor','Motoniveladora','Carregamento','Transporte','Utilidades','Outro'];
 const RC_ST={'Em aprovação':'#c98d00','Aprovação gerência':'#ef7d1a','Em revisão':'#8a4fbf','Aprovada':'#2b78d0','Pedido emitido':'#1d4f91','Recebida parcial':'#0f8c8c','Recebida':'#178041','Reprovada':'#d63b2b','Cancelada':'#8a948f'};
 const RC_OPEN=['Em aprovação','Aprovação gerência','Em revisão','Aprovada','Pedido emitido','Recebida parcial'];
 const stBadge=(s,c)=>`<span class="st" style="background:${c||RC_ST[s]||'#888'}">${esc(s)}</span>`;

@@ -1,7 +1,7 @@
 /* Pedreira Ibiúna · guarda o app no aparelho para abrir sem internet.
    Arquivos do app: busca na rede primeiro (para pegar atualizações) e usa a cópia guardada se não houver sinal.
    Fontes e bibliotecas externas: usa a cópia guardada. As chamadas ao servidor (Apps Script) não passam por aqui. */
-var CACHE='ibiuna-app-v6';
+var CACHE='ibiuna-app-v7';
 var BASE=['./','index.html','backend.js','config.js','logo.png','icon.svg','manifest.webmanifest','omr.js','omr-layout.js','folhas/folha_viagens.pdf','folhas/folha_britagem.pdf'];
 self.addEventListener('install',function(e){e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(BASE);}).then(function(){return self.skipWaiting();}));});
 self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);}));}).then(function(){return self.clients.claim();}));});
