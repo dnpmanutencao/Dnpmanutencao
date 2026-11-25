@@ -466,7 +466,7 @@ function telaRdoLista() {
     li.onclick = function () {
       var x = l[Number(li.dataset.ed)];
       if (x.medido) return aviso('Este RDO já entrou em medição e não pode ser alterado. Fale com o escritório.', 'err');
-      S.rdo = { editId: x.id, numero: x.numero, fotosExist: x.fotos, projetoId: x.projetoId, data: x.data, clima: x.clima || 'Bom', ehFeriado: !!x.ehFeriado,
+      S.rdo = { editId: x.id, numero: x.numero, fotosExist: x.fotos, fotosLista: x.fotosLista || [], projetoId: x.projetoId, data: x.data, clima: x.clima || 'Bom', ehFeriado: !!x.ehFeriado,
         atividades: x.atividades || '', ocorrencias: String(x.ocorrencias || '').replace(/\n?\[editado no app[^\]]*\]/g, ''),
         equipe: x.maoDeObra.map(function (m) { return Object.assign({}, m); }) };
       S.rdoFotos = []; S.rdoModo = ''; render();
@@ -488,13 +488,16 @@ function telaRdo() {
   var ed = !!r.editId;
   var html = (ed ? '' : '<button class="btn sec" id="r-editar" style="margin-bottom:12px">📋 Editar RDO já enviado</button>') +
     '<div class="card"><h2>' + (ed ? '✏️ Editando RDO nº ' + esc(String(r.numero || '')) : 'Novo RDO / Diário de obra') + '</h2>' +
-    (ed ? '<button class="btn sec" id="r-cancel">✕ Cancelar edição</button><p class="muted">Obra e data não mudam. ' + (r.fotosExist || 0) + ' foto(s) já enviada(s) ficam; as que adicionar aqui entram junto.</p>' : '') +
+    (ed ? '<button class="btn sec" id="r-cancel">✕ Cancelar edição</button><p class="muted">Obra e data não mudam. As fotos novas entram junto com as já enviadas.</p>' : '') +
     '<label>Obra</label><select id="r-obra"' + (ed ? ' disabled' : '') + '>' + obras.map(function (o) { return '<option value="' + o.id + '"' + (o.id === r.projetoId ? ' selected' : '') + '>' + esc(obraNome(o)) + '</option>'; }).join('') + '</select>' +
     '<div class="row"><div><label>Data</label><input type="date" id="r-data" value="' + r.data + '"' + (ed ? ' disabled' : '') + '></div><div><label>Clima</label><select id="r-clima">' +
     ((S.dados && S.dados.climas) || ['Bom']).map(function (c) { return '<option' + (c === r.clima ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select></div></div>' +
     '<label style="display:flex;gap:8px;align-items:center;color:var(--texto)"><input type="checkbox" id="r-fer" style="width:auto"' + (r.ehFeriado ? ' checked' : '') + '> É feriado (hora extra 100%)</label>' +
     '<label>Atividades do dia</label><textarea id="r-ativ" placeholder="O que foi feito hoje">' + esc(r.atividades) + '</textarea>' +
     '<label>Ocorrências</label><textarea id="r-ocor" placeholder="Paradas, problemas, observações">' + esc(r.ocorrencias) + '</textarea>' +
+    (ed && r.fotosLista && r.fotosLista.length ? '<label>Fotos já enviadas (' + r.fotosLista.length + ')</label><div class="fotos">' + r.fotosLista.map(function (f, i) {
+      return '<span style="position:relative;display:inline-block"><img src="https://drive.google.com/thumbnail?id=' + encodeURIComponent(f.id) + '&sz=w200" alt="foto" onerror="this.style.opacity=.3"><button type="button" data-fx="' + i + '" title="Apagar foto" style="position:absolute;top:2px;right:2px;width:24px;height:24px;border:0;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:13px;padding:0">✕</button></span>';
+    }).join('') + '</div>' : '') +
     '<label>Fotos ' + (ed ? 'novas ' : '') + '(' + S.rdoFotos.length + ')</label><button class="btn sec" id="r-foto">📷 Adicionar fotos</button><div class="fotos">' +
     S.rdoFotos.map(function (f, i) { return '<img src="' + f + '" data-i="' + i + '" title="tocar para remover">'; }).join('') + '</div></div>' +
     '<div class="card"><h2>Equipe e horários</h2><button class="btn sec" id="r-ponto">⏱️ Preencher pelo ponto batido</button>' +
@@ -516,7 +519,19 @@ function telaRdo() {
   };
   $('r-add').onclick = function () { ler(); r.equipe.push({ funcionarioId: '', entrada1: '', saida1: '', entrada2: '', saida2: '' }); render(); };
   Array.prototype.forEach.call(document.querySelectorAll('[data-rm]'), function (b) { b.onclick = function () { ler(); r.equipe.splice(Number(b.dataset.rm), 1); render(); }; });
-  Array.prototype.forEach.call(document.querySelectorAll('.fotos img'), function (im) { im.onclick = function () { if (confirm('Remover esta foto?')) { ler(); S.rdoFotos.splice(Number(im.dataset.i), 1); render(); } }; });
+  Array.prototype.forEach.call(document.querySelectorAll('.fotos img[data-i]'), function (im) { im.onclick = function () { if (confirm('Remover esta foto?')) { ler(); S.rdoFotos.splice(Number(im.dataset.i), 1); render(); } }; });
+  // apagar foto já enviada (precisa de internet; vai para a lixeira do Drive)
+  Array.prototype.forEach.call(document.querySelectorAll('[data-fx]'), function (b) {
+    b.onclick = function () {
+      var f = r.fotosLista[Number(b.dataset.fx)]; if (!f) return;
+      if (!navigator.onLine) return aviso('Para apagar uma foto já enviada é preciso estar com internet.', 'err');
+      if (!confirm('Apagar esta foto do RDO nº ' + r.numero + '? Isso não dá para desfazer pelo app.')) return;
+      ler(); b.disabled = true; b.textContent = '…';
+      api('rdoFotoRemover', { projetoId: r.projetoId, diarioId: r.editId, fotoId: f.id })
+        .then(function (res) { r.fotosLista = (res && res.fotos) || r.fotosLista.filter(function (x) { return x.id !== f.id; }); r.fotosExist = r.fotosLista.length; aviso('Foto apagada.', 'ok'); render(); })
+        .catch(function (e) { b.disabled = false; b.textContent = '✕'; aviso(e.message, 'err'); });
+    };
+  });
   $('r-foto').onclick = function () {
     ler();
     tirarFoto('galeria').then(function (arqs) {
