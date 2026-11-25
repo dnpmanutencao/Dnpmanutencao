@@ -146,7 +146,7 @@ function gTelaOrcamento() {
   if (!o) { $('tela').innerHTML = gVoltar('orcs') + '<div class="card">Carregando orçamento...</div>'; return; }
   var ed = gPode('orcamentos', 'editar'), cr = gPode('orcamentos', 'criar'), ex = gPode('orcamentos', 'excluir'), rasc = o.status === 'Rascunho', c = gCat();
   var dis = ed ? '' : ' disabled';
-  var html = gVoltar('orcs') + '<div class="card"><h2>' + esc(o.titulo) + '</h2><p class="muted">' + esc(o.nomeCliente) + (o.numeroProposta ? ' · Proposta nº ' + o.numeroProposta + '/' + o.anoProposta : '') + '</p>' +
+  var html = gVoltar('orcs') + '<div class="card"><h2>' + esc(o.titulo) + '</h2>' + (ed ? '<button class="btn sec" id="g-ren" style="width:auto;padding:4px 10px;font-size:13px;margin-bottom:6px">✏️ Renomear</button>' : '') + '<p class="muted">' + esc(o.nomeCliente) + (o.numeroProposta ? ' · Proposta nº ' + o.numeroProposta + '/' + o.anoProposta : '') + '</p>' +
     '<div class="grade" style="font-size:14px"><div><span class="muted">Custo</span><br><b>' + brl(o.custoTotal) + '</b></div><div><span class="muted">Venda</span><br><b>' + brl(o.vendaTotal) + '</b></div>' +
     '<div><span class="muted">Imposto</span><br>' + brl(o.valorImposto) + '</div><div><span class="muted">Taxa adm.</span><br>' + brl(o.valorTaxaAdm) + '</div>' +
     '<div><span class="muted">Taxa eng.</span><br>' + brl(o.valorTaxaEng) + '</div><div><span class="muted">Lucro</span><br>' + brl(o.valorLucro) + '</div></div>' +
@@ -194,7 +194,16 @@ function gTelaOrcamento() {
       .catch(function (e) { aviso(e.message, 'err'); b.disabled = false; b.textContent = '📄 Gerar PDF da proposta'; });
   };
   $('g-props').onclick = function () { if (!gOnline()) return; $('g-props-l').innerHTML = '<p class="muted">Carregando...</p>'; sys('listarPropostasGeradas', [o.id]).then(function (l) { $('g-props-l').innerHTML = l.length ? l.map(gLinksProposta).join('') : '<p class="muted">Nenhuma proposta gerada ainda.</p>'; }).catch(function (e) { aviso(e.message, 'err'); }); };
-  if ($('g-dup')) $('g-dup').onclick = function () { if (!confirm('Duplicar este orçamento (cria uma cópia em Rascunho)?')) return; gAcao('duplicarOrcamento', [o.id], 'Orçamento duplicado.', function (r) { if (r && r.id) gAbrirOrc(r.id); else gIr('orcs'); }); };
+  if ($('g-ren')) $('g-ren').onclick = function () { var n = prompt('Novo nome do orçamento:', o.titulo); if (n === null || !n.trim() || n.trim() === o.titulo) return; gAcao('editarDadosOrcamento', [o.id, { clienteId: o.clienteId, titulo: n.trim() }], 'Nome alterado.'); };
+  if ($('g-dup')) $('g-dup').onclick = function () {
+    var n = prompt('Duplicar este orçamento (a cópia fica em Rascunho).\nNome da cópia:', o.titulo + ' (cópia)'); if (n === null) return; n = n.trim() || o.titulo;
+    gAcao('duplicarOrcamento', [o.id], null, function (r) {
+      if (!r || !r.id) { aviso('Orçamento duplicado.', 'ok'); return gIr('orcs'); }
+      if (n === o.titulo) { aviso('Orçamento duplicado.', 'ok'); return gAbrirOrc(r.id); }
+      sys('editarDadosOrcamento', [r.id, { clienteId: o.clienteId, titulo: n }]).then(function () { aviso('Orçamento duplicado como "' + n + '".', 'ok'); })
+        .catch(function (e) { aviso('Duplicado, mas não deu para renomear: ' + e.message, 'err'); }).then(function () { gRecarregarLista(); gAbrirOrc(r.id); });
+    });
+  };
   if ($('g-exc')) $('g-exc').onclick = function () { if (!confirm('EXCLUIR o orçamento "' + o.titulo + '"? Não dá para desfazer.')) return; gAcao('excluirOrcamento', [o.id], 'Orçamento excluído.', function () { G.orc = null; gIr('orcs'); }); };
   if ($('g-conv')) $('g-conv').onclick = function () {
     $('g-conv-f').innerHTML = '<div class="mdo"><label>Responsável técnico</label><input id="cv-resp"><label>Data de início</label><input type="date" id="cv-ini" value="' + dataIso(Date.now()) + '"><div style="height:8px"></div><button class="btn" id="cv-ok">Criar projeto</button></div>';
