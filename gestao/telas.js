@@ -50,6 +50,7 @@ function tTelaObra() {
     '<button class="bat" style="text-align:left;padding:14px" onclick="tObraStatus()">🚦 Status<small>executar, pausar, concluir</small></button></div></div>';
   if (o) {
     A.res = [o]; A.resFn = 'listarProjetos'; A.item = o; A.itemIdx = 0; A.info = aAnalisar([o]);
+    if (o.orcamentoId) h += '<button class="btn sec" onclick="gAbrirOrc(\'' + tId(o.orcamentoId) + '\')">📄 Orçamento de origem</button>';
     h += '<button class="btn sec" onclick="gIr(\'autoItem\')">✏️ Editar dados da obra</button>';
   }
   $('tela').innerHTML = h;
