@@ -45,7 +45,8 @@ function tTelaObra() {
   var h = gVoltar('tObras') + tH('🏗️ ' + esc(p.nome), o ? 'Status: ' + esc(o.status === 'Em Andamento' ? 'Em Execução' : o.status || '') : '');
   h += '<div class="card"><div class="grade">' +
     '<button class="bat" style="text-align:left;padding:14px" onclick="mdAbrirProjeto(T.proj.id, T.proj.nome)">📏 Medições<small>medir, PDF, faturar</small></button>' +
-    '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'tCrono\')">📊 Cronograma<small>etapas e prazos</small></button>' +
+    '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'tCrono\')">📊 Cronograma<small>etapas do orçamento</small></button>' +
+    '<button class="bat" style="text-align:left;padding:14px" onclick="cmAbrirLista(T.proj.id, T.proj.nome)">🗓️ Cronograma manual<small>programado × executado</small></button>' +
     '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'tDiarios\')">📒 Diários (RDO)<small>novo, lista e PDF</small></button>' +
     '<button class="bat" style="text-align:left;padding:14px" onclick="tObraStatus()">🚦 Status<small>executar, pausar, concluir</small></button></div></div>';
   if (o) {

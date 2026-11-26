@@ -45,7 +45,7 @@ function aSingular(fn) { // listarLancamentos -> Lancamento ; listarFuncoes -> F
 // ---------- telas ----------
 function aTelaHome() {
   var at = [['orcamentos', "gIr('orcs')", '📄 Orçamentos', 'lista, status, PDF'], ['orcamentos', "G.novo=null;gIr('novoOrc')", '➕ Novo orçamento', 'funciona sem internet'],
-    ['projetos', "gIr('tObras')", '🏗️ Obras', 'cronograma, diários, status'], ['projetos', "gIr('medEscolher')", '📏 Medições', 'medir obra, PDF, faturar'],
+    ['projetos', "gIr('tObras')", '🏗️ Obras', 'cronograma, diários, status'], ['projetos', "gIr('medEscolher')", '📏 Medições', 'medir obra, PDF, faturar'], ['projetos', "cmAbrirLista()", '🗓️ Cronogramas', 'manuais: programado × executado'],
     ['financeiro', "gIr('tFluxo')", '💰 Fluxo de caixa', 'calendário, saldo, pendências'], ['crm', "gIr('tFunil')", '🎯 Funil de vendas', 'oportunidades, atividades'],
     ['frequencia', "gIr('tFreq')", '📅 Frequência', 'espelho de ponto'], ['rh', "gIr('tFolha')", '💵 Folha', 'cálculo, avulsos, lançar'],
     ['epi', "gIr('tEpi')", '🦺 EPI', 'entregas, ficha, OS'], ['epi', "gIr('tTurmas')", '🎓 Treinamentos', 'turmas, presença'],
