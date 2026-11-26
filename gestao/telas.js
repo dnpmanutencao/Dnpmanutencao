@@ -46,7 +46,7 @@ function tTelaObra() {
   h += '<div class="card"><div class="grade">' +
     '<button class="bat" style="text-align:left;padding:14px" onclick="mdAbrirProjeto(T.proj.id, T.proj.nome)">📏 Medições<small>medir, PDF, faturar</small></button>' +
     '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'tCrono\')">📊 Cronograma<small>etapas e prazos</small></button>' +
-    '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'tDiarios\')">📒 Diários (RDO)<small>lista e PDF</small></button>' +
+    '<button class="bat" style="text-align:left;padding:14px" onclick="gIr(\'tDiarios\')">📒 Diários (RDO)<small>novo, lista e PDF</small></button>' +
     '<button class="bat" style="text-align:left;padding:14px" onclick="tObraStatus()">🚦 Status<small>executar, pausar, concluir</small></button></div></div>';
   if (o) {
     A.res = [o]; A.resFn = 'listarProjetos'; A.item = o; A.itemIdx = 0; A.info = aAnalisar([o]);
@@ -95,6 +95,7 @@ function tTelaDiarios() {
   var p = T.proj; if (!p) return gIr('tObras');
   var l = tCarrega('diar_' + p.id, 'listarDiariosObra', [p.id], 'tDiarios');
   var h = gVoltar('tObra') + tH('📒 Diários de obra', esc(p.nome) + ' · toque em Editar para corrigir o RDO ou anexar fotos');
+  h += tBtn('➕ Novo RDO', 'tRdoNovo()', 'lar');
   if (!l) { $('tela').innerHTML = h + tCarregando(); return; }
   l = l.slice().sort(function (a, b) { return (Number(b.numero) || 0) - (Number(a.numero) || 0); });
   $('tela').innerHTML = h + '<div class="card"><ul class="lista">' + (l.length ? l.map(function (d, i) {
@@ -570,9 +571,120 @@ function tRdoFotoExcluir(i) {
   tFn('removerFotoDiarioObra', [T.proj.id, r.id, f.id], 'Removendo foto...').then(function (res) { if (res && res.fotos) r.fotos = res.fotos; tLimpa('diar_'); render(); }).catch(function () {});
 }
 
+// ================= NOVO RDO =================
+// Grava com criarDiarioObra: dados do dia, equipe com horários, quantidade executada por item
+// de cada etapa (etapas "por horas" são calculadas pelo servidor a partir da equipe) e fotos
+// (enviadas uma a uma depois que o RDO é criado).
+function tRnNum(v) { var n = Number(String(v == null ? '' : v).trim().replace(',', '.')); return isFinite(n) ? n : 0; }
+function tRdoNovo() {
+  var hoje = dataIso(Date.now());
+  T.rn = { dataIso: hoje, clima: 'Bom', ehFeriado: new Date(hoje + 'T12:00:00').getDay() === 0, efetivo: '', atividades: '', ocorrencias: '', equipe: [], qtd: {}, desc: {}, fotos: [] };
+  T.rnMudou = false; delete T.d['rnEt_' + T.proj.id];
+  gIr('tRdoNovo');
+}
+function tRnLer() {
+  var r = T.rn; if (!r || !$('rn-data')) return;
+  r.dataIso = $('rn-data').value; r.clima = $('rn-clima').value; r.ehFeriado = $('rn-fer').checked;
+  r.efetivo = $('rn-efet').value; r.atividades = $('rn-ativ').value; r.ocorrencias = $('rn-ocor').value;
+  r.equipe.forEach(function (m, i) { ['funcionarioId', 'entrada1', 'saida1', 'entrada2', 'saida2'].forEach(function (k) { var el = $('rn-' + k + '-' + i); if (el) m[k] = el.value; }); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-rnq]'), function (el) { r.qtd[el.getAttribute('data-rnq')] = el.value; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-rnd]'), function (el) { r.desc[el.getAttribute('data-rnd')] = el.value; });
+}
+function tTelaRdoNovo() {
+  var r = T.rn; if (!r || !T.proj) return gIr('tDiarios');
+  tRnLer();
+  var funcs = tCarrega('funcs', 'listarFuncionariosAtivos', [], 'tRdoNovo') || [];
+  var ets = tCarrega('rnEt_' + T.proj.id, 'obterEtapasParaApontamento', [T.proj.id], 'tRdoNovo');
+  var lista = funcs.map(function (f) { return { id: f.id, nome: mTitulo(f) }; }).sort(function (a, b) { return a.nome.localeCompare(b.nome); });
+  var hora = function (k, i, v) { return '<input type="time" id="rn-' + k + '-' + i + '" value="' + esc(v || '') + '" style="min-width:0">'; };
+  var h = '<button class="btn sec" style="margin-bottom:10px" onclick="tRnVoltar()">← Voltar</button>' + tH('➕ Novo RDO', esc(T.proj.nome));
+  h += '<div class="card"><h2 style="font-size:15px">📅 Dados do dia</h2>' +
+    '<div class="row"><div><label>Data</label><input type="date" id="rn-data" value="' + esc(r.dataIso) + '" onchange="tRnData()"></div><div><label>Clima</label><select id="rn-clima">' + T_CLIMAS.map(function (c) { return '<option' + (c === r.clima ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select></div></div>' +
+    '<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="rn-fer" style="width:auto"' + (r.ehFeriado ? ' checked' : '') + '> Domingo ou feriado (hora extra 100%)</label>' +
+    '<label>Efetivo</label><input id="rn-efet" value="' + esc(r.efetivo) + '" placeholder="Ex.: 01 soldador, 01 ajudante (em branco = conta a equipe)">' +
+    '<label>Atividades</label><textarea id="rn-ativ" rows="5" placeholder="O que foi feito no dia">' + esc(r.atividades) + '</textarea>' +
+    '<label>Ocorrências</label><textarea id="rn-ocor" rows="2">' + esc(r.ocorrencias) + '</textarea></div>';
+  h += '<div class="card"><h2 style="font-size:15px">👷 Equipe e horários (' + r.equipe.length + ')</h2><p class="muted" style="font-size:12px;margin:0 0 6px">Opcional. Com horário, o sistema calcula as horas normais/50%/100% e lança no espelho de ponto.</p>' +
+    r.equipe.map(function (m, i) {
+      return '<div style="border-top:1px solid var(--borda,#ddd);padding:8px 0"><div style="display:flex;gap:6px"><select id="rn-funcionarioId-' + i + '" style="flex:1">' + gOpts(lista, m.funcionarioId, function (x) { return x.nome; }, funcs.length ? 'Escolha o funcionário' : 'Carregando...') + '</select>' +
+        '<button class="btn sec" style="width:auto;padding:6px 12px" onclick="tRnEquipeTirar(' + i + ')">✕</button></div>' +
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:4px;font-size:11px" class="muted"><span>Entrada</span><span>Saída</span><span>Entrada 2</span><span>Saída 2</span>' +
+        hora('entrada1', i, m.entrada1) + hora('saida1', i, m.saida1) + hora('entrada2', i, m.entrada2) + hora('saida2', i, m.saida2) + '</div></div>';
+    }).join('') + tBtn('➕ Adicionar funcionário', 'tRnEquipeAdd()', 'sec') + '</div>';
+  h += '<div class="card"><h2 style="font-size:15px">📐 Executado no dia (para a medição)</h2>';
+  if (!ets) h += '<p class="muted">Carregando etapas...</p>';
+  else if (!ets.length) h += '<p class="muted">A obra não tem etapas.</p>';
+  else h += ets.map(function (e) {
+    var tit = '<b>' + esc((e.numero ? e.numero + '. ' : '') + (e.nome || '')) + '</b> <span class="muted" style="font-size:12px">' + esc(mVal('percentual', e.percentualAtual || 0)) + '%</span>';
+    if (e.apontarPorHoras) return '<div style="border-top:1px solid var(--borda,#ddd);padding:8px 0">' + tit + '<p class="muted" style="font-size:12px;margin:4px 0 0">Calculada automaticamente pelas horas da equipe acima.</p></div>';
+    var pe = String(e.projetoEtapaId);
+    return '<div style="border-top:1px solid var(--borda,#ddd);padding:8px 0">' + tit +
+      (e.itensOrcamento || []).map(function (it) {
+        var k = pe + '|' + it.id;
+        return '<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><div style="flex:1;font-size:13px">' + esc(it.descricao || '') + '<br><span class="muted" style="font-size:11px">Vendido ' + esc(mVal('quantidade', it.quantidadeVendida)) + ' ' + esc(it.unidade || '') + ' · já executado ' + esc(mVal('quantidade', it.quantidadeAcumulada || 0)) + '</span></div>' +
+          '<input data-rnq="' + esc(k) + '" inputmode="decimal" placeholder="0" value="' + esc(r.qtd[k] || '') + '" style="width:80px;min-width:0;text-align:right"></div>';
+      }).join('') +
+      '<input data-rnd="' + esc(pe) + '" placeholder="Descrição da etapa (opcional)" value="' + esc(r.desc[pe] || '') + '" style="margin-top:6px"></div>';
+  }).join('');
+  h += '</div>';
+  h += '<div class="card"><h2 style="font-size:15px">📷 Fotos (' + r.fotos.length + ')</h2>' +
+    (r.fotos.length ? '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">' + r.fotos.map(function (f, i) { return '<div style="position:relative"><img src="' + f.data + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px"><button onclick="tRnFotoTirar(' + i + ')" style="position:absolute;top:4px;right:4px;border:0;border-radius:50%;width:28px;height:28px;background:rgba(0,0,0,.6);color:#fff">✕</button></div>'; }).join('') + '</div>' : '') +
+    '<input type="file" id="rn-fotos" accept="image/*" multiple style="display:none" onchange="tRnFotos(this)">' + tBtn('📷 Escolher fotos', "$('rn-fotos').click()", 'sec') + '</div>';
+  h += tBtn('💾 Salvar RDO', 'tRnSalvar()', 'lar');
+  $('tela').innerHTML = h;
+  Array.prototype.forEach.call(document.querySelectorAll('#tela input,#tela textarea,#tela select'), function (el) { el.addEventListener('input', function () { T.rnMudou = true; }); });
+}
+function tRnData() { var v = $('rn-data').value; if (v && new Date(v + 'T12:00:00').getDay() === 0) $('rn-fer').checked = true; }
+function tRnVoltar() { tRnLer(); if (T.rnMudou && !confirm('Sair sem salvar o RDO?')) return; T.rn = null; gIr('tDiarios'); }
+function tRnEquipeAdd() { tRnLer(); T.rn.equipe.push({ funcionarioId: '', entrada1: '07:00', saida1: '12:00', entrada2: '13:00', saida2: '17:00' }); T.rnMudou = true; render(); }
+function tRnEquipeTirar(i) { tRnLer(); T.rn.equipe.splice(i, 1); render(); }
+function tRnFotoTirar(i) { tRnLer(); T.rn.fotos.splice(i, 1); render(); }
+function tRnFotos(inp) {
+  var arqs = Array.prototype.slice.call(inp.files || []); inp.value = ''; if (!arqs.length) return;
+  tRnLer(); aviso('Preparando fotos...');
+  arqs.reduce(function (p, a) { return p.then(function () { return lerFoto(a, 1600, 0.7).then(function (d) { T.rn.fotos.push({ data: d }); }); }); }, Promise.resolve())
+    .then(function () { T.rnMudou = true; aviso(arqs.length + ' foto(s) prontas para enviar.', 'ok'); if (G.view === 'tRdoNovo') render(); });
+}
+function tRnSalvar() {
+  tRnLer(); var r = T.rn, ets = T.d['rnEt_' + T.proj.id] || [];
+  if (!r.dataIso) return aviso('Informe a data.', 'err');
+  var equipe = r.equipe.filter(function (m) { return m.funcionarioId && m.entrada1 && m.saida1; });
+  if (equipe.length < r.equipe.length && !confirm((r.equipe.length - equipe.length) + ' linha(s) da equipe sem funcionário ou sem horário serão ignoradas. Continuar?')) return;
+  var etapas = [], resumo = [];
+  ets.forEach(function (e) {
+    if (e.apontarPorHoras) return;
+    var pe = String(e.projetoEtapaId), itens = [];
+    (e.itensOrcamento || []).forEach(function (it) {
+      var q = tRnNum(r.qtd[pe + '|' + it.id]);
+      if (q > 0) { itens.push({ orcamentoItemId: it.id, quantidade: q }); resumo.push(mVal('quantidade', q) + ' ' + (it.unidade || '') + ' ' + it.descricao); }
+    });
+    var d = String(r.desc[pe] || '').trim();
+    if (itens.length || d) etapas.push({ projetoEtapaId: pe, descricao: d, itens: itens });
+  });
+  if (!String(r.atividades || '').trim() && !etapas.length && !equipe.length) return aviso('Informe as atividades, a equipe ou o executado em alguma etapa.', 'err');
+  var dados = { data: r.dataIso, clima: r.clima, ehFeriado: !!r.ehFeriado,
+    efetivo: String(r.efetivo || '').trim() || (equipe.length ? equipe.length + ' funcionário(s)' : ''),
+    atividades: String(r.atividades || '').trim(), ocorrencias: String(r.ocorrencias || '').trim(), fotos: [],
+    maoDeObra: equipe.map(function (m) { return { funcionarioId: m.funcionarioId, entrada1: m.entrada1, saida1: m.saida1, entrada2: m.entrada2 || '', saida2: m.saida2 || '' }; }),
+    etapas: etapas };
+  if (!confirm('Salvar RDO de ' + mdData(r.dataIso) + '?\n' + equipe.length + ' funcionário(s) na equipe' + (resumo.length ? '\nExecutado: ' + resumo.join('; ') : '') + (r.fotos.length ? '\n' + r.fotos.length + ' foto(s)' : ''))) return;
+  var projId = T.proj.id, fotos = r.fotos.slice();
+  tFn('criarDiarioObra', [projId, dados], 'Salvando RDO...').then(function (res) {
+    T.rnMudou = false; T.rn = null; tLimpa('diar_'); tLimpa('proj_'); tLimpa('crono_');
+    if (!fotos.length || !res || !res.id) return gIr('tDiarios');
+    var n = 0;
+    return fotos.reduce(function (p, f, k) {
+      return p.then(function () {
+        aviso('Enviando foto ' + (k + 1) + '/' + fotos.length + '...');
+        return sys('adicionarFotosDiarioObra', [projId, res.id, [{ nome: 'RDO' + res.numero + '_' + dados.data + '_' + Date.now() + '.jpg', mimeType: 'image/jpeg', data: String(f.data).split(',')[1] }]]).then(function () { n++; }).catch(function (e) { aviso(e.message, 'err'); });
+      });
+    }, Promise.resolve()).then(function () { aviso('RDO nº ' + res.numero + ' salvo' + (n ? ' com ' + n + ' foto(s)' : '') + '.', 'ok'); tLimpa('diar_'); gIr('tDiarios'); });
+  }).catch(function () {});
+}
+
 // ================= rotas e ganchos =================
 var _tRota = gRotaExtra;
-var T_ROTAS = { tObras: tTelaObras, tObra: tTelaObra, tCrono: tTelaCrono, tDiarios: tTelaDiarios, tFreq: tTelaFreq, tEspelho: tTelaEspelho, tDia: tTelaDia, tFolha: tTelaFolha, tFolhaFunc: tTelaFolhaFunc, tFunil: tTelaFunil, tOpo: tTelaOpo, tAtiv: tTelaAtiv, tTurmas: tTelaTurmas, tTurma: tTelaTurma, tEpi: tTelaEpi, tEpiFunc: tTelaEpiFunc, tFuncDocs: tTelaFuncDocs, tFin: tTelaFin, tCronoEd: function () { tCronoEditar(T.cronoI); }, tRdoEd: tTelaRdoEd };
+var T_ROTAS = { tObras: tTelaObras, tObra: tTelaObra, tCrono: tTelaCrono, tDiarios: tTelaDiarios, tFreq: tTelaFreq, tEspelho: tTelaEspelho, tDia: tTelaDia, tFolha: tTelaFolha, tFolhaFunc: tTelaFolhaFunc, tFunil: tTelaFunil, tOpo: tTelaOpo, tAtiv: tTelaAtiv, tTurmas: tTelaTurmas, tTurma: tTelaTurma, tEpi: tTelaEpi, tEpiFunc: tTelaEpiFunc, tFuncDocs: tTelaFuncDocs, tFin: tTelaFin, tCronoEd: function () { tCronoEditar(T.cronoI); }, tRdoEd: tTelaRdoEd, tRdoNovo: tTelaRdoNovo };
 gRotaExtra = function (v) { if (T_ROTAS[v]) { T_ROTAS[v](); return true; } return _tRota(v); };
 // módulos genéricos que ganharam tela própria: abrem direto a tela nova
 var T_ATALHO = { listarDiariosObra: 'tDiarios', obterCronograma: 'tCrono', listarResumoFrequencia: 'tFreq', obterEspelhoPonto: 'tFreq', folhaCalcularMes: 'tFolha', listarOportunidades: 'tFunil', listarAtividadesCRM: 'tAtiv', listarTurmas: 'tTurmas', obterResumoFinanceiro: 'tFin', listarEntregasFuncionario: 'tEpi', obterDetalheFuncionario: null };
