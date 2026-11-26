@@ -1,5 +1,5 @@
 /* DNP Gestão — guarda o app no celular para abrir sem internet. */
-var CACHE = 'dnp-gestao-v29';
+var CACHE = 'dnp-gestao-v30';
 var ARQUIVOS = ['./', 'index.html', 'gapp.js', '../gestao.js', '../inspecao.js', 'modulos.js', 'auto.js', 'med.js', 'telas.js', 'fluxo.js', 'manifest.webmanifest', 'icon.svg'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ARQUIVOS); }).then(function () { return self.skipWaiting(); }));
@@ -12,7 +12,8 @@ self.addEventListener('activate', function (e) {
 self.addEventListener('fetch', function (e) {
   var url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== self.location.origin) return; // API do Google: sempre pela rede
-  e.respondWith(fetch(e.request).then(function (r) {
+  e.respondWith(fetch(e.request.url, { cache: 'no-cache' }).then(function (r) {
+      if (!r.ok) throw new Error('http ' + r.status);
     var copia = r.clone();
     caches.open(CACHE).then(function (c) { c.put(e.request, copia); });
     return r;
