@@ -668,9 +668,11 @@ function tRnSalvar() {
     maoDeObra: equipe.map(function (m) { return { funcionarioId: m.funcionarioId, entrada1: m.entrada1, saida1: m.saida1, entrada2: m.entrada2 || '', saida2: m.saida2 || '' }; }),
     etapas: etapas };
   if (!confirm('Salvar RDO de ' + mdData(r.dataIso) + '?\n' + equipe.length + ' funcionário(s) na equipe' + (resumo.length ? '\nExecutado: ' + resumo.join('; ') : '') + (r.fotos.length ? '\n' + r.fotos.length + ' foto(s)' : ''))) return;
+  if (T.rnSalvando) return aviso('Aguarde, o RDO já está sendo salvo...', 'err');
+  T.rnSalvando = true;
   var projId = T.proj.id, fotos = r.fotos.slice();
   tFn('criarDiarioObra', [projId, dados], 'Salvando RDO...').then(function (res) {
-    T.rnMudou = false; T.rn = null; tLimpa('diar_'); tLimpa('proj_'); tLimpa('crono_');
+    T.rnSalvando = false; T.rnMudou = false; T.rn = null; tLimpa('diar_'); tLimpa('proj_'); tLimpa('crono_');
     if (!fotos.length || !res || !res.id) return gIr('tDiarios');
     var n = 0;
     return fotos.reduce(function (p, f, k) {
@@ -679,7 +681,7 @@ function tRnSalvar() {
         return sys('adicionarFotosDiarioObra', [projId, res.id, [{ nome: 'RDO' + res.numero + '_' + dados.data + '_' + Date.now() + '.jpg', mimeType: 'image/jpeg', data: String(f.data).split(',')[1] }]]).then(function () { n++; }).catch(function (e) { aviso(e.message, 'err'); });
       });
     }, Promise.resolve()).then(function () { aviso('RDO nº ' + res.numero + ' salvo' + (n ? ' com ' + n + ' foto(s)' : '') + '.', 'ok'); tLimpa('diar_'); gIr('tDiarios'); });
-  }).catch(function () {});
+  }).catch(function () { T.rnSalvando = false; });
 }
 
 // ================= rotas e ganchos =================
