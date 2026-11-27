@@ -1,0 +1,175 @@
+<script>
+  // ================= CRONOGRAMA MANUAL (sistema web) =================
+  // Etapas lançadas à mão, programado × executado, por obra (aba "Cronograma manual" da obra)
+  // ou avulso (botão "Cronogramas manuais" na tela de Projetos). Servidor: CronogramasManuais.gs.
+  var CMW = { alvo: null, projetoId: null, projetoNome: '', id: null, dados: null };
+  var CMW_CORES = { 'Concluída': '#2e7d32', 'Concluída com atraso': '#558b2f', 'Em andamento': '#1565c0', 'Em andamento (atrás do previsto)': '#ef6c00', 'Atrasada': '#c62828', 'Início atrasado': '#d84315', 'Não iniciada': '#757575' };
+
+  function cmwEl_() { return document.getElementById(CMW.alvo); }
+  function cmwBr_(iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : '—'; }
+  function cmwDia_(iso) { return iso ? Math.round(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / 86400000) : null; }
+  function cmwPct_(v) { return (Math.round((Number(v) || 0) * 10) / 10).toString().replace('.', ',') + '%'; }
+  function cmwSelo_(s) { return '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;color:#fff;background:' + (CMW_CORES[s] || '#555') + '">' + escaparHtml(s) + '</span>'; }
+  function cmwPode_() { return ESTADO.usuario.permissoes.projetos && ESTADO.usuario.permissoes.projetos.editar; }
+  function cmwErro_(e) { var el = document.getElementById('cmw-erro'); if (el) { el.textContent = (e && e.message) || String(e); el.style.display = 'block'; } else mostrarErroGeral(e); }
+  function cmwBarra_(real, prev) {
+    return '<div style="position:relative;height:10px;background:#eef1f5;border-radius:5px;margin:6px 0">' +
+      '<div style="position:absolute;left:0;top:0;bottom:0;width:' + Math.min(100, real) + '%;background:var(--laranja,#f07c00);border-radius:5px"></div>' +
+      '<div title="previsto para hoje" style="position:absolute;top:-3px;bottom:-3px;left:calc(' + Math.min(100, prev) + '% - 1px);width:2px;background:#0B2A5B"></div></div>';
+  }
+
+  // ---------- lista ----------
+  // projetoId null = todos (tela de Projetos); com projetoId = aba da obra
+  function cmwAbrirLista_(projetoId, projetoNome) {
+    CMW.projetoId = projetoId || null; CMW.projetoNome = projetoNome || ''; CMW.id = null;
+    CMW.alvo = projetoId ? 'proj-subconteudo' : 'proj-conteudo';
+    cmwEl_().innerHTML = 'Carregando cronogramas...';
+    google.script.run.withSuccessHandler(cmwDesenharLista_).withFailureHandler(mostrarErroGeral)
+      .listarCronogramasManuais(ESTADO.token, projetoId ? { projetoId: projetoId } : {});
+  }
+  function cmwDesenharLista_(lista) {
+    var h = '<div class="cartao">';
+    if (!CMW.projetoId) h += '<div class="barra-acoes"><button class="botao-secundario" style="width:auto;" onclick="renderizarModuloProjetos(document.getElementById(\'conteudo-modulo\'))">← Voltar aos projetos</button></div>';
+    h += '<h3 style="margin-top:0;">🗓️ Cronogramas manuais' + (CMW.projetoNome ? ' — ' + escaparHtml(CMW.projetoNome) : '') + '</h3>' +
+      '<p style="color:var(--texto-suave);font-size:13px;margin-top:0;">Etapas lançadas à mão, com programação e execução independentes do orçamento.</p>';
+    if (cmwPode_()) h += '<div class="barra-acoes"><button class="botao-primario" style="width:auto;" onclick="cmwFormCronograma_(null)">+ Novo cronograma</button></div>';
+    h += '<div id="cmw-form"></div>';
+    if (!lista.length) h += '<p style="color:var(--texto-suave);">Nenhum cronograma manual ainda.</p>';
+    else {
+      h += '<table class="tabela"><thead><tr><th>Cronograma</th><th>Obra / cliente</th><th>Período</th><th>Etapas</th><th style="width:220px;">Executado × previsto hoje</th><th>Status</th></tr></thead><tbody>';
+      lista.forEach(function (c) {
+        h += '<tr style="cursor:pointer;" onclick="cmwAbrir_(\'' + c.id + '\')"><td><b>' + escaparHtml(c.titulo) + '</b></td>' +
+          '<td>' + (c.avulso ? '📌 Avulso' : '🏗️ ' + escaparHtml(c.projetoTitulo)) + (c.nomeCliente ? '<br><small>' + escaparHtml(c.nomeCliente) + '</small>' : '') + '</td>' +
+          '<td>' + (c.inicio ? cmwBr_(c.inicio) + ' a ' + cmwBr_(c.fim) : '—') + '</td>' +
+          '<td>' + c.concluidas + '/' + c.qtdEtapas + (c.atrasadas ? '<br><small style="color:#c62828;font-weight:700;">' + c.atrasadas + ' em atraso</small>' : '') + '</td>' +
+          '<td><b>' + cmwPct_(c.percentualReal) + '</b> × ' + cmwPct_(c.percentualPrevisto) + cmwBarra_(c.percentualReal, c.percentualPrevisto) + '</td>' +
+          '<td>' + escaparHtml(c.status) + '</td></tr>';
+      });
+      h += '</tbody></table>';
+    }
+    cmwEl_().innerHTML = h + '</div>';
+  }
+
+  // ---------- criar / editar dados do cronograma ----------
+  function cmwFormCronograma_(c) {
+    var alvo = document.getElementById('cmw-form'); if (!alvo) return;
+    alvo.innerHTML = 'Carregando...';
+    google.script.run.withFailureHandler(mostrarErroGeral).withSuccessHandler(function (projetos) {
+      google.script.run.withFailureHandler(mostrarErroGeral).withSuccessHandler(function (clientes) {
+        var pid = c ? c.projetoId : (CMW.projetoId || '');
+        var optP = '<option value="">📌 Avulso (sem obra)</option>' + projetos.map(function (p) { return '<option value="' + p.id + '"' + (p.id === pid ? ' selected' : '') + '>' + escaparHtml(p.titulo + (p.nomeCliente ? ' — ' + p.nomeCliente : '')) + '</option>'; }).join('');
+        var cid = c && c.avulso ? c.clienteId : '';
+        var optC = '<option value="">Sem cliente</option>' + clientes.map(function (k) { return '<option value="' + k.id + '"' + (k.id === cid ? ' selected' : '') + '>' + escaparHtml(k.nomeEmpresa || k.nome || '') + '</option>'; }).join('');
+        alvo.innerHTML = '<div class="cartao" style="background:#fafbfc;">' +
+          '<label>Título</label><input id="cmw-t" value="' + escaparHtml(c ? c.titulo : '') + '" placeholder="Ex.: Parada geral - britagem primária">' +
+          '<label>Obra</label><select id="cmw-p" onchange="document.getElementById(\'cmw-cw\').style.display=this.value?\'none\':\'\'">' + optP + '</select>' +
+          '<div id="cmw-cw"' + (pid ? ' style="display:none"' : '') + '><label>Cliente (opcional)</label><select id="cmw-c">' + optC + '</select></div>' +
+          '<label>Descrição (opcional)</label><textarea id="cmw-d" rows="2">' + escaparHtml(c ? c.descricao : '') + '</textarea>' +
+          (c ? '<label>Status</label><select id="cmw-s">' + ['Ativo', 'Concluído', 'Arquivado'].map(function (s) { return '<option' + (s === c.status ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>' : '') +
+          '<div id="cmw-erro" class="mensagem-erro"></div>' +
+          '<button class="botao-primario" style="width:auto;margin-top:8px;" onclick="cmwSalvarCronograma_(\'' + (c ? c.id : '') + '\', this)">Salvar</button> ' +
+          '<button class="botao-secundario" style="width:auto;margin-top:8px;" onclick="document.getElementById(\'cmw-form\').innerHTML=\'\'">Cancelar</button></div>';
+      }).listarClientes(ESTADO.token);
+    }).listarProjetos(ESTADO.token);
+  }
+  function cmwSalvarCronograma_(id, botao) {
+    var p = document.getElementById('cmw-p').value;
+    var dados = { id: id, titulo: document.getElementById('cmw-t').value.trim(), projetoId: p, clienteId: p ? '' : document.getElementById('cmw-c').value,
+      descricao: document.getElementById('cmw-d').value, status: document.getElementById('cmw-s') ? document.getElementById('cmw-s').value : 'Ativo' };
+    if (!dados.titulo) return cmwErro_('Informe o título.');
+    if (botao) botao.disabled = true;
+    google.script.run.withFailureHandler(function (e) { if (botao) botao.disabled = false; cmwErro_(e); })
+      .withSuccessHandler(function (r) { cmwAbrir_(r.id || id); }).salvarCronogramaManual(ESTADO.token, dados);
+  }
+
+  // ---------- detalhe ----------
+  function cmwAbrir_(id) {
+    CMW.id = id; if (!CMW.alvo) CMW.alvo = 'proj-conteudo';
+    cmwEl_().innerHTML = 'Carregando cronograma...';
+    google.script.run.withSuccessHandler(function (c) { CMW.dados = c; cmwDesenhar_(); }).withFailureHandler(mostrarErroGeral)
+      .obterCronogramaManual(ESTADO.token, id);
+  }
+  function cmwGantt_(c) {
+    var es = c.etapas.filter(function (e) { return e.inicioPrevisto || e.inicioReal; });
+    if (!es.length) return '';
+    var hoje = cmwDia_(c.hoje), ini = Math.min(cmwDia_(c.inicio), hoje), fim = Math.max(cmwDia_(c.fim), hoje), tot = Math.max(1, fim - ini + 1);
+    var pos = function (d) { return ((d - ini) / tot) * 100; };
+    var passo = tot > 120 ? 30 : tot > 45 ? 14 : tot > 14 ? 7 : 1, marcas = '';
+    for (var d = ini; d <= fim; d += passo) { var dt = new Date(d * 86400000); marcas += '<span style="position:absolute;left:' + pos(d) + '%;font-size:10px;color:#888;">' + ('0' + dt.getUTCDate()).slice(-2) + '/' + ('0' + (dt.getUTCMonth() + 1)).slice(-2) + '</span>'; }
+    var linhas = c.etapas.map(function (e) {
+      var ip = cmwDia_(e.inicioPrevisto), fp = cmwDia_(e.fimPrevisto), ir = cmwDia_(e.inicioReal), fr = cmwDia_(e.fimReal), b = '';
+      if (ip !== null && fp !== null) b += '<div style="position:absolute;top:3px;height:8px;left:' + pos(ip) + '%;width:' + Math.max(0.6, (fp - ip + 1) / tot * 100) + '%;background:#9db7d9;border-radius:3px;"></div>';
+      if (ir !== null) { var f2 = fr !== null ? fr : hoje; b += '<div style="position:absolute;top:13px;height:8px;left:' + pos(ir) + '%;width:' + Math.max(0.6, (f2 - ir + 1) / tot * 100) + '%;background:' + (fr !== null ? '#f07c00' : 'repeating-linear-gradient(45deg,#f07c00 0 6px,#ffb366 6px 10px)') + ';border-radius:3px;"></div>'; }
+      return '<div style="display:flex;align-items:center;gap:8px;margin:4px 0;"><div style="width:220px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escaparHtml(e.nome) + '">' + e.numero + '. ' + escaparHtml(e.nome) + '</div>' +
+        '<div style="flex:1;position:relative;height:24px;background:#f5f7fa;border-radius:4px;">' + b + '<div style="position:absolute;top:0;bottom:0;left:' + pos(hoje) + '%;width:2px;background:#c62828;"></div></div><div style="width:48px;text-align:right;font-size:12px;font-weight:700;">' + cmwPct_(e.percentual) + '</div></div>';
+    }).join('');
+    return '<div class="cartao"><h3 style="margin-top:0;">Programado × executado</h3>' +
+      '<p style="font-size:12px;color:var(--texto-suave);margin-top:0;"><span style="display:inline-block;width:14px;height:8px;background:#9db7d9;"></span> programado &nbsp; <span style="display:inline-block;width:14px;height:8px;background:#f07c00;"></span> executado &nbsp; <span style="display:inline-block;width:14px;height:8px;background:repeating-linear-gradient(45deg,#f07c00 0 4px,#ffb366 4px 7px);"></span> em andamento &nbsp; <span style="display:inline-block;width:2px;height:10px;background:#c62828;"></span> hoje</p>' +
+      '<div style="display:flex;gap:8px;"><div style="width:220px;"></div><div style="flex:1;position:relative;height:14px;">' + marcas + '</div><div style="width:48px;"></div></div>' + linhas + '</div>';
+  }
+  function cmwDesenhar_() {
+    var c = CMW.dados, pode = cmwPode_();
+    var h = '<div class="barra-acoes"><button class="botao-secundario" style="width:auto;" onclick="cmwAbrirLista_(CMW.projetoId, CMW.projetoNome)">← Voltar aos cronogramas</button></div>';
+    h += '<div class="cartao"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">' +
+      '<div><h3 style="margin:0;">🗓️ ' + escaparHtml(c.titulo) + ' <span class="selo">' + escaparHtml(c.status) + '</span></h3>' +
+      '<p style="color:var(--texto-suave);margin:4px 0 0;">' + (c.avulso ? '📌 Avulso' : '🏗️ ' + escaparHtml(c.projetoTitulo)) + (c.nomeCliente ? ' · ' + escaparHtml(c.nomeCliente) : '') + (c.inicio ? ' · ' + cmwBr_(c.inicio) + ' a ' + cmwBr_(c.fim) : '') + '</p>' +
+      (c.descricao ? '<p style="margin:6px 0 0;">' + escaparHtml(c.descricao) + '</p>' : '') + '</div>' +
+      '<div style="display:flex;gap:18px;text-align:center;"><div><small style="color:var(--texto-suave);">Executado</small><div style="font-size:22px;font-weight:700;color:#f07c00;">' + cmwPct_(c.percentualReal) + '</div></div>' +
+      '<div><small style="color:var(--texto-suave);">Previsto hoje</small><div style="font-size:22px;font-weight:700;">' + cmwPct_(c.percentualPrevisto) + '</div></div>' +
+      '<div><small style="color:var(--texto-suave);">Etapas</small><div style="font-size:22px;font-weight:700;">' + c.concluidas + '/' + c.qtdEtapas + '</div>' + (c.atrasadas ? '<small style="color:#c62828;font-weight:700;">' + c.atrasadas + ' em atraso</small>' : '') + '</div></div></div>' +
+      cmwBarra_(c.percentualReal, c.percentualPrevisto) +
+      '<div class="barra-acoes" style="margin-top:8px;"><button class="botao-secundario" style="width:auto;" onclick="cmwPdf_(this)">📄 PDF</button>' +
+      (pode ? ' <button class="botao-secundario" style="width:auto;" onclick="cmwFormCronograma_(CMW.dados)">✏️ Editar dados</button> <button class="botao-perigo" style="width:auto;" onclick="cmwExcluir_()">Excluir cronograma</button>' : '') +
+      '</div><div id="cmw-form"></div></div>';
+    h += cmwGantt_(c);
+    h += '<div class="cartao"><h3 style="margin-top:0;">Etapas</h3><div id="cmw-erro" class="mensagem-erro"></div><div style="overflow-x:auto;"><table class="tabela" style="font-size:13px;"><thead><tr>' +
+      '<th>#</th><th style="min-width:180px;">Etapa</th><th>Responsável</th><th>Início prev.</th><th>Fim prev.</th><th>Início real</th><th>Fim real</th><th>%</th><th>Situação</th><th style="min-width:160px;">Observação</th>' + (pode ? '<th></th>' : '') + '</tr></thead><tbody>';
+    var linha = function (e, n) {
+      var id = e ? e.id : 'novo', v = function (k) { return e ? escaparHtml(e[k] || '') : ''; };
+      if (!pode) return '<tr><td>' + n + '</td><td>' + v('nome') + '</td><td>' + v('responsavel') + '</td><td>' + cmwBr_(e.inicioPrevisto) + '</td><td>' + cmwBr_(e.fimPrevisto) + '</td><td>' + cmwBr_(e.inicioReal) + '</td><td>' + cmwBr_(e.fimReal) + '</td><td>' + cmwPct_(e.percentual) + '</td><td>' + cmwSelo_(e.situacao) + '</td><td>' + v('observacao') + '</td></tr>';
+      var inp = function (k, tipo, w) { return '<input type="' + tipo + '" data-k="' + k + '" value="' + v(k) + '" style="width:' + w + ';margin:0;padding:4px 6px;">'; };
+      return '<tr id="cmw-l-' + id + '"><td>' + (e ? n : '+') + '</td><td>' + inp('nome', 'text', '100%') + '</td><td>' + inp('responsavel', 'text', '110px') + '</td>' +
+        '<td>' + inp('inicioPrevisto', 'date', '130px') + '</td><td>' + inp('fimPrevisto', 'date', '130px') + '</td><td>' + inp('inicioReal', 'date', '130px') + '</td><td>' + inp('fimReal', 'date', '130px') + '</td>' +
+        '<td><input type="number" data-k="percentual" min="0" max="100" step="5" value="' + (e ? e.percentual : 0) + '" style="width:64px;margin:0;padding:4px 6px;"></td>' +
+        '<td>' + (e ? cmwSelo_(e.situacao) + (e.desvioFimDias > 0 ? '<br><small style="color:#c62828;">' + e.desvioFimDias + ' dia(s) de atraso</small>' : e.desvioFimDias < 0 ? '<br><small style="color:#2e7d32;">' + (-e.desvioFimDias) + ' dia(s) adiantado</small>' : '') : '') + '</td>' +
+        '<td>' + inp('observacao', 'text', '100%') + '</td>' +
+        '<td style="white-space:nowrap;"><button class="botao-primario" style="width:auto;padding:4px 10px;" onclick="cmwSalvarEtapa_(\'' + id + '\', this)">' + (e ? 'Salvar' : 'Adicionar') + '</button>' +
+        (e ? ' <button class="botao-secundario" style="width:auto;padding:4px 8px;" title="Subir" onclick="cmwMover_(\'' + id + '\',-1)">↑</button><button class="botao-secundario" style="width:auto;padding:4px 8px;" title="Descer" onclick="cmwMover_(\'' + id + '\',1)">↓</button> <button class="botao-perigo" style="width:auto;padding:4px 8px;" title="Excluir" onclick="cmwExcluirEtapa_(\'' + id + '\')">✕</button>' : '') + '</td></tr>';
+    };
+    c.etapas.forEach(function (e) { h += linha(e, e.numero); });
+    if (pode) h += linha(null, '');
+    h += '</tbody></table></div><p style="font-size:12px;color:var(--texto-suave);">Preencher o fim real marca a etapa como 100%. Informar % maior que zero sem início real usa a data de hoje como início.</p></div>';
+    cmwEl_().innerHTML = h;
+  }
+  function cmwLerLinha_(id) {
+    var tr = document.getElementById('cmw-l-' + id), d = { id: id === 'novo' ? '' : id };
+    Array.prototype.forEach.call(tr.querySelectorAll('[data-k]'), function (i) { d[i.dataset.k] = i.value; });
+    return d;
+  }
+  function cmwSalvarEtapa_(id, botao) {
+    var d = cmwLerLinha_(id);
+    if (!String(d.nome || '').trim()) return cmwErro_('Informe o nome da etapa.');
+    botao.disabled = true;
+    google.script.run.withFailureHandler(function (e) { botao.disabled = false; cmwErro_(e); })
+      .withSuccessHandler(function () { cmwAbrir_(CMW.id); }).salvarEtapaCronogramaManual(ESTADO.token, CMW.id, d);
+  }
+  function cmwMover_(id, dir) {
+    google.script.run.withFailureHandler(cmwErro_).withSuccessHandler(function () { cmwAbrir_(CMW.id); }).moverEtapaCronogramaManual(ESTADO.token, id, dir);
+  }
+  function cmwExcluirEtapa_(id) {
+    var e = CMW.dados.etapas.filter(function (x) { return x.id === id; })[0];
+    if (!confirm('Excluir a etapa "' + (e ? e.nome : '') + '"?')) return;
+    google.script.run.withFailureHandler(cmwErro_).withSuccessHandler(function () { cmwAbrir_(CMW.id); }).excluirEtapaCronogramaManual(ESTADO.token, id);
+  }
+  function cmwExcluir_() {
+    var c = CMW.dados;
+    if (!confirm('Excluir o cronograma "' + c.titulo + '" e suas ' + c.etapas.length + ' etapa(s)? Não dá para desfazer.')) return;
+    google.script.run.withFailureHandler(cmwErro_).withSuccessHandler(function () { cmwAbrirLista_(CMW.projetoId, CMW.projetoNome); }).excluirCronogramaManual(ESTADO.token, c.id);
+  }
+  function cmwPdf_(botao) {
+    botao.disabled = true; var txt = botao.textContent; botao.textContent = 'Gerando PDF...';
+    google.script.run.withFailureHandler(function (e) { botao.disabled = false; botao.textContent = txt; cmwErro_(e); })
+      .withSuccessHandler(function (r) { botao.disabled = false; botao.textContent = txt; if (r && r.url) window.open(r.url, '_blank'); })
+      .exportarCronogramaManualPdf(ESTADO.token, CMW.id);
+  }
+</script>
